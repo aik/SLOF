@@ -1,19 +1,22 @@
+/******************************************************************************
+ * Copyright (c) 2004, 2007 IBM Corporation
+ * All rights reserved.
+ * This program and the accompanying materials
+ * are made available under the terms of the BSD License
+ * which accompanies this distribution, and is available at
+ * http://www.opensource.org/licenses/bsd-license.php
+ *
+ * Contributors:
+ *     IBM Corporation - initial implementation
+ *****************************************************************************/
 // ============================================================================
-//  * Copyright (c) 2004, 2005 IBM Corporation
-//  * All rights reserved. 
-//  * This program and the accompanying materials 
-//  * are made available under the terms of the BSD License 
-//  * which accompanies this distribution, and is available at
-//  * http://www.opensource.org/licenses/bsd-license.php
-//  * 
-//  * Contributors:
-//  *     IBM Corporation - initial implementation
 // ============================================================================
 
 
 //
 // Copyright 2002,2003,2004  Segher Boessenkool  <segher@kernel.crashing.org>
 //
+
 
 #define NEXT00	goto *cfa->a
 #define NEXT0	cfa = ip->a; NEXT00
@@ -51,6 +54,22 @@ PRIM(TIB) PUSH; TOS.a = the_tib; MIRP
 // For pockets (temporary string buffers).
 PRIM(POCKETS) PUSH; TOS.a = the_pockets; MIRP
 
+// exception register area
+PRIM(EREGS) PUSH; TOS.a = the_exception_frame; MIRP
+
+// client register area
+PRIM(CIREGS) PUSH; TOS.a = the_client_frame; MIRP
+
+// Client stack
+PRIM(CISTACK) PUSH; TOS.a = the_client_stack; MIRP
+
+// compile-in-interpret buffer
+PRIM(COMP_X2d_BUFFER) PUSH; TOS.a = the_comp_buffer; MIRP
+
+// Heap pointers
+PRIM(HEAP_X2d_START) PUSH; TOS.a = the_heap_start; MIRP
+PRIM(HEAP_X2d_END) PUSH; TOS.a = the_heap_end; MIRP
+
 
 
 // Codefields.
@@ -68,12 +87,21 @@ code_DODOES:
 		NEXT0;
 	}
 code_DODEFER:
+	{
+		cfa = (cfa + 1)->a;
+		NEXT00;
+	}
 code_DOALIAS:
 	{
 		cfa = (cfa + 1)->a;
 		NEXT00;
 	}
 code_DOCON:
+	{
+		PUSH;
+		TOS = *(cfa + 1);
+		NEXT;
+	}
 code_DOVAL:
 	{
 		PUSH;
@@ -86,6 +114,10 @@ code_DOFIELD:
 		NEXT;
 	}
 code_DOVAR:
+	{
+		(++dp)->a = cfa + 1;
+		NEXT;
+	}
 code_DOBUFFER_X3a:
 	{
 		(++dp)->a = cfa + 1;
@@ -112,10 +144,22 @@ code_0BRANCH:
 		NEXT;
 	}
 
+// Jump to "defer BP"
+code_BREAKPOINT:
+	{
+		RPUSH; RTOS.a = ip;
+		ip = (cell * ) xt_BP+2;
+		NEXT;
+	}
 
 
 // literals
 code_LIT:
+	{
+		PUSH;
+		TOS = *++ip;
+		NEXT;
+	}
 code_DOTICK:
 	{
 		PUSH;
@@ -146,6 +190,7 @@ PRIM(DEPTH) PUSH; TOS.u = dp - the_data_stack; MIRP
 PRIM(DEPTH_X21) dp = the_data_stack + TOS.u - 1; MIRP
 PRIM(RDEPTH) PUSH; TOS.u = rp - the_return_stack + 1; MIRP
 PRIM(RDEPTH_X21) rp = the_return_stack + TOS.u - 1; POP; MIRP
+PRIM(RPICK) TOS = *(rp - TOS.n); MIRP
 
 // 2.1
 PRIM(_X2b) NOS.u += TOS.u; POP; MIRP
@@ -319,6 +364,13 @@ code_EXIT:
 		ip = (rp--)->a;
 		NEXT;
 	}
+
+code_SEMICOLON:
+	{
+		ip = (rp--)->a;
+		NEXT;
+	}
+
 code_EXECUTE:	// don't need this as prim
 	{
 		cfa = (dp--)->a;
@@ -329,21 +381,149 @@ code_EXECUTE:	// don't need this as prim
 
 
 // 3.1
+#define _FWMOVE(s, d, size, t)	\
+	{ t *s1=(t *)s, *d1=(t *)d; \
+		while (size > 0) { *d1++ = *s1++; size -= sizeof(t); } }
+
+#define _BWMOVE(s, d, size, t)	{ \
+	t *s1=(t *)((char *)s+size), *d1=(t *)((char *)d+size); \
+	while (size > 0) { *--d1 = *--s1; size -= sizeof(t); } \
+}
+
+#define _FWOVERLAP(s, d, size) ((d >= s) && ((type_u)d < ((type_u)s + size))) 
+
+#define	_MOVE(s, d, size, t) if _FWOVERLAP(s, d, size) _BWMOVE(s, d, size, t) else  _FWMOVE(s, d, size, t)
+
+#define _FASTMOVE(s, d, size) \
+	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
+		case 0:			_MOVE(s, d, size, type_u); break; \
+		case sizeof(type_l):	_MOVE(s, d, size, type_l); break; \
+		case sizeof(type_w):	_MOVE(s, d, size, type_w); break; \
+		default:		_MOVE(s, d, size, type_c); break; \
+	}
+
 PRIM(MOVE)
 	type_u n = TOS.u; POP;
 	unsigned char *q = TOS.a; POP;
 	unsigned char *p = TOS.a; POP;
-	if (p >= q || q >= p + n)
-		for (p--, q--; n--; )
-			*++q = *++p;
-	else
-		for (p += n, q += n ; n--; )
-			*--q = *--p;
+
+	_FASTMOVE(p, q, n);
 MIRP
 
+code_FILL:
+	{
+		unsigned char c = (dp--)->u;
+		int size = ((dp--)->n);
+		unsigned char *d = (unsigned char *)((dp--)->u);
+		type_u fill_v=c | c <<8;
 
-PRIM(FLUSHCACHE)
-	type_u n = TOS.u; POP;
-	unsigned char* p = TOS.a; POP;
-	flush_cache(p, n);	
+		fill_v |= fill_v << 16;
+		switch (((type_u)d | (type_u)size) & (sizeof(type_u)-1)) {
+			case 0: {
+				type_u *up = (type_u *)d;
+#ifndef UNIX
+				fill_v |= fill_v << 32;
+#endif
+				while ((size-=sizeof(type_u)) >= 0)
+					*up++ = fill_v;
+			}
+			case sizeof(type_l): {
+				type_l *lp = (type_l *)d;
+
+				while ((size-=sizeof(type_l)) >= 0)
+					*lp++ = (type_l)fill_v;
+			}
+			case sizeof(type_w): {
+				type_w *wp = (type_w *)d;
+
+				while ((size-=sizeof(type_w)) >= 0)
+					*wp++ = (type_w)fill_v;
+			}
+			default:
+				while (size-- > 0)
+					*d++ = (unsigned char)c;
+		}
+		NEXT;
+	}
+
+code_COMP:
+	{
+		int len = ((dp--)->n);
+		unsigned char *addr2 = (unsigned char *)((dp--)->u);
+		unsigned char *addr1 = (unsigned char *)((dp--)->u);
+
+		while (len-- > 0) {
+			if (*addr1 > *addr2) {
+				(++dp)->n = 1;
+				NEXT;
+			}
+			else if (*addr1 < *addr2) {
+				(++dp)->n = -1;
+				NEXT;
+			}
+			addr1 += 1;
+			addr2 += 1;
+		}
+		(++dp)->n = 0;
+		NEXT;
+	}
+
+// Device IO block data helpers
+#define _FWRMOVE(s, d, size, t)	\
+	{ t *s1=(t *)s, *d1=(t *)d; SET_CI; \
+		while (size > 0) { *d1++ = *s1++; size -= sizeof(t); } \
+		CLR_CI; \
+}
+
+#define _BWRMOVE(s, d, size, t)	{ \
+	t *s1=(t *)((char *)s+size), *d1=(t *)((char *)d+size); SET_CI; \
+	while (size > 0) { *--d1 = *--s1; size -= sizeof(t); } \
+		CLR_CI; \
+}
+
+#define	_RMOVE(s, d, size, t) if _FWOVERLAP(s, d, size) _BWRMOVE(s, d, size, t) else  _FWRMOVE(s, d, size, t)
+
+#define _FASTRMOVE(s, d, size) \
+	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
+		case 0:			_RMOVE(s, d, size, type_u); break; \
+		case sizeof(type_l):	_RMOVE(s, d, size, type_l); break; \
+		case sizeof(type_w):	_RMOVE(s, d, size, type_w); break; \
+		default:		_RMOVE(s, d, size, type_c); break; \
+	}
+
+code_RMOVE:
+	{
+		type_u size = ((dp--)->u);
+		type_u *d = (type_u *)((dp--)->u);
+		type_u *s = (type_u *)((dp--)->u);
+
+		_FASTRMOVE(s, d, size);
+		NEXT;
+	}
+
+
+// String compare, case insensitive:
+// : string=ci  ( str1 len1 str2 len2 -- equal? )
+PRIM(STRING_X3d_CI)
+	type_u l2 = TOS.u; POP;
+	unsigned char *p2 = TOS.a; POP;
+	type_u l1 = TOS.u; POP;
+	unsigned char *p1 = TOS.a;
+	extern int toupper(int c);
+
+	if (l1 == l2) {
+		TOS.n = -1;		/* Default to TRUE */
+		while (l1 > 0) {
+			if (toupper(*p1) != toupper(*p2)) {
+				TOS.n = 0;
+				break;
+			}
+			++p1;  ++p2;
+			--l1;
+		}
+	}
+	else {
+		TOS.n = 0;
+	}
 MIRP
+

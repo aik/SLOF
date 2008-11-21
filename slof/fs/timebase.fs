@@ -1,0 +1,19 @@
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
+\ Define all timebase related words
+
+: milliseconds ( -- ms ) tbl@ d# 1000 * tb-frequency / ;
+: microseconds ( -- us ) tbl@ d# 1000000 * tb-frequency / ;
+
+: ms ( ms-to-wait -- ) milliseconds + BEGIN milliseconds over >= UNTIL drop ;
+: get-msecs ( -- n ) milliseconds ;
+: us  ( us-to-wait -- )  microseconds +  BEGIN microseconds over >= UNTIL  drop ;

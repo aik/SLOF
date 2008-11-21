@@ -1,14 +1,14 @@
-\ =============================================================================
-\  * Copyright (c) 2004, 2005 IBM Corporation
-\  * All rights reserved. 
-\  * This program and the accompanying materials 
-\  * are made available under the terms of the BSD License 
-\  * which accompanies this distribution, and is available at
-\  * http://www.opensource.org/licenses/bsd-license.php
-\  * 
-\  * Contributors:
-\  *     IBM Corporation - initial implementation
-\ =============================================================================
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
 
 
 \ Client interface.
@@ -16,6 +16,11 @@
 \ First, the machinery.
 
 VOCABULARY client-voc \ We store all client-interface callable words here.
+
+6789  CONSTANT  sc-exit
+4711  CONSTANT  sc-yield
+
+VARIABLE  client-callback \ Address of client's callback function
 
 : client-data  ciregs >r3 @ ;
 : nargs  client-data la1+ l@ ;
@@ -25,47 +30,100 @@ VOCABULARY client-voc \ We store all client-interface callable words here.
 : stack-to-client-data
   client-data nargs nrets + 2 + la+ nrets 0 ?DO tuck l! /l - LOOP drop ;
 
-: call-client ( p0 p1 client-entry -- )
+: call-client ( args len client-entry -- )
+  \ (args, len) describe the argument string, client-entry is the address of
+  \ the client's .entry symbol, i.e. where we eventually branch to.
+  \ ciregs is a variable that describes the register set of the host processor,
+  \ see slof/fs/exception.fs for details
+  \ client-entry-point maps to client_entry_point in slof/entry.S which is
+  \ the SLOF entry point when calling a SLOF client interface word from the
+  \ client.
+  \ We pass the arguments for the client in R6 and R7, the client interface
+  \ entry point address is passed in R5.
   >r  ciregs >r7 !  ciregs >r6 !  client-entry-point @ ciregs >r5 !
+  \ jump-client maps to call_client in slof/entry.S
+  \ When jump-client returns, R3 holds the address of a NUL-terminated string
+  \ that holds the client interface word the client wants to call, R4 holds
+  \ the return address.
   r> jump-client drop
   BEGIN
     client-data-to-stack
+    \ Now create a Forth-style string, look it up in the client dictionary and
+    \ execute it, guarded by CATCH. Result of xt == 0 is stored on the return
+    \ stack
     client-data l@ zcount
     \ XXX: Should only look in client-voc...
-    ALSO client-voc $find PREVIOUS dup 0= >r
-    IF drop
-    \ XXX: 6789 is magic...
-    CATCH ?dup IF dup 6789 = IF drop r> drop EXIT THEN THROW THEN
-    stack-to-client-data
-    ELSE cr client-data l@ zcount type ."  NOT FOUND" THEN
+    ALSO client-voc $find PREVIOUS
+    dup 0= >r IF 
+      CATCH
+      \ If a client interface word needs some special treatment, like exit and
+      \ yield, then the implementation needs to use THROW to indicate its needs
+      ?dup IF
+        dup CASE
+          sc-exit OF drop r> drop EXIT ENDOF
+          sc-yield OF drop r> drop EXIT ENDOF
+        ENDCASE
+	\ Some special call was made but we don't know that to do with it...
+        THROW
+      THEN
+      stack-to-client-data
+    ELSE
+      cr type ."  NOT FOUND"
+    THEN
+    \ Return to the client
     r> ciregs >r3 !  ciregs >r4 @ jump-client 
   UNTIL ;
 
 : flip-stack ( a1 ... an n -- an ... a1 )  ?dup IF 1 ?DO i roll LOOP THEN ;
 
+: (callback) ( "service-name<>" "arguments<cr>" -- )
+  client-callback @  \ client-callback points to the function prolog
+  dup 8 + @ ciregs >r2 !  \ Set up the TOC pointer (???)
+  @ call-client ;  \ Resolve the function's address from the prolog
+' (callback) to callback
 
+: (continue-client)
+  s" "  \ make call-client happy, client won't use the string anyways.
+  ciregs >r4 @ call-client ;
+' (continue-client) to continue-client
+
+\ Utility.
+: string-to-buffer ( str len buf len -- len' )
+  2dup erase rot min dup >r move r> ;
 
 \ Now come the actual client interface words.
 
 ALSO client-voc DEFINITIONS
 
-: exit  6789 THROW ;
+: exit  sc-exit THROW ;
+
+: yield  sc-yield THROW ;
+
+: test ( zstr -- missing? )
+  \ XXX: Should only look in client-voc...
+  zcount 
+  ALSO client-voc $find PREVIOUS IF nip FALSE ELSE nip nip TRUE THEN 
+  ;
 
 : finddevice ( zstr -- phandle )
-  zcount find-package 0= IF -1 THEN ;
+  zcount find-node dup 0= IF drop -1 THEN ;
 
 : getprop ( phandle zstr buf len -- len' )
-  >r >r zcount rot get-property IF ( data dlen R: buf blen )
-  r> swap dup r> min swap >r move r> ELSE r> r> 2drop -1 THEN ;
+  >r >r zcount rot get-property
+  0= IF r> swap dup r> min swap >r move r>
+  ELSE r> r> 2drop -1 THEN ;
 
 : getproplen ( phandle zstr -- len )
-  zcount rot get-property IF nip ELSE -1 THEN ;
+  zcount rot get-property 0= IF nip ELSE -1 THEN ;
 
 : setprop ( phandle zstr buf len -- size|-1 )
   dup >r here dup >r swap dup allot move r> r>
-  dup >r 2swap swap current-package @ >r set-package
-  zcount property r> set-package r> ;
+  dup >r 2swap swap current-node @ >r set-node
+  zcount property r> set-node r> ;
 
+\ VERY HACKISH
+: canon ( zstr buf len -- len' )
+  over >r move r> zcount nip ;
 
 : nextprop ( phandle zstr buf -- flag ) \ -1 invalid, 0 end, 1 ok
   >r zcount rot next-property IF r> zplace 1 ELSE r> drop 0 THEN ; 
@@ -73,51 +131,70 @@ ALSO client-voc DEFINITIONS
 : open ( zstr -- ihandle )  zcount open-dev ;
 : close ( ihandle -- )  close-dev ;
 
-\ XXX: should return -1 if no such method exists in that node
-: write ( ihandle str len -- len' )       rot s" write" rot $call-method ;
-: read  ( ihandle str len -- len' )       rot s" read"  rot $call-method ;
-: seek  ( ihandle hi lo -- status  ) swap rot s" seek"  rot $call-method ;
+\ Now implemented: should return -1 if no such method exists in that node
+: write ( ihandle str len -- len' )      rot s" write" rot
+	['] $call-method CATCH IF 2drop 3drop -1 THEN ;
+: read  ( ihandle str len -- len' )      rot s" read"  rot
+	['] $call-method CATCH IF 2drop 3drop -1 THEN ;
+: seek  ( ihandle hi lo -- status  ) swap rot s" seek" rot
+	['] $call-method CATCH IF 2drop 3drop -1 THEN ;
 
-: claim ( virt size align -- addr )
-  \ We don't do any assigned-addresses bookkeeping; furthermore, we're
-  \ running with translations off, so just tell the client it can have it.
-  \ XXX: doesn't work if client doesn't ask for a specific address.
-  2drop ;
-: release ( virt size -- )
-  2drop ;
+\ A real claim implementation: 3.2% memory fat :-)
+: claim  ( addr len align -- base )
+   dup  IF  rot drop
+      ['] claim CATCH  IF  2drop -1  THEN
+   ELSE
+      ['] claim CATCH  IF  3drop -1  THEN
+   THEN
+;
+
+: release ( addr len -- ) release ;
 
 : instance-to-package ( ihandle -- phandle )
   ihandle>phandle ;
 
-: instance-to-path ( ihandle buf len -- len' )
-   \ XXX: we do no buffer overflow checking!
-   drop >r ihandle>phandle s" full_name" rot get-property drop
-   r> swap dup >r move r> 1- ;
-
 : package-to-path ( phandle buf len -- len' )
-   \ XXX: we do no overflow checking!
-   drop >r s" full_name" rot get-property IF r> swap dup >r move r> 1-
-   ELSE true ABORT" No full_name property?!?" THEN ;
+  2>r node>path 2r> string-to-buffer ;
+: instance-to-path ( ihandle buf len -- len' )
+  2>r instance>path 2r> string-to-buffer ;
+: instance-to-interposed-path ( ihandle buf len -- len' )
+  2>r instance>qpath 2r> string-to-buffer ;
 
 : call-method ( str ihandle arg ... arg -- result return ... return )
-   nargs flip-stack zcount rot ['] $call-method CATCH
-   dup IF nrets 1 ?DO -444 LOOP THEN
-   nrets flip-stack ;
+  nargs flip-stack zcount rot ['] $call-method CATCH
+  nrets 0= IF drop ELSE \ if called with 0 return args do not return the catch result
+     dup IF nrets 1 ?DO -444 LOOP THEN
+     nrets flip-stack 
+  THEN ;
 
-: interpret ( ... zstr -- result ... )
-  \ XXX: we just throw away the arguments.
-  nargs 0 ?DO drop LOOP  nrets 1 ?DO -555 LOOP  -667 ;
+\ From the PAPR.
+: test-method ( phandle str -- missing? )
+  zcount rot find-method dup IF nip THEN 0= ;
 
-\ XXX: no real clock, but monotonically increasing, at least ;-)
-VARIABLE milliseconds
-: milliseconds  milliseconds @  1 milliseconds +! ;
+: milliseconds  milliseconds ;
 
 : start-cpu ( phandle addr r3 -- )
-  \ phandle isn't actually used, but that's no problem on a 2-CPU system.
-  3fc0 l! 3f80 l! 3f40 l! ;
+  >r >r 
+  s" reg" rot get-property 0= IF drop l@ 
+    ELSE true ABORT" start-cpu called with invalid phandle" THEN 
+  r> r> of-start-cpu drop
+;
 
-\ Just to shut up warnings resulting from Linux calling this whether it
-\ exists or not.  It isn't even standard, but hey.
-: quiesce ;
+\ Quiesce firmware and assert that all hardware is in a sane state
+\ (e.g. assert that no background DMA is running anymore)
+: quiesce  ( -- )
+   \ The main quiesce call is defined in quiesce.fs
+   quiesce
+;
+
+\
+\ User Interface, defined in 6.3.2.6
+\
+: interpret ( ... zstr -- result ... )
+  zcount ['] evaluate CATCH ;
+
+\ Allow the client to register a callback
+: set-callback ( newfunc -- oldfunc )
+  client-callback @ swap client-callback ! ;
 
 PREVIOUS DEFINITIONS

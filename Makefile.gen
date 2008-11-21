@@ -1,0 +1,160 @@
+# *****************************************************************************
+# * Copyright (c) 2004, 2007 IBM Corporation
+# * All rights reserved.
+# * This program and the accompanying materials
+# * are made available under the terms of the BSD License
+# * which accompanies this distribution, and is available at
+# * http://www.opensource.org/licenses/bsd-license.php
+# *
+# * Contributors:
+# *     IBM Corporation - initial implementation
+# ****************************************************************************/
+
+
+MAKEARG = BOARD=$(BOARD) PLATFORM=$(PLATFORM) FLAG=$(FLAG) TARG=$(TARG)
+
+BUILDS  = tools_build romfs_build
+
+include ../make.rules
+
+ifdef DRIVER
+RELEASE=$(shell cat ../VERSION)
+export DRIVER_NAME=$(shell cat ../VERSION | sed -e "s/-/./g" | awk -F . '{ printf("%s%02x%02x%1x%02x",$$1,$$2,$$3,$$4,$$5); }')
+else
+RELEASE="$(USER)@$(HOSTNAME)(private build)"
+export DRIVER_NAME=HEAD
+endif
+
+DRVDATE=$(shell date +%Y-%h%d)
+
+FLASH_SIZE_MB = `echo $$[ $(FLASH_SIZE)/1024/1024 ]`
+
+
+llfw_disassembly:
+		make -C $(LLFWBRDDIR) stage1.dis stage2.dis stageS.dis
+
+clients_build:
+		@echo " ====== Building clients ======"
+		make -C ../clients $(MAKEARG)
+
+other_licence_build:
+		make -C ../other-licence $(MAKEARG)
+
+tools_build:
+		make -C ../tools
+
+romfs_build:
+		make -C ../romfs/tools $(MAKEARG)
+
+../build_info.img:
+		@echo "$(CC)" > ../build_info.img
+		@$(CC) -v >> ../build_info.img 2>&1
+		@$(LD) -V >> ../build_info.img 2>&1
+
+boot_rom.bin: 	$(BUILDS) ../romfs/copyright.img ../build_info.img
+		@echo " ====== Building $@ ======"
+		@if [ -e $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs ]; then \
+			cat $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs > ../.boot_rom.ffs; \
+		else \
+			cat $(ROMFSBRDDIR)/boot_rom.ffs > ../.boot_rom.ffs; \
+		fi
+		cat $(PCDBRDDIR)/pcdfiles.ffs >> ../.boot_rom.ffs
+		cat $(SLOFBRDDIR)/OF.ffs >> ../.boot_rom.ffs
+		@echo build_info.img  build_info.img 0 0 >> ../.boot_rom.ffs
+		cd .. && ./romfs/tools/build_romfs .boot_rom.ffs boot_rom.bin
+		cd .. && if [ -f boot_rom.bin.gz ]; then rm -f boot_rom.bin.gz; gzip -9 boot_rom.bin; fi
+		rm -f ../.boot_rom.ffs
+
+boot_xdr.bin: 	$(BUILDS) ../romfs/copyright.img ../build_info.img
+		@echo " ====== Building $@ ======"
+		@if [ -e $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs ]; then \
+			cat $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs > ../.boot_xdr.ffs; \
+		else \
+			cat $(ROMFSBRDDIR)/boot_rom.ffs > ../.boot_xdr.ffs; \
+		fi
+		cat $(PCDBRDDIR)/pcdfiles.ffs >> ../.boot_xdr.ffs
+		@echo build_info.img build_info.img 0 0 >> ../.boot_xdr.ffs
+		cat ./slof/OF.ffs >> ../.boot_xdr.ffs
+		cd .. && ./romfs/tools/build_romfs .boot_xdr.ffs boot_xdr.bin
+		rm -f ../.boot_xdr.ffs
+
+../boot_l2b.bin:	$(BUILDS) ../romfs/copyright.img
+		@if [ -e $(ROMFSBRDDIR)/boot_l2.$(SUBBOARD).ffs ]; then \
+			cd .. && ./romfs/tools/build_romfs $(ROMFSBRDDIR)/boot_l2.$(SUBBOARD).ffs boot_l2b.bin; \
+		else \
+			cd .. && ./romfs/tools/build_romfs $(ROMFSBRDDIR)/boot_l2.ffs boot_l2b.bin; \
+		fi
+
+boot_l2-dd2.ad: ../boot_l2b.bin
+		@cd ../tools && ./elf2l2 dd2 ../boot_l2b.bin 0 ../boot_l2-dd2.ad
+
+external_flasher: ../boot_rom.bin
+		../tools/make-flasher-image.sh $(FLASH_SIZE) ../boot_rom.bin \
+                        ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin
+
+driver_dirs:
+		@rm -rf ../driver-$(RELEASE)
+		@mkdir -p ../driver-$(RELEASE)/{rom,l2b,disassemblies}
+
+driver_prep:
+		@echo "Building driver "$(RELEASE)" for $(BOARD)"
+
+copy_disassemblies:	llfw_disassembly
+		cp $(LLFWBRDDIR)/stage1.dis  \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-stage1.dis
+		cp $(LLFWBRDDIR)/stage2.dis  \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-stage2.dis
+		cp $(LLFWBRDDIR)/stageS.dis  \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-stageS.dis
+		cp ../llfw/meminit.dis  \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-meminit.dis
+		@if [ -e ../clients/snk/client.dis ]; then cp ../clients/snk/client.dis \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-client.dis; fi
+		@if [ -e ../llfw/meminit_l2b.dis ]; then cp ../llfw/meminit_l2b.dis \
+			../driver-$(RELEASE)/disassemblies/$(RELEASE)-meminit_l2b.dis; \
+		fi
+
+copy_driver:	copy_disassemblies external_flasher
+		mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \
+			../driver-$(RELEASE)/rom/$(RELEASE)-boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin
+		mv ../boot_rom.bin \
+			../driver-$(RELEASE)/rom/$(RELEASE)-boot_rom.bin
+		mv ../boot_l2-dd2.ad \
+			../driver-$(RELEASE)/l2b/
+		mv ../boot_xdr.bin \
+			../driver-$(RELEASE)/l2b/
+		cp ../VERSION ../driver-$(RELEASE)
+		cd ../driver-$(RELEASE) && md5sum rom/*.bin > md5sum.txt
+
+tar_gz:		copy_driver
+		@cp -a ../driver-$(RELEASE) ../driver-$(RELEASE)-$(DRVDATE)-devel
+		tar czf ../driver-$(RELEASE)-$(DRVDATE)-devel.tar.gz \
+			../driver-$(RELEASE)-$(DRVDATE)-devel > /dev/null 2>&1
+		@rm -rf ../driver-$(RELEASE)-$(DRVDATE)-devel
+		@rm -rf ../driver-$(RELEASE)/disassemblies
+		@mv ../driver-$(RELEASE) ../driver-$(RELEASE)-$(DRVDATE)
+		tar czf ../driver-$(RELEASE)-$(DRVDATE).tar.gz \
+			../driver-$(RELEASE)-$(DRVDATE) > /dev/null  2>&1
+		@rm -rf ../driver-$(RELEASE)-$(DRVDATE)
+
+clean_top:
+		@rm -f ../build_info.img
+		@rm -f ../.crc_flash
+
+clean_gen:	clean_top
+		make -C ../romfs/tools BOARD=$(BOARD) clean
+		make -C ../tools clean
+		make -C ../other-licence clean
+		make -C ../clients clean
+		@for dir in $(COMMON_LIBS); do \
+			$(MAKE) -C ../lib/$$dir clean || exit 1; \
+		done
+
+distclean_gen:	clean_top
+		make -C ../romfs/tools BOARD=$(BOARD) distclean
+		make -C ../tools distclean
+		make -C ../other-licence distclean
+		make -C ../clients distclean
+		@for dir in $(COMMON_LIBS); do \
+			$(MAKE) -C ../lib/$$dir distclean || exit 1; \
+		done

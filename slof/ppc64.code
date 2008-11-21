@@ -1,33 +1,18 @@
-// ============================================================================
-//  * Copyright (c) 2004, 2005 IBM Corporation
-//  * All rights reserved. 
-//  * This program and the accompanying materials 
-//  * are made available under the terms of the BSD License 
-//  * which accompanies this distribution, and is available at
-//  * http://www.opensource.org/licenses/bsd-license.php
-//  * 
-//  * Contributors:
-//  *     IBM Corporation - initial implementation
-// ============================================================================
+/******************************************************************************
+ * Copyright (c) 2004, 2007 IBM Corporation
+ * All rights reserved.
+ * This program and the accompanying materials
+ * are made available under the terms of the BSD License
+ * which accompanies this distribution, and is available at
+ * http://www.opensource.org/licenses/bsd-license.php
+ *
+ * Contributors:
+ *     IBM Corporation - initial implementation
+ *****************************************************************************/
 
 
 // This file contains the implementation of the Forth code words specific
 // to PowerPC64.  Some of this is 970-only.
-
-// Set and clear the RM_CI bit in HID4.  Needed for all I/O accesses.
-#define SET_CI do { \
-	unsigned long hid4; \
-	asm volatile("mfspr %0,1012" : "=r"(hid4)); \
-	hid4 |= 0x0000010000000000UL; \
-	asm volatile("slbia ; sync ; mtspr 1012,%0 ; isync" : "+r"(hid4)); \
-} while (0)
-
-#define CLR_CI do { \
-	unsigned long hid4; \
-	asm volatile("mfspr %0,1012" : "=r"(hid4)); \
-	hid4 &= ~0x0000010000000000UL; \
-	asm volatile("sync ; mtspr 1012,%0 ; isync" : "+r"(hid4)); \
-} while (0)
 
 // The I/O accesses themselves.
 PRIM(RB_X40) GET_CHAR1; SET_CI; GET_CHAR2; CLR_CI; GET_CHAR3; MIRP
@@ -36,6 +21,8 @@ PRIM(RW_X40) GET_WORD1; SET_CI; GET_WORD2; CLR_CI; GET_WORD3; MIRP
 PRIM(RW_X21) PUT_WORD1; SET_CI; PUT_WORD2; CLR_CI; MIRP
 PRIM(RL_X40) GET_LONG1; SET_CI; GET_LONG2; CLR_CI; GET_LONG3; MIRP
 PRIM(RL_X21) PUT_LONG1; SET_CI; PUT_LONG2; CLR_CI; MIRP
+PRIM(RX_X40) GET_XONG1; SET_CI; GET_XONG2; CLR_CI; GET_XONG3; MIRP
+PRIM(RX_X21) PUT_XONG1; SET_CI; PUT_XONG2; CLR_CI; MIRP
 
 // 970-specific CPU registers.
 PRIM(HID0_X21)
@@ -51,7 +38,7 @@ MIRP
 
 PRIM(HID1_X21)
 	unsigned long hid1 = TOS.u;
-	asm volatile("mtspr 1009,%0 ; mtspr 1009,%0 ; isync" : "+r"(hid1));
+	asm volatile("mtspr 1009,%0 ; mtspr 1009,%0 ; isync" : : "r"(hid1));
 	POP;
 MIRP
 
@@ -62,7 +49,7 @@ MIRP
 
 PRIM(HID4_X21)
 	unsigned long hid4 = TOS.u;
-	asm volatile("sync ; mtspr 1012,%0 ; isync" : "+r"(hid4));
+	asm volatile("sync ; mtspr 1012,%0 ; isync" : : "r"(hid4));
 	POP;
 MIRP
 
@@ -73,7 +60,7 @@ MIRP
 
 PRIM(HID5_X21)
 	unsigned long hid5 = TOS.u;
-	asm volatile("mtspr 1014,%0" : "+r"(hid5));
+	asm volatile("mtspr 1014,%0" : : "r"(hid5));
 	POP;
 MIRP
 
@@ -85,7 +72,7 @@ MIRP
 // PowerPC special registers.
 PRIM(MSR_X21)
 	unsigned long msr = TOS.u;
-	asm volatile("mtmsrd %0" : "+r"(msr));
+	asm volatile("mtmsrd %0" : : "r"(msr));
 	POP;
 MIRP
 
@@ -96,7 +83,7 @@ MIRP
 
 PRIM(SDR1_X21)
 	unsigned long sdr1 = TOS.u;
-	asm volatile("mtsdr1 %0" : "+r"(sdr1));
+	asm volatile("mtsdr1 %0" : : "r"(sdr1));
 	POP;
 MIRP
 
@@ -127,7 +114,7 @@ MIRP
 
 PRIM(DABR_X21)
 	unsigned long dabr = TOS.u;
-	asm volatile("mtspr 1013,%0" : "+r"(dabr));
+	asm volatile("mtspr 1013,%0" : : "r"(dabr));
 	POP;
 MIRP
 
@@ -138,7 +125,7 @@ MIRP
 
 PRIM(HIOR_X21)
 	unsigned long dabr = TOS.u;
-	asm volatile("mtspr 311,%0" : "+r"(dabr));
+	asm volatile("mtspr 311,%0" : : "r"(dabr));
 	POP;
 MIRP
 
@@ -147,9 +134,78 @@ PRIM(HIOR_X40)
 	asm volatile("mfspr %0,311" : "=r"(TOS));
 MIRP
 
+
+
+PRIM(SPRG0_X21)
+	unsigned long sprg0 = TOS.u;
+	asm volatile("mtsprg0 %0" : "+r"(sprg0));
+	POP;
+MIRP
+
+PRIM(SPRG0_X40)
+	PUSH;
+	asm volatile("mfsprg0 %0" : "=r"(TOS));
+MIRP
+
+PRIM(SPRG1_X21)
+	unsigned long sprg1 = TOS.u;
+	asm volatile("mtsprg1 %0" : "+r"(sprg1));
+	POP;
+MIRP
+
+PRIM(SPRG1_X40)
+	PUSH;
+	asm volatile("mfsprg1 %0" : "=r"(TOS));
+MIRP
+
+PRIM(SPRG2_X21)
+	unsigned long sprg2 = TOS.u;
+	asm volatile("mtsprg2 %0" : "+r"(sprg2));
+	POP;
+MIRP
+
+PRIM(SPRG2_X40)
+	PUSH;
+	asm volatile("mfsprg2 %0" : "=r"(TOS));
+MIRP
+
+PRIM(SPRG3_X21)
+	unsigned long sprg3 = TOS.u;
+	asm volatile("mtsprg3 %0" : "+r"(sprg3));
+	POP;
+MIRP
+
+PRIM(SPRG3_X40)
+	PUSH;
+	asm volatile("mfsprg3 %0" : "=r"(TOS));
+MIRP
+
+PRIM(HSPRG0_X21)
+	unsigned long hsprg0 = TOS.u;
+	asm volatile("mtspr 304,%0" : "+r"(hsprg0));
+	POP;
+MIRP
+
+PRIM(HSPRG0_X40)
+	PUSH;
+	asm volatile("mfspr %0,304" : "=r"(TOS));
+MIRP
+
+PRIM(HSPRG1_X21)
+	unsigned long hsprg1 = TOS.u;
+	asm volatile("mtspr 305,%0" : "+r"(hsprg1));
+	POP;
+MIRP
+
+PRIM(HSPRG1_X40)
+	PUSH;
+	asm volatile("mfspr %0,305" : "=r"(TOS));
+MIRP
+
+
 PRIM(MMCR0_X21)
 	unsigned long mmcr0 = TOS.u;
-	asm volatile("sync ; mtspr 795,%0 ; isync" : "+r"(mmcr0));
+	asm volatile("sync ; mtspr 795,%0 ; isync" : : "r"(mmcr0));
 	POP;
 MIRP
 
@@ -158,20 +214,50 @@ PRIM(PMC1_X40)
 	asm volatile("sync ; mfspr %0,787" : "=r"(TOS));
 MIRP
 
+PRIM(ICBI)
+	asm volatile("dcbst 0,%0 ; sync ; icbi 0,%0 ; sync ; isync" : : "r"(TOS));
+	POP;
+MIRP
 
 // Call into the client program.
 PRIM(JUMP_X2d_CLIENT)
 	TOS.u = call_client(TOS);
 MIRP
 
-// Call an object-code only routine.
-PRIM(OCO)
-	cell p0 = TOS; POP;
-	cell p1 = TOS;
-	TOS.u = oco(p0, p1);
-MIRP
 
 // Hang.  Useful for debugging, believe it or not.
 PRIM(CRASH)
 	for (;;) ;
+MIRP
+
+PRIM(START_X2d_RTAS)
+	cell e = TOS; POP;
+	cell p1 = TOS; POP;
+	cell p0 = TOS;
+	TOS.u = call_c(p0, p1, (cell)0UL, e);
+MIRP
+
+PRIM(CALL_X2d_C)
+	cell e = TOS; POP;
+	cell p2 = TOS; POP;
+	cell p1 = TOS; POP;
+	cell p0 = TOS;
+	TOS.u = call_c(p0, p1, p2, e);
+MIRP
+
+PRIM(FLUSHCACHE)
+	type_u n = TOS.u; POP;
+	unsigned char* p = TOS.a; POP;
+	flush_cache(p, n);	
+MIRP
+
+PRIM(DEC_X21)
+	unsigned long dec = TOS.u;
+	asm volatile("mtdec %0" : "+r"(dec));
+	POP;
+MIRP
+
+PRIM(DEC_X40)
+	PUSH;
+	asm volatile("mfdec %0" : "=r"(TOS));
 MIRP

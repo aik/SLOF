@@ -1,228 +1,84 @@
-Slimline Open Firmware for JS20
+Slimline Open Firmware - SLOF
 
-Copyright (C) 2005, IBM Corporation
-
-
-In order to use SLOF, there are certain requirements on the build and
-target system.
-
-	Target system:
-
-	- IBM BladeCenter JS20 1.6GHz or 2.2GHz machine
-	  - MAKE SURE you have the latest firmware revision
-	    installed, ALSO on the permanent side of the flash!
-	- Linux 2.6.10 or newer
-	  - Older versions will not run correctly.
-	  - An example configuration file is provided.
-	- ppc64-utils installed
-	- Suitable Low Level Firmware. See BUILD for requirements.
-
-	- Specific configuration
-	  - The blade server needs to have an ATA harddisk
-	    installed on the first connector; the disk needs
-	    to be partitioned with a PReP boot partition as
-	    the first physical partition on the system, i.e.,
-	    starting at sector 63.  The root partition of your
-	    Linux system should be /dev/hda3.  For example:
-
-	Disk /dev/hda: 16 heads, 63 sectors, 77520 cylinders
-	Units = cylinders of 1008 * 512 bytes
-
-	   Device Boot    Start       End    Blocks   Id  System
-	/dev/hda1   *         1         7      3496+  41  PPC PReP Boot
-	/dev/hda2             8      2088   1048824   82  Linux swap
-	/dev/hda3          2089     77520  38017728   83  Linux
-
-	Build system:
-
-	- Recent GNU tools, configured for powerpc64-linux
-	  - GCC: 3.3.3 and newer are known to work, but GCC 4.0
-	    and later do _not_ work.
-	  - Binutils: use a version as new as possible.
+Copyright (C) 2005, 2007 IBM Corporation
 
 
-BUILD 
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+BUILD
+===============================================================================
 
- On the build system:
+ To build SLOF you need:
+  - Recent GNU tools, configured for powerpc64-linux
+    - GCC: 3.3.3 and newer are known to work
+    - Binutils: use a version as new as possible
 
- - Edit the Makefile or set CROSS and/or CC  in the environment to
-   the right path to the tools, if the default tools do not satisfy
-   the requirements mentioned above. 
- 
- - Two more files are required to build a boot-able image: 
-   + startup.o: Low Level Firmware 
-   + oco.o: Contains functions for reboot, halt, boot watchdog
-	and other board specific functions.
-   There is a description in the README file, how to implement your
-   own board specific oco.o and startup.o. 
-   This files might be provided for test purposes on a JS20 board 
-   from a website which have to be defined.
+  - set the CROSS variable
+    - something like export CROSS="powerpc64-unknown-linux-gnu-"
+      when using a cross compiler
+    or
+    - export CROSS=""
+      when using a native compiler
 
- - make  
+  - four more files to build a bootable image:
+    - libipmi.oco
+    - takeover.oco
+    - i2c_bmc.oco
+    - ipmi_oem.oco
+    these files are also provided through developerworks and have to be
+    also downloaded just like the SLOF source code
 
+  - make js2x
 
 INSTALL
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+===============================================================================
 
- Read [1] and [2] for documentation of flash handling and console support. 
- The convention in this section for the commands to issue are:
-   - 0 > 	: Firmware prompt 
-   - $ 		: Linux prompt
-   - boot:	: yaboot prompt
+ Detailed information about how to use SLOF on JS20 and JS21 can be found in
+ the document FlashingSLOF.pdf
 
- On the target system:
+ The JS20 and JS21 blades both have 2 "flashsides". They have a 8MB flash part
+ which is divided into a 4MB "temporary" side and a 4MB "permanent" side.
 
- - make sure you are using the latest IBM provided firmware updates.  
-   This can be done on Linux by issuing
+ The temporary side is the flashside used for the normal operation and the
+ permanent side is used as a backup if the temporary should ever fail.
 
-   $ cat /proc/device-tree/openprom/ibm,fw-temp-bank
-   $ cat /proc/device-tree/openprom/ibm,fw-perm-bank
-   $ cat /proc/device-tree/openprom/ibm,fw-bank 
+ Therefore it is important that the permanent flash side is not changed so
+ that if ever required the original firmware can be restored.
 
-   The temp and perm bank should the same and the fw-bank need 
-   to be 'T'.
-   If not, read the User's guide [1] how to achieve this state and see (1). 
-   This point is very important, since you might end with a broken
-   firmware on the PERM side and SLOF on the TEMP side and no way 
-   to restore ther PERM side, since SLOF provides no flashing capability.
+ SLOF usually warns or in most cases does not easily allow to overwrite the
+ permanent side.
 
- - install a recent kernel (as discribed above) into /boot; a sample
-   .config is included as linux.config.js20 in the SLOF distribution.
-
-   To build a reference kernel boot-able with slof, download a kernel
-   source tree from http://www.kernel.org/ and copy the linux.config.js20
-   to the unpacked kernel source tree as .config as shown here:
-
-    cp linux.config.js20 /usr/src/linux-2.6.XX/.config
-    (NOTE: You have to set the right path to your kernel sources and
-     the right revision number)
-
-   Then compile the kernel as described in Linux Kernel Documentation
-   and install it on a primary partition on the first hard drive.
-
- - change /etc/yaboot.conf appropriately
-   The default yaboot.conf contains Open Firmware paths that can not be
-   interpreted correctly by SLOF, so you have to make changes in
-   /etc/yaboot.conf.
-
-   Example:
-    # header section
-    timeout = 100 # set boot timeout to 10 seconds
-    default = linux # set default bootimage to linux
-
-    # image section
-    image = disk:3,/boot/vmlinux        # Specify correct kernel image here
-                                        # as disk:(partno),(path)
-    label = linux                       # Name of image
-    root = /dev/hda3                    # Set root device
-    append = "selinux=0 elevator=cfq"   # Kernel command line
-    initrd = disk:3,/boot/initrd        # Initrd if needed
- 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !                                                           ! 
+ !                                                           !
  ! WITH THE FOLLOWING STEPS YOU MIGHT DESTROY YOUR FIRMWARE  !
- ! IMAGE AND LOOSE YOUR WARRANTY !                           !     
+ ! IMAGE AND LOOSE YOUR WARRANTY !                           !
  ! YOU MAY NEED TO CALL SERVICE, IF THE FIRMWARE IMAGE IS    !
  ! DESTROYED !                                               !
  !                                                           !
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
- $ update_flash -f slof.img
-   
-   This will put SLOF on the temp side of the flash and reboot the
-   system to the firmware boot prompt.  You will need to use a console
-   connection (like, serial-over-lan) to interact with SLOF or yaboot.
+UNINSTALL
+===============================================================================
 
- - After power up or reset, SLOF prints out a startup message and then
-   enters the firmware prompt. Here you have to enter 
-
-    yaboot
-
-   to start the secondary bootloader yaboot.
-   (NOTE: SLOF does not start yaboot automatically due to lack of NVRAM
-    support.)
-
- - On the SOL console (see [2]):
-
- 0 > boot
-
-   otherwise type
-
- 0 > set-bootpart <partn> 
- 0 > boot 
-   
-   where <partn> is the number of the partition, yaboot.conf resides on.
-
- - On yaboot prompt choose the right kernel
-
- boot: linux-slof
-
- - have a lot of fun...
-
-   SLOF is a slimline Open Firmware and provides only a minimalistic
-   device-tree and has no RTAS support. For example, you cannot
-   check the flash-side or use update flash or reboot the system.
-
-Trouble-shooting
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
- - update_flash does not end at the boot prompt
-   -> It may take a couple minutes, if for some reason
-      the SLOF image has a problem. In this case, the 
-      boot timer will start from the PERM side.
-      
-      $ update_flash -r 
-	
-      will restore your system to the initial state. see (1)
-
- - boot does start yaboot, but does not find the config file.
-   -> on the console type after yaboot / firmware prompt.
-      boot: bye
-      0 > set-bootpart <partn>
-
- - Linux does not boot
-   -> Compile the right kernel 
-      Reboot the blade
-      0 > other-firmware
-      
-      This will boot into the original firmware and OS
-      In Linux start over again (building linux kernel, etc. ) see (1)
-
-      Pull out blade out of the blade center to force the
-      blade to boot from the TEMP side again
-         	
-Uninstall
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-If you want to boot the original firmware again, you need to
-boot the blade from the management module. 
-On the SLOF command line, type:
+ If you want to boot the original firmware again, you need to boot the blade 
+ from the management module. If auto-boot is enabled you have to press "s"
+ to reach the firmware prompt.
+ On the SLOF command line, type:
 
   0 > other-firmware
 
-and it should get you back to running the original firmware.
-To permanently get it back, after booting Linux from there,
-type
+ and it should get you back to running the original firmware. To permanently 
+ get it back, after booting Linux from there, type
 
   $ update_flash -r
   $ halt
+ 
+ You will boot on the PERM side. To boot from the TEMP side again, you need to
+ restart the Blade System MGMT Processor.
 
-(1) You will boot on the PERM side. To boot from the TEMP side
-    again, you need to restart the Blade System MGMT Processor.
-
-    Following steps are needed on 
-	Management Module -> Blade Tasks -> Power/Restart
-	
-	Power Off Blade
-	Restart Blade System Mgmt Processor
-	Power On Blade
-
-Documentation
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-[1] Installation and User's Guide - IBM eServer BladeCenter JS20 :
-   
-[2] IBM eServer BladeCenter JS20 quick set up guide : http://www-128.ibm.com/developerworks/linux/library/l-pow-js20quickstart/
+    Following steps are needed on
+        Management Module -> Blade Tasks -> Power/Restart
+        
+        Power Off Blade
+        Restart Blade System Mgmt Processor 
+        Power On Blade

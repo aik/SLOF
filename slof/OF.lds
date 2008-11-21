@@ -1,29 +1,62 @@
-/* ============================================================================= */
-/*  * Copyright (c) 2004, 2005 IBM Corporation
-/*  * All rights reserved. 
-/*  * This program and the accompanying materials 
-/*  * are made available under the terms of the BSD License 
-/*  * which accompanies this distribution, and is available at
-/*  * http://www.opensource.org/licenses/bsd-license.php
-/*  * 
-/*  * Contributors:
-/*  *     IBM Corporation - initial implementation
-/* ============================================================================= */
-
+/******************************************************************************
+ * Copyright (c) 2004, 2007 IBM Corporation
+ * All rights reserved.
+ * This program and the accompanying materials
+ * are made available under the terms of the BSD License
+ * which accompanies this distribution, and is available at
+ * http://www.opensource.org/licenses/bsd-license.php
+ *
+ * Contributors:
+ *     IBM Corporation - initial implementation
+ *****************************************************************************/
 
 OUTPUT_FORMAT("elf64-powerpc", "elf64-powerpc", "elf64-powerpc")
 OUTPUT_ARCH(powerpc:common64)
+ENTRY(_start_OF)
+
 
 SECTIONS
 {
-	.slof.vectors 0	: { *(.slof.vectors) }
+        . = 0xE100000;
+        _slof_start = .;
+	. = 0x0E10C000;
+	.slof.loader : { *(.slof.loader) }
+	. = 0x0E110000; /* + SIZEOF_HEADERS; */
+	_slof_text = .;
+	_start_OF = .;
+/*	.rela : { *(.rela.*) } */
+	.text : { *(.entry_text) *(.text) } = 0x60000000
+	_slof_text_end = .;
+	. = ALIGN(8);
+	_slof_text_size = (_slof_text_end - _slof_text);
 
-	.slof.text 0x1110000 : { *(.text) } = 0x60000000
-
-	.slof.data 0x1120000 : {
-		KEEP (*(.opd))
-		. = ALIGN(8);
-		*(.got .toc)
-		*(.data .data.*)
+	. = ALIGN(0x1000);
+	.opd : 
+	{ 
+		_slof_data = .;
+		*(.opd)
 	}
+	. = ALIGN(8);
+	.got :
+	{
+		*(.got .toc)
+	}
+	.data : { *(.rodata .rodata.*) *(.data .data.*) }
+	.comment : { *(.comment) }
+	.branch_lt : { *(.branch_lt) }
+
+	. = ALIGN(8);
+	_slof_data_end = .;
+	_slof_data_size = (_slof_data_end - _slof_data);
+
+	.bss :
+	{
+	  _slof_bss = .;
+	  *(*COM* .bss .sbss .gnu.linkonce.b.*)
+	  _slof_bss_end = .;
+	}
+	_slof_bss_size = (_slof_bss_end - _slof_bss);
+	
+	. = ALIGN(0x1000);
+	_slof_here_start = .;
 }

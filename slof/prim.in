@@ -1,13 +1,15 @@
+/******************************************************************************
+ * Copyright (c) 2004, 2007 IBM Corporation
+ * All rights reserved.
+ * This program and the accompanying materials
+ * are made available under the terms of the BSD License
+ * which accompanies this distribution, and is available at
+ * http://www.opensource.org/licenses/bsd-license.php
+ *
+ * Contributors:
+ *     IBM Corporation - initial implementation
+ *****************************************************************************/
 // ============================================================================
-//  * Copyright (c) 2004, 2005 IBM Corporation
-//  * All rights reserved. 
-//  * This program and the accompanying materials 
-//  * are made available under the terms of the BSD License 
-//  * which accompanies this distribution, and is available at
-//  * http://www.opensource.org/licenses/bsd-license.php
-//  * 
-//  * Contributors:
-//  *     IBM Corporation - initial implementation
 // ============================================================================
 
 
@@ -17,9 +19,19 @@
 
 cod(TIB)
 cod(POCKETS)
+cod(EREGS)
+cod(CIREGS)
+cod(CISTACK)
+// compile buffer for the "structure words in interpret mode" OF extension
+cod(COMP-BUFFER)
+
+cod(HEAP-START)
+cod(HEAP-END)
 
 cod(BRANCH) _ADDING _O
 cod(0BRANCH) _ADDING _O
+dfr(BP)
+cod(BREAKPOINT)
 
 cod(LIT) _ADDING _N
 cod(DOTICK)
@@ -33,6 +45,7 @@ cod(SWAP)
 cod(>R)
 cod(R>)
 cod(R@)
+cod(RPICK)
 
 cod(DEPTH)
 cod(DEPTH!)
@@ -74,8 +87,13 @@ cod(DOLEAVE) _ADDING _O
 cod(DO?LEAVE) _ADDING _O
 
 cod(EXIT)
+cod(SEMICOLON)
 cod(EXECUTE)
 
 cod(MOVE)
+// cod(RMOVE64)
+cod(RMOVE)
 
-cod(FLUSHCACHE)
+
+
+

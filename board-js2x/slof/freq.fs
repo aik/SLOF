@@ -1,14 +1,14 @@
-\ =============================================================================
-\  * Copyright (c) 2004, 2005 IBM Corporation
-\  * All rights reserved. 
-\  * This program and the accompanying materials 
-\  * are made available under the terms of the BSD License 
-\  * which accompanies this distribution, and is available at
-\  * http://www.opensource.org/licenses/bsd-license.php
-\  * 
-\  * Contributors:
-\  *     IBM Corporation - initial implementation
-\ =============================================================================
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
 
 
 \ Use the HPET to calculate various frequencies.
@@ -33,8 +33,7 @@ d# 1000000000000000 4 hpet@ / CONSTANT hpet-freq
              hpet-freq * r> / ;
 
 : round-to  tuck 2/ + over / * ;
-calibrate ( d# 1000000  round-to) TO tb-frequency
-          ( d# 10000000 round-to) TO cpu-frequency
+calibrate TO tb-frequency d# 100000000 round-to TO cpu-frequency
 
 \ Stop HPET.
 0 10 hpet!

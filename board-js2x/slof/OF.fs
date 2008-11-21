@@ -1,187 +1,467 @@
-\ =============================================================================
-\  * Copyright (c) 2004, 2005 IBM Corporation
-\  * All rights reserved. 
-\  * This program and the accompanying materials 
-\  * are made available under the terms of the BSD License 
-\  * which accompanies this distribution, and is available at
-\  * http://www.opensource.org/licenses/bsd-license.php
-\  * 
-\  * Contributors:
-\  *     IBM Corporation - initial implementation
-\ =============================================================================
-
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
 
 \ The master file.  Everything else is included into here.
 
 hex
 
-\ Speed up compiling.
-INCLUDE find-hash.fs
+\ as early as possible we want to know if it is js20, js21 or bimini
+\ u3 = js20; u4 = js21/bimini
+\ the difference if bimini or js21 will be done later depending if
+\ obsidian or citrine is found
+\ f8000000 is probably the place of the u3/u4 version
+f8000000 rl@ CONSTANT uni-n-version
+uni-n-version 4 rshift  dup 3 = CONSTANT u3?  4 = CONSTANT u4?
+false value bimini?
 
-\ Enable use of multiple wordlists and vocabularies.
-INCLUDE search.fs
+\ to decide wether vga initialisation using bios emulation should be attempted,
+\ we need to know wether a vga-device was found during pci-scan.
+\ If it is found, this value will be set to the device's phandle
+0 value vga-device-node?
 
-\ Heap memory allocation.
-INCLUDE alloc-mem.fs
+\ planar-id reads back GPIO 29 30 31 and returns it as one value
+\ if planar-id >= 5 it should be GA2 else it is GA1 (JS20 only)
+defer planar-id  ( -- planar-id )
 
-\ First some very generic code.
-: d#  parse-word base @ >r decimal evaluate r> base ! ; immediate
-: END-STRUCT  drop ;
-: 0.r  0 swap <# 0 ?DO # LOOP #> type ;
+: (planar-id)  ( -- planar-id)
+   \ default implementation of planar-id just returns 8
+   \ the highest possible planar id for JS20 is 7
+   8
+;
 
-: zcount ( zstr -- str len )  dup BEGIN dup c@ WHILE char+ REPEAT over - ;
-: zplace ( str len buf -- )  2dup + 0 swap c! swap move ;
+' (planar-id) to planar-id
 
-CREATE $catpad 100 allot
-\ First input string is allowed to already be on the pad; second is not.
-: $cat ( str1 len1 str2 len2 -- str3 len3 )
-  >r >r dup >r $catpad swap move
-  r> dup $catpad + r> swap r@ move
-  r> + $catpad swap ;
-
-: 2CONSTANT    CREATE swap , , DOES> 2@ ;
-: $2CONSTANT  $CREATE swap , , DOES> 2@ ;
-
-\ Memory and I/O hexdump.
-INCLUDE dump.fs
+#include "header.fs"
 
 \ I/O accesses.
-INCLUDE hw/io.fs
+#include "io.fs"
 
-\ Start the serial console.
-INCLUDE hw/serial.fs
+\ XXX: Enable first UART on JS20, scripts forget to do this.  Sigh.
+3 7 siocfg!  1 30 siocfg!
+
+#include "serial.fs"
+
+cr
+
+eregs 11 8 * + @ CONSTANT hsprg1
+
+#include "base.fs"
+
+\ Little-endian accesses.  Also known as `wrong-endian'.
+#include <little-endian.fs>
+
+\ do not free-mem if address is not within the heap
+\ workaround for NVIDIA card
+: free-mem  (  addr len -- )
+   over heap-start heap-end within  IF
+      free-mem
+   ELSE
+      2drop
+   THEN
+;
+
+: #join  ( lo hi #bits -- x )  lshift or ;
+: #split ( x #bits -- lo hi )  2dup rshift dup >r swap lshift xor r> ;
+
+: blink ;
+
+: reset-dual-emit ;
+
+: console-clean-fifo ;
+
+: bootmsg-nvupdate ;
+
+: asm-cout 2drop drop ;
+
+#include "logging.fs"
+
+: log-string 2drop ;
+
+#include "bootmsg.fs"
+
+000 cp
+
+\ disable the nvram logging until we know if we are
+\ running from ram/takeover/js20 or in normal mode on js21
+: (nvramlog-write-byte)  drop ;
+' (nvramlog-write-byte) to nvramlog-write-byte
+
+#include "exception.fs"
+
+: mm-log-warning 2drop ;
+
+: write-mm-log ( data length type -- status )
+	3drop 0
+;
+
+080 cp
+
+#include "rtc.fs"
+
+100 cp
 
 \ Input line editing.
-INCLUDE accept.fs
+#include "accept.fs"
 
-\ Register frame layout.
-STRUCT
-  cell FIELD >r0   cell FIELD >r1   cell FIELD >r2   cell FIELD >r3
-  cell FIELD >r4   cell FIELD >r5   cell FIELD >r6   cell FIELD >r7
-  cell FIELD >r8   cell FIELD >r9   cell FIELD >r10  cell FIELD >r11
-  cell FIELD >r12  cell FIELD >r13  cell FIELD >r14  cell FIELD >r15
-  cell FIELD >r16  cell FIELD >r17  cell FIELD >r18  cell FIELD >r19
-  cell FIELD >r20  cell FIELD >r21  cell FIELD >r22  cell FIELD >r23
-  cell FIELD >r24  cell FIELD >r25  cell FIELD >r26  cell FIELD >r27
-  cell FIELD >r28  cell FIELD >r29  cell FIELD >r30  cell FIELD >r31
-  cell FIELD >cr   cell FIELD >xer  cell FIELD >lr   cell FIELD >ctr
-  cell FIELD >srr0 cell FIELD >srr1 cell FIELD >dar  cell FIELD >dsisr
-END-STRUCT
+120 cp
 
-1100000 CONSTANT eregs  \ Exception register frame.
-1100400 CONSTANT ciregs \ Client (interface) register frame.
+#include "dump.fs"
 
-\ Print out an exception frame, e.g.,   eregs .regs
-: .16  10 0.r 3 spaces ;
-: .8   8 spaces 8 0.r 3 spaces ;
-: .4regs  cr 4 0 DO dup @ .16 8 cells+ LOOP drop ;
-: .fixed-regs
-  cr ."     R0 .. R7           R8 .. R15         R16 .. R23         R24 .. R31"
-  dup 8 0 DO dup .4regs cell+ LOOP drop ;
-: .special-regs
-  cr ."     CR / XER           LR / CTR          SRR0 / SRR1        DAR / DSISR"
-  cr dup >cr  @ .8   dup >lr  @ .16  dup >srr0 @ .16  dup >dar @ .16
-  cr dup >xer @ .16  dup >ctr @ .16  dup >srr1 @ .16    >dsisr @ .8 ;
-: .regs
-  cr .fixed-regs
-  cr .special-regs
-  cr cr ;
+cistack ciregs >r1 ! \ kernel wants a stack :-)
 
-\ Some low-level functions -- no source code provided, sorry.
-: reboot  0 1 oco ;
-: halt  0 2 oco ;
-: watchdog  3 oco ;
-: other-firmware  1 watchdog ;
+#include "romfs.fs"
 
-\ Get the second CPU into our own spinloop.
-0 VALUE slave?
-0 7 oco CONSTANT master-cpu
-cr .( The master cpu is #) master-cpu .
-: get-slave ( addr -- )  0 oco 1 = IF true to slave? THEN ;
-: slave-report  cr slave? IF ." Second CPU is running." ELSE
-                             ." Second CPU is NOT running!" THEN ;
-3f00 get-slave  slave-report
+140 cp
+#include "flash.fs"
 
-\ Packages, instances, properties, devices, methods -- the whole shebang.
-INCLUDE package.fs
+\ claim the memory used by copy of the flash
+flash-header  IF
+   romfs-base dup flash-image-size 0 claim drop
+THEN
 
-\ Environment variables.  Not actually used right now.
-INCLUDE envvar.fs
+s" bootinfo" romfs-lookup drop c + l@ CONSTANT start-addr
+start-addr flash-addr <> CONSTANT takeover?
+
+takeover? u3? or 0=  IF
+   \ we want nvram logging to work
+   ['] .nvramlog-write-byte to nvramlog-write-byte
+THEN
+
+160 cp
+
+u4? IF f8002100 rl@ 0= ELSE false THEN  ?INCLUDE u4-mem.fs
+u3?  IF
+   planar-id 5 >=  IF
+      40000 to nvram-size
+   ELSE
+      \ change nvram-size to 8000 for GA1 blades
+      8000 to nvram-size
+   THEN
+THEN
+
+
+takeover?  IF
+   \ potentially comming from phype
+   u4?  IF
+      \ takeover on JS21 is using some nvram area
+      \ which might be available
+      \ on JS20 the nvram is too small and
+      \ we just overwrite the nvram
+      sec-nvram-base to nvram-base
+   THEN
+   sec-nvram-size to nvram-size
+   \ in takeover mode the nvram is probably not mapped
+   \ to the exact location where the nvram starts
+   \ doing a small check to see if we have a partition
+   \ starting with 70; this test is far from perfect but
+   \ takeover is not the most common mode of running slof
+   nvram-base rb@ 70 <>  IF  0 nvram-base rb!  THEN
+THEN
+
+200 cp
+
+#include <banner.fs>
+
+\ Get the secondary CPUs into our own spinloop.
+f8000050 rl@ CONSTANT master-cpu
+\ cr .( The master cpu is #) master-cpu .
+
+VARIABLE cpu-mask
+: get-slave ( n -- online? )
+  0 3ff8 ! 18 lshift 30000000 or 48003f02 over l! icbi 10000 0 DO LOOP 3ff8 @ ;
+: mark-online ( n -- )  1 swap lshift cpu-mask @ or cpu-mask ! ;
+: get-slaves  40 0 DO i get-slave IF i mark-online THEN LOOP ;
+: cpu-report  ( -- )
+   cpu-mask @ 40 0  DO  dup 1 and  IF  ." #" i .  THEN  1 rshift  LOOP  drop
+;
+
+220 cp
+master-cpu mark-online get-slaves
+
+DEFER disable-watchdog ( -- )
+DEFER find-boot-sector ( -- )
+
+
+240 cp
+\ Timebase frequency, in Hz.
+\ -1 VALUE tb-frequency
+d# 14318378 VALUE tb-frequency   \ default value - needed for "ms" to work
+-1 VALUE cpu-frequency
+
+#include "helper.fs"
+260 cp
+
+\ #include <timebase.fs>
+
+: tb@  BEGIN tbu@ tbl@ tbu@ rot over <> WHILE 2drop REPEAT
+       20 lshift swap ffffffff and or ;
+: milliseconds  tb@ d# 1000 * tb-frequency / ;
+: ms  milliseconds + BEGIN milliseconds over >= UNTIL drop ;
+: get-msecs ( -- n ) milliseconds ;
+\ : usecs tb@ d# 1000000 * tb-frequency / ;
+: us 999 + 1000 / ms ;
+
+280 cp
+#include "rtas.fs"
+290 cp
+s" update_flash.fs" included
+2a0 cp
+cpu-mask @ rtas-fetch-cpus drop
+
+: of-start-cpu rtas-start-cpu ;
+
+' power-off to halt
+' rtas-system-reboot to reboot
+
+: other-firmware  rtas-get-flashside 0= IF 1 ELSE 0 THEN rtas-set-flashside reboot ;
+: disable-boot-watchdog rtas-stop-bootwatchdog drop ;
+' disable-boot-watchdog to disable-watchdog
+
+true value bmc?
+false value debug-boot?
+
+\ for JS21/Bimini try to detect BMC... if kcs (io @ca8) status is not ff...
+u4? IF ca8 4 + io-c@ ff = IF false to bmc? true to debug-boot? THEN THEN
+
+VARIABLE memnode
 
 \ Hook to help loading our secondary boot loader.
 DEFER disk-read ( lba cnt addr -- )
+0 VALUE disk-off
 
-\ Timebase frequency, in Hz.
--1 VALUE tb-frequency
--1 VALUE cpu-frequency
+create vpd-cb 24 allot
+create vpd-bootlist 4 allot
+2c0 cp
+#include "ipmi-vpd.fs"
+2e0 cp
+#include <quiesce.fs>
+300 cp
+#include <usb/usb-static.fs>
+320 cp
+#include <root.fs>
+360 cp
+#include "tree.fs"
 
-\ The device tree.
-INCLUDE js20-tree.fs
+: .system-information  ( -- )
+   s"                   " type cr
+   s" SYSTEM INFORMATION" type cr
+   s"  Processor  = " type s" cpu" get-chosen  IF
+      drop l@ >r pvr@ s" pvr>name" r> $call-method type
+      s"  @ " type cpu-frequency d# 1000000 /
+      decimal . hex s" MHz" type
+   THEN  cr s"  I/O Bridge = " type u3?  IF
+      s" U3"  ELSE  s" U4"  THEN type
+   f8000000 rl@ 4 rshift s"  (" type 1 0.r s" ." type
+   f8000000 rl@ f and 1 0.r s" )" type cr
+   s"  SMP Size   = " type cpu-mask @ cnt-bits 1 0.r
+   s"  (" type cpu-report 8 emit s" )" type
+   cr s"  Boot-Date  = " type .date cr
+   s"  Memory     = " type s" memory" get-chosen  IF
+      drop l@ s" mem-report" rot $call-method  THEN
+   cr s"  Board Type = " type u3?  IF
+      s" JS20(GA" type planar-id 5 >=  IF
+         s" 2)" ELSE s" 1)" THEN type
+   ELSE bimini?  IF  s" Bimini"  ELSE  s" JS21"  THEN  type  THEN
+   s"  (" type .vpd-machine-type [char] / emit
+   .vpd-machine-serial [char] / emit
+   .vpd-hw-revision 8 emit  s" )" type cr
+   s"  MFG Date   = " type .vpd-manufacturer-date cr
+   s"  Part No.   = " type .vpd-part-number cr
+   s"  FRU No.    = " type .vpd-fru-number cr
+   s"  FRU Serial = " type .vpd-cardprefix-serial .vpd-card-serial cr
+   s"  UUID       = " type .vpd-uuid cr
+   s"  Flashside  = " type rtas-get-flashside 0=  IF
+      ." 0 (permanent)"
+   ELSE
+      ." 1 (temporary)" THEN cr cr
+;
 
+800 cp
+
+#include "nvram.fs"
+takeover? not u4? and  IF
+   \ if were are not in takeover mode the nvram should look
+   \ something like this:
+   \ type  size  name
+   \ ========================
+   \  51  20000  ibm,CPU0log
+   \  51   5000  ibm,CPU1log
+   \  70   1000  common
+   \  7f  da000  <free-space>
+   \ the partition with the type 51 should have been added
+   \ by LLFW... if it does not exist then something went
+   \ wrong and we just destroy the whole thing
+   51 get-header  IF  0 nvram-base rb!  ELSE  2drop  THEN
+THEN
+
+880 cp
+
+\ dmesg/dmesg2 not available if running in takeover/ram mode or on js20
+: dmesg  ( -- )  u3? takeover? or 0=  IF  dmesg  THEN ;
+: dmesg2  ( -- )  u3? takeover? or 0=  IF  dmesg2  THEN ;
+
+#include "envvar.fs"
+check-for-nvramrc
+
+8a0 cp
 \ The client interface.
-INCLUDE client.fs
-
+#include "client.fs"
 \ ELF binary file format.
-INCLUDE elf.fs
+#include "elf.fs"
+#include <loaders.fs>
 
-\ Give our client a stack.
-111f000 ciregs >r1 !
+: bios-exec ( arg len -- rc )
+   s" bios-snk" romfs-lookup 0<> IF load-elf-file drop start-elf64
+   ELSE 2drop false THEN
+;
 
-\ Run the client program.
-: start-elf ( entry-addr -- )  msr@ 7fffffffffffffff and 2000 or ciregs >srr1 !
-                               0 0 rot call-client ;
-: start-elf64 ( entry-addr -- )  msr@ 2000 or ciregs >srr1 !
-                                 0 0 rot call-client ;
+\ check wether a VGA device was found during pci scan, if it was, and bios-snk is available
+\ try to initialize it and create the needed device-nodes
+s" bios-snk" romfs-lookup 0<> dup value biosemu-available? IF drop THEN
+0 value biosemu-vmem
+0 value screen-info
 
-\ Where files are loaded.  Not the same as where they are executed.
-10000 CONSTANT load-base
-\ Load secondary boot loader from disk @ sector 63.  512kB should be enough.
-: read-yaboot  3f 400 load-base disk-read ;
+vga-device-node? biosemu-available? AND 0<> IF
+   s" VGA Device found: " type vga-device-node? node>path type s"  initializing..." type cr
+   \ claim virtual memory for biosemu of 1MB
+   100000 4 claim to biosemu-vmem
 
-: yaboot 
-  cr ." Reading..." read-yaboot
-  ." relocating..." load-base load-elf-file
-  ." go!" start-elf ;
+   \ claim memory for screen-info struct (140 bytes)
+   d# 140 4 claim to screen-info
 
-: set-bootpart ( -- ) 
-  skipws 0 parse s" disk:" 2swap $cat 
-  encode-string s" bootpath" set-chosen ;
+   \ remember current-node (it might be node 0 so we cannot use get-node)
+   current-node @
+   \ change into vga device node
+   vga-device-node? set-node
+   \ run biosemu to initialize the vga card
+   \ s" Time before biosemu:" type .date cr
+   vga-device-node? node>path ( pathstr len )
+   s" biosemu " biosemu-vmem $cathex ( pathstr len paramstr len )
+   20 char-cat \ add a space
+   2swap $cat ( paramstr len ) bios-exec
+   \ s" Time after biosemu:" type .date cr
+   s" VGA initialization: detecting displays..." type cr
+   \ try to get info for two monitors
+   2 0 DO 
+      \ setup screen-info struct as input to get_vbe_info
+      s" DDC" 0 char-cat screen-info swap move \ null-terminated "DDC" as signature
+      d# 140 screen-info 4 + w! \ reserved size in bytes (see claim above)
+      i screen-info 6 + c! \ monitor number
+      \ 320 screen-info 7 + w! \ max. screen width (800)
+      500 screen-info 7 + w! \ max. screen width (1280)
+      \ following line would be the right thing to do, however environment seems not setup yet...
+      \ screen-#columns char-width * 500 min 280 max screen-info 7 + w! \ max. screen width, calculated from environment variable screen-#columns, but max. 1280, min. 640...
+      8 screen-info 9 + c! \ requested color depth (8bpp)
+      \ d# 16 screen-info 9 + c! \ requested color depth (16bpp)
+      \ execute get_vbe_info from load-base
+      \ s" Time before client exec:" type .date cr
+      \ since node>path overwrites strings created with s" 
+      \ we need to call it before assembling the parameter string
+      vga-device-node? node>path ( pathstr len )
+      s" get_vbe_info " biosemu-vmem $cathex ( pathstr len paramstr len )
+      20 char-cat \ add a space
+      2swap $cat ( paramstr len ) 
+      20 char-cat
+      screen-info $cathex bios-exec
+      \ s" Time after client exec:" type .date cr
+      screen-info c@ 0<> IF
+        s"   display " type i . s" found..." type 
+        \ screen found
+        \ create device entry
+        get-node node>name \ get current nodes name (e.g. "vga") ( str len )
+        i \ put display-num on the stack ( str len displaynum )
+        new-device \ create new device
+           s" vga-display.fs" included
+        finish-device
+        s" created." type cr
+      THEN
+   LOOP
+   \ return to where we were before changing to vga device node
+   set-node
+   \ release the claimed memory
+   screen-info d# 140 release 
+   biosemu-vmem 100000 release
 
-: set-bootargs 
-  skipws 0 parse dup 0= IF 2drop ELSE
-  encode-string s" bootargs" set-chosen THEN ;
-: etherboot  s" enet:" set-bootargs payload dup load-elf-file start-elf ;
-: go  etherboot ;
+   s" VGA initialization done." type cr
+THEN \ vga-device-node? AND biosemu-available?
 
-\ Default bootpath
+\ enable output on framebuffer
+s" screen" find-alias ?dup IF 
+   \ we need to open/close the screen device once before "ticking" display-emit to emit
+   open-dev close-node
+   s" display-emit" $find IF to emit ELSE 2drop THEN 
+THEN
+8b0 cp
 
-s" disk:3" encode-string s" bootpath" set-chosen
+\ do not let the usb scan overwrite the atapi cdrom alias
+pci-cdrom-num TO cdrom-alias-num
 
-: boot set-bootargs yaboot ;
+s"  Scanning USB..." type usb-scan s"  done." type cr
 
-: auto
-  key? IF clear c emit key drop QUIT THEN
-  cr ." Netboot -- to drop into GUI instead, please hold a key while starting"
-  cr
-  payload dup load-elf-file start-elf ;
+s" net" s" net1" find-alias ?dup IF set-alias ELSE 2drop THEN
+s" disk" s" disk0" find-alias ?dup IF set-alias ELSE 2drop THEN
+s" cdrom" s" cdrom0" find-alias ?dup IF set-alias ELSE 2drop THEN
+8ff cp
 
-: disable-boot-watchdog
-  0 watchdog IF cr ." Failed to disable boot watchdog." THEN ;
+.system-information
 
-disable-boot-watchdog
+: directserial
+u3? IF
+	s" /ht/isa/serial@3f8" io
+ELSE
+	s" direct-serial?" evaluate IF s" /ht/isa/serial@2f8" io ELSE s" /ht/isa/serial@3f8" io THEN
+THEN
+;
 
+directserial
+
+\ enable USB keyboard
+\ s" keyboard" input
+
+: .flashside
+  cr ." The currently active flashside is: "
+  rtas-get-flashside 0= IF ." 0 (permanent)" ELSE
+  ." 1 (temporary)" THEN
+;
+
+bmc? IF  disable-watchdog  THEN
+
+: flashsave  ( "{filename}" -- rc )
+  (parse-line) dup 0> IF
+    s" netsave "             \ command
+    get-flash-base $cathex   \ Flash base addr
+    s"  400000 " $cat        \ Flash size (4MB)
+    2swap $cat               \ add parameters from (parse-line)
+    evaluate
+  ELSE
+    cr
+    ." Usage: flashsave [bootp|dhcp,]filename[,siaddr][,ciaddr][,giaddr][,bootp-retries][,tftp-retries][,use_ci]"
+    cr 2drop
+  THEN
+;
+
+#include <vpd-bootlist.fs>
+
+\ for the blades we read the bootlist from the VPD
+bimini? takeover? or 0=  IF  ['] vpd-boot-import to read-bootlist  THEN
+
+#include <start-up.fs>
+
+#include <boot.fs>
+
+cr .(   Welcome to Open Firmware)
 cr
-cr
-cr .( SLOF version 0.0  Copyright 2004,2005 IBM Corporation)
-cr .( Part of this code is:)
-cr
-cr .( Licensed Internal Code - Property of IBM)
-cr .( JS20 Licensed Internal Code)
-cr .( (C) char ) emit .(  Copyright IBM Corp. 2004, 2005 All Rights Reserved.)
-cr .( US Government Users Restricted Rights - Use, duplication or)
-cr .( disclosure restricted by GSA ADP Schedule Contract with IBM)
-cr
+#include "copyright-oss.fs"
 cr
 
-\ Enable this if you want your system to automatically boot by default:
-\   auto
+\ this CATCH is to ensure the code bellow always executes:  boot may ABORT!
+' start-it CATCH drop

@@ -1,19 +1,14 @@
-\ =============================================================================
-\  * Copyright (c) 2004, 2005 IBM Corporation
-\  * All rights reserved. 
-\  * This program and the accompanying materials 
-\  * are made available under the terms of the BSD License 
-\  * which accompanies this distribution, and is available at
-\  * http://www.opensource.org/licenses/bsd-license.php
-\  * 
-\  * Contributors:
-\  *     IBM Corporation - initial implementation
-\ =============================================================================
-
-
-\ ELF loader.
-
-\ Author: Hartmut Penner <hpenner@de.ibm.com>
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
 
 \ ELF 32 bit header
 
@@ -22,7 +17,7 @@ STRUCT
         /c field ehdr>e_class
         /c field ehdr>e_data
         /c field ehdr>e_version
-        /c field ehdr>e_pad     
+        /c field ehdr>e_pad
 	/l field ehdr>e_ident_2
 	/l field ehdr>e_ident_3
 	/w field ehdr>e_type
@@ -61,7 +56,7 @@ STRUCT
         /c field ehdr64>e_class
         /c field ehdr64>e_data
         /c field ehdr64>e_version
-        /c field ehdr64>e_pad     
+        /c field ehdr64>e_pad
 	/l field ehdr64>e_ident_2
 	/l field ehdr64>e_ident_3
 	/w field ehdr64>e_type
@@ -84,7 +79,7 @@ END-STRUCT
 
 STRUCT
         /l field phdr64>p_type
-        /l field phdr64>p_flags    
+        /l field phdr64>p_flags
 	cell field phdr64>p_offset
 	cell field phdr64>p_vaddr
 	cell field phdr64>p_paddr
@@ -93,117 +88,183 @@ STRUCT
 	cell field phdr64>p_align
 END-STRUCT
 
-: load-segment ( file-addr program-header-addr -- ) 
 
-  ( file-addr  program-header-addr ) 
-    dup >r phdr>p_vaddr l@ r@ phdr>p_memsz l@ erase 
+\ Claim memory for segment
+\ Abort, if no memory available
 
-  ( file-addr R: programm-header-addr )
-    r@ phdr>p_vaddr l@ r@ phdr>p_memsz l@ dup 0= IF 2drop ELSE flushcache THEN
+false value elf-claim?
+0     value last-claim
 
-  ( file-addr R: programm-header-addr ) 
-    r@ phdr>p_offset l@ +  r@ phdr>p_vaddr l@  r> phdr>p_filesz l@  move 
+: claim-segment ( file-addr program-header-addr -- )
+    elf-claim? IF
+       >r
+       here last-claim , to last-claim                \ Setup ptr to last claim
+       \ Put addr and size ain the data space
+       r@ phdr>p_vaddr l@ dup , r> phdr>p_memsz l@ dup , ( file-addr addr size )
+       0 ['] claim CATCH IF ABORT" Memory for ELF file already in use " THEN
+    THEN
+    2drop
 ;
 
+: load-segment ( file-addr program-header-addr -- )
+  >r
+  ( file-addr  R: program-header-addr )
+  \ Copy into storage
+    r@ phdr>p_offset l@ +  r@ phdr>p_vaddr l@  r@ phdr>p_filesz l@  move
+
+  ( R: programm-header-addr )
+  \ Clear BSS
+    r@ phdr>p_vaddr l@ r@ phdr>p_filesz l@ +
+    r@ phdr>p_memsz l@ r@ phdr>p_filesz l@ - erase
+
+  ( R: programm-header-addr )
+  \ Flush cache
+    r@ phdr>p_vaddr l@ r> phdr>p_memsz l@ dup 0= IF 2drop ELSE flushcache THEN
+;
 
 : load-segments ( file-addr -- )
-  ( file-addr ) 
+  ( file-addr )
     dup dup ehdr>e_phoff l@ +	  \ Calculate program header address
 
   ( file-addr program-header-addr )
     over ehdr>e_phnum w@ 0 ?DO	  \ loop e_phnum times
 
-  ( file-addr program-header-addr )  
+  ( file-addr program-header-addr )
       dup phdr>p_type l@ 1 = IF	  \ PT_LOAD ?
-    
+
+  ( file-addr program-header-addr )
+        2dup claim-segment	  \ claim segment
+
   ( file-addr program-header-addr )
         2dup load-segment THEN	  \ copy segment
 
   ( file-addr program-header-addr )
-      over ehdr>e_phentsize w@ + LOOP  \ step to next header  
+      over ehdr>e_phentsize w@ + LOOP  \ step to next header
 
   ( file-addr program-header-addr )
       over ehdr>e_entry l@
 
   ( file-addr program-header-addr )
-      nip nip 			  \ cleanup
+      nip nip			  \ cleanup
 ;
 
-: load-segment64 ( file-addr program-header-addr -- ) 
+: load-segment64 ( file-addr program-header-addr -- )
+  >r
+  ( file-addr  R: program-header-addr )
+  \ Copy into storage
+    r@ phdr64>p_offset @ +  r@ phdr64>p_vaddr @  r@ phdr64>p_filesz @  move
 
-  ( file-addr  program-header-addr ) 
-    dup >r phdr64>p_vaddr @ r@ phdr64>p_memsz @ erase 
+  ( R: programm-header-addr )
+  \ Clear BSS
+    r@ phdr64>p_vaddr @ r@ phdr64>p_filesz @ +
+    r@ phdr64>p_memsz @ r@ phdr64>p_filesz @ - erase
 
-  ( file-addr R: programm-header-addr )
-    r@ phdr64>p_vaddr @ r@ phdr64>p_memsz @ dup 0= IF 2drop ELSE flushcache THEN
-    
-  ( file-addr R: programm-header-addr ) 
-    r@ phdr64>p_offset @ +  r@ phdr64>p_vaddr @  r> phdr64>p_filesz @  move 
+  ( R: programm-header-addr )
+  \ Flush cache
+    r@ phdr64>p_vaddr @ r> phdr64>p_memsz @ dup 0= IF 2drop ELSE flushcache THEN
 ;
-
 
 : load-segments64 ( file-addr -- entry )
-  ( file-addr ) 
+  ( file-addr )
     dup dup ehdr64>e_phoff @ +	  \ Calculate program header address
 
   ( file-addr program-header-addr )
     over ehdr64>e_phnum w@ 0 ?DO	  \ loop e_phnum times
 
-  ( file-addr program-header-addr )  
+  ( file-addr program-header-addr )
       dup phdr64>p_type l@ 1 = IF	  \ PT_LOAD ?
-    
+
+  ( file-addr program-header-addr )
+        2dup claim-segment	  \ claim segment
+
   ( file-addr program-header-addr )
         2dup load-segment64 THEN	  \ copy segment
 
   ( file-addr program-header-addr )
-      over ehdr64>e_phentsize w@ + LOOP  \ step to next header  
+      over ehdr64>e_phentsize w@ + LOOP  \ step to next header
 
   ( file-addr program-header-addr )
       over ehdr64>e_entry @
-  
+
   ( file-addr program-header-addr entry )
-      nip nip 			  \ cleanup
+      nip nip			  \ cleanup
 ;
 
 : elf-check-file ( file-addr --  1 : 32, 2 : 64, else bad  )
   ( file-addr )
-  dup ehdr>e_ident l@ 7f454c46 <> ABORT" Not an ELF file" 
-    
-  ( file-addr )
-  dup ehdr>e_data c@ 2 <> ABORT" Not a Big Endian ELF file" 
+  dup ehdr>e_ident l@-be 7f454c46 <> IF
+     ABORT" Not an ELF executable"
+  THEN
 
   ( file-addr )
-  dup ehdr>e_type w@ 2 <> ABORT" Not an ELF executable" 
+  dup ehdr>e_data c@
+  ?bigendian IF
+    2 <> ABORT" Not a Big Endian ELF file"
+  ELSE
+    2 = ABORT" Not a Little Endian ELF file"
+  THEN
+
+  ( file-addr )
+  dup ehdr>e_type w@ 2 <> ABORT" Not an ELF executable"
 
   ( file-addr )
   dup ehdr>e_machine w@ dup 14 <> swap 15 <> and ABORT" Not a PPC ELF executable" 
 
   ( file-addr)
   ehdr>e_class c@
-;    
+;
 
-: load-elf32 ( file-addr -- )
+: load-elf32 ( file-addr -- entry )
 
-  ( file-addr)  
+  ( file-addr)
   load-segments
 ;
 
-: load-elf64 ( file-addr -- )
+: load-elf32-claim ( file-addr -- claim-list entry )
+    true to elf-claim?
+    0 to last-claim
+    ['] load-elf32 CATCH IF false to elf-claim? ABORT THEN
+    last-claim swap
+    false to elf-claim?
+;
 
-  ( file-addr)  
+
+: load-elf64 ( file-addr -- entry )
+
+  ( file-addr)
   load-segments64
 ;
 
-: load-elf-file ( file-addr -- entry )
+: load-elf64-claim ( file-addr -- claim-list entry )
+    true to elf-claim?
+    0 to last-claim
+    ['] load-elf64 CATCH IF false to elf-claim? ABORT THEN
+    last-claim swap
+    false to elf-claim?
+;
 
-  ( file-addr )
-  dup elf-check-file
+: load-elf-file ( file-addr -- entry 32-bit )
+
+   ( file-addr )
+   dup elf-check-file
 
   ( file-addr 1|2|x )
 
     CASE
-	1 OF load-elf32 ENDOF
-	2 OF load-elf64 ENDOF
+	1 OF load-elf32 true ENDOF
+	2 OF load-elf64 false ENDOF
 	dup OF true ABORT" Neither 32- nor 64-bit ELF file" ENDOF
     ENDCASE
+;
+
+\ Release memory claimed before
+
+: elf-release ( claim-list -- )
+   BEGIN
+      dup cell+                   ( claim-list claim-list-addr )
+      dup @ swap cell+ @          ( claim-list claim-list-addr claim-list-sz )
+      release                     ( claim-list )
+      @ dup 0=                    ( Next-element )
+   UNTIL
+   drop
 ;

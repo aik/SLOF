@@ -1,36 +1,36 @@
-\ =============================================================================
-\  * Copyright (c) 2004, 2005 IBM Corporation
-\  * All rights reserved. 
-\  * This program and the accompanying materials 
-\  * are made available under the terms of the BSD License 
-\  * which accompanies this distribution, and is available at
-\  * http://www.opensource.org/licenses/bsd-license.php
-\  * 
-\  * Contributors:
-\  *     IBM Corporation - initial implementation
-\ =============================================================================
+\ *****************************************************************************
+\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
 
 
 \ Support for device node instances.
 
 0 VALUE my-self
 
-\ Instance-init is a linked list, before finish-package.
-\ entry format: offset in instance, link, initial value.
-\ after finish-package it's a pointer to a memory block
-\ that is copied verbatim for every instance.
-\ This will have to be revisited, as it is not quite right:
-\ an instance variable can be used before the package is
-\ completed.
+: >instance
+   my-self 0= ABORT" No instance!"
+   my-self +
+;
 
-: (create-instance-var) ( "name" initial-value link-addr size-addr -- )
-  CREATE  dup @ ,  1 cells swap +!  linked  , ;
+: (create-instance-var) ( initial-value -- )
+   get-node ?dup 0= ABORT" Instance word outside device context!"
+   dup node>instance @      ( iv phandle tmp-ihandle )
+   swap node>instance-size dup @     ( iv tmp-ih *instance-size instance-size )
+   dup ,                             \ compile current instance ptr
+   swap 1 cells swap +!              ( iv tmp-ih instance-size )
+   + !
+;
 
 : create-instance-var ( "name" initial-value -- )
-  current-package @ dup pkg>instance-init swap pkg>instance-size
-  (create-instance-var)  PREVIOUS DEFINITIONS ;
-
-: >instance  my-self + ;
+  CREATE (create-instance-var) PREVIOUS ;
 
 VOCABULARY instance-words  ALSO instance-words DEFINITIONS
 
@@ -41,54 +41,90 @@ VOCABULARY instance-words  ALSO instance-words DEFINITIONS
 
 PREVIOUS DEFINITIONS
 
-: INSTANCE  current-package @ 0= ABORT" No current package"
-            ALSO instance-words ;
+\ check whether a value or a defer word is an
+\ instance word: It must be a CREATE word and
+\ the DOES> part must do >instance as first thing
 
-VARIABLE shared-instance-link
-VARIABLE shared-instance-size
+: (instance?) ( xt -- xt true|false )
+   dup @ <create> = IF
+      dup cell+ @ cell+ @ ['] >instance =
+   ELSE
+      false
+   THEN
+;
 
-: SIVARIABLE  0 shared-instance-link shared-instance-size (create-instance-var)
-              DOES> @ >instance ;
+\ This word does instance values in compile mode.
+\ It corresponds to DOTO from engine.in
+: (doito) ( value R:*CFA -- )
+   r> cell+ dup >r
+   @ cell+ cell+ @ >instance !
+;
 
-VOCABULARY shared-instance-vars  ALSO shared-instance-vars DEFINITIONS
+: to ( value wordname<> -- )
+   ' (instance?)
+   state @ IF
+      \ compile mode handling normal or instance value
+      IF ['] (doito) ELSE ['] DOTO THEN
+      , , EXIT
+   THEN
+   IF
+      cell+ cell+ @ >instance ! \ interp mode instance value
+   ELSE
+      cell+ !                   \ interp mode normal value
+   THEN
+; IMMEDIATE
 
-SIVARIABLE the-package \ needs to be first!
-SIVARIABLE the-parent
-SIVARIABLE the-addr
-SIVARIABLE the-addr1
-SIVARIABLE the-addr2
-SIVARIABLE the-args
-SIVARIABLE the-args-len
-
-PREVIOUS DEFINITIONS
-: shared-instance-words  ['] shared-instance-vars >body cell+ @ ;
+: INSTANCE  ALSO instance-words ;
 
 
-ALSO shared-instance-vars
+STRUCT
+/n FIELD instance>node
+/n FIELD instance>parent
+/n FIELD instance>args
+/n FIELD instance>args-len
+CONSTANT /instance-header
 
-: my-parent  the-parent @ ;
-: my-args  the-args 2@ ;
-: set-my-args  dup alloc-mem swap 2dup the-args 2! move ;
+: my-parent  my-self instance>parent @ ;
+: my-args    my-self instance>args 2@ ;
 
-\ Current package has already been set, when this is called.
+\ copy args from original instance to new created
+: set-my-args   ( old-addr len -- )
+   dup IF                             \ IF len > 0                    ( old-addr len )
+      dup alloc-mem                   \ | allocate space for new args ( old-addr len new-addr )
+      swap 2dup                       \ | write the new address       ( old-addr new-addr len new-addr len )
+      my-self instance>args 2!        \ | into the instance table     ( old-addr new-addr len )
+      move                            \ | and copy the args           ( -- )
+   ELSE                               \ ELSE                          ( old-addr len )
+      my-self instance>args 2!        \ | set new args to zero, too   ( )
+   THEN                               \ FI
+;
+
+\ Current node has already been set, when this is called.
 : create-instance-data ( -- instance )
-   current-package @ dup pkg>instance-init @ swap pkg>instance-size @
-   dup alloc-mem dup >r swap move r> ;
-: create-instance  my-self create-instance-data to my-self the-parent !
-                   current-package @ the-package ! ;
+   get-node dup node>instance @ swap node>instance-size @  ( instance instance-size )
+   dup alloc-mem dup >r swap move r>
+;
+: create-instance ( -- )
+   my-self create-instance-data
+   dup to my-self instance>parent !
+   get-node my-self instance>node !
+;
+
 : destroy-instance ( instance -- )
-  dup @ pkg>instance-size @ free-mem ;
+   dup @ node>instance-size @ free-mem
+;
 
-PREVIOUS
-
-
-: ihandle>phandle  @ ;
+: ihandle>phandle ( ihandle -- phandle )
+   dup 0= ABORT" no current instance" instance>node @
+;
 
 : push-my-self ( ihandle -- )  r> my-self >r >r to my-self ;
 : pop-my-self ( -- )  r> r> to my-self >r ;
 : call-package  push-my-self execute pop-my-self ;
-: $call-my-method  ( str len -- ) my-self ihandle>phandle find-method
-                                  0= ABORT" no such method"  execute ;
+: $call-static ( ... str len node -- ??? )
+\  cr ." call for " 3dup -rot type ."  on node " .
+   find-method IF execute ELSE -1 throw THEN
+;
+: $call-my-method  ( str len -- ) my-self ihandle>phandle $call-static ;
 : $call-method  push-my-self $call-my-method pop-my-self ;
 : $call-parent  my-parent $call-method ;
-
