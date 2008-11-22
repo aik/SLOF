@@ -184,11 +184,13 @@ netboot(int argc, char *argv[])
 	int rc;
 	int len = strtol(argv[2], 0, 16);
 	char *buffer = (char *) strtol(argv[1], 0, 16);
+	char *ret_buffer = (char *) strtol(argv[3], 0, 16);
 	filename_ip_t fn_ip;
 	int fd_device;
 	tftp_err_t tftp_err;
 	obp_tftp_args_t obp_tftp_args;
 	char null_ip[4] = { 0x00, 0x00, 0x00, 0x00 };
+	int huge_load = strtol(argv[4], 0, 10);
 
 	printf("\n");
 	printf(" Bootloader 1.5 \n");
@@ -235,8 +237,8 @@ netboot(int argc, char *argv[])
 	       fn_ip.own_mac[0], fn_ip.own_mac[1], fn_ip.own_mac[2],
 	       fn_ip.own_mac[3], fn_ip.own_mac[4], fn_ip.own_mac[5]);
 
-	if (argc >= 4) {
-		parse_args(argv[3], &obp_tftp_args);
+	if (argc >= 5) {
+		parse_args(argv[5], &obp_tftp_args);
 		if(obp_tftp_args.bootp_retries - rc < DEFAULT_BOOT_RETRIES)
 			obp_tftp_args.bootp_retries = DEFAULT_BOOT_RETRIES;
 		else
@@ -301,11 +303,11 @@ netboot(int argc, char *argv[])
 			memcpy(&fn_ip.server_ip, obp_tftp_args.giaddr, 4);
 			memset(fn_ip.server_mac, 0xff, 6);
 		}
-		rc = bootp(fd_device, &fn_ip, obp_tftp_args.bootp_retries);
+		rc = bootp(fd_device, ret_buffer, &fn_ip, obp_tftp_args.bootp_retries);
 		break;
 	case IP_INIT_DHCP:
 		printf("  Requesting IP address via DHCP: ");
-		rc = dhcp(fd_device, &fn_ip, obp_tftp_args.bootp_retries);
+		rc = dhcp(fd_device, ret_buffer, &fn_ip, obp_tftp_args.bootp_retries);
 		break;
 	case IP_INIT_NONE:
 	default:
@@ -375,11 +377,16 @@ netboot(int argc, char *argv[])
 		fn_ip.filename[sizeof(fn_ip.filename)-1] = 0;
 	}
 
-	printf("  Requesting file \"%s\" via TFTP\n", fn_ip.filename);
+	printf("  Requesting file \"%s\" via TFTP from %d.%d.%d.%d\n",
+		fn_ip.filename,
+		((fn_ip.server_ip >> 24) & 0xFF),
+		((fn_ip.server_ip >> 16) & 0xFF),
+		((fn_ip.server_ip >>  8) & 0xFF),
+		( fn_ip.server_ip        & 0xFF));
 
 	// accept at most 20 bad packets
 	// wait at most for 40 packets
-	rc = tftp(fd_device, &fn_ip, (unsigned char *) buffer, len, obp_tftp_args.tftp_retries, &tftp_err);
+	rc = tftp(fd_device, &fn_ip, (unsigned char *) buffer, len, obp_tftp_args.tftp_retries, &tftp_err, huge_load);
 
 	if(obp_tftp_args.ip_init == IP_INIT_DHCP)
 		dhcp_send_release();

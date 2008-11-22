@@ -13,7 +13,7 @@
 JS2X_TARGETS = tools_build romfs_build stage1
 
 SUBDIRS = slof rtas 
-COMMON_LIBS = libc libipmi libbootmsg libbases
+COMMON_LIBS = libc libipmi libbootmsg libbases libelf
 
 all:		$(JS2X_TARGETS) subdirs clients_build bcm57xx boot_rom_js2x.bin boot_rom_bimini.bin
 

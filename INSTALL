@@ -10,6 +10,7 @@ BUILD
   - Recent GNU tools, configured for powerpc64-linux
     - GCC: 3.3.3 and newer are known to work
     - Binutils: use a version as new as possible
+    - Subversion
 
   - set the CROSS variable
     - something like export CROSS="powerpc64-unknown-linux-gnu-"
@@ -25,6 +26,14 @@ BUILD
     - ipmi_oem.oco
     these files are also provided through developerworks and have to be
     also downloaded just like the SLOF source code
+
+  - starting with the SLOF release JX-1.6.0-0 it is necessary to
+    download a x86 emulator which is used to execute the BIOS
+    of VGA card; to download the x86 emulator following steps are
+    required:
+    - cd other-licence/x86emu/
+    - ./x86emu_download.sh # this downloads the x86 emulator sources
+    - cd -
 
   - make js2x
 

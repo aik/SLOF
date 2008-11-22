@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <types.h>
+#include <stdint.h>
 #include <rtas.h>
 #include <hw.h>
 

@@ -13,7 +13,7 @@
 #include <cpu.h>
 #include <string.h>
 #include <stdio.h>
-#include <types.h>
+#include <stdint.h>
 #include <hw.h>
 #include <rtas.h>
 #include "rtas_board.h"

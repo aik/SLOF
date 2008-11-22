@@ -127,10 +127,10 @@ typedef struct {
 	int8_t filename[256];
 } filename_ip_t;
 
-int dhcp(int32_t, filename_ip_t *, unsigned int);
+int dhcp(int32_t, char *ret_buffer, filename_ip_t *, unsigned int);
 void dhcp_send_release(void);
 
-int bootp(int32_t, filename_ip_t *, unsigned int);
+int bootp(int32_t, char *ret_buffer, filename_ip_t *, unsigned int);
 
 typedef struct {
 	uint32_t bad_tftp_packets;
@@ -139,7 +139,7 @@ typedef struct {
 	uint32_t blocks_received;
 } tftp_err_t;
 
-int tftp(int, filename_ip_t *, unsigned char  *, int, unsigned int, tftp_err_t *);
+int tftp(int, filename_ip_t *, unsigned char  *, int, unsigned int, tftp_err_t *, int huge_load);
 int tftp_netsave(int32_t, filename_ip_t *, uint8_t * buffer, int32_t len, 
 		int use_ci, unsigned int retries, tftp_err_t * tftp_err);
 

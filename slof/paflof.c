@@ -19,6 +19,7 @@
 #undef unix
 
 #include "paflof.h"
+#include <string.h>
 #include ISTR(TARG,h)
 
 #define LAST_ELEMENT(x) x[sizeof x / sizeof x[0] - 1]

@@ -20,6 +20,8 @@
 
 #define DEBUG 0
 
+static char * response_buffer;
+
 void
 print_ip(char *ip)
 {
@@ -164,6 +166,9 @@ receive_bootp(int boot_device, filename_ip_t * fn_ip)
 		if (memcmp(fn_ip->own_mac, btph->chaddr, ETH_ALEN))
 			continue;
 
+		if(response_buffer)
+			memcpy(response_buffer, btph, 1720);
+
 		fn_ip->own_ip = btph->yiaddr;
 		fn_ip->server_ip = btph->siaddr;
 		memcpy(fn_ip->server_mac, &ethh->src_mac, 6);
@@ -229,12 +234,14 @@ receive_bootp(int boot_device, filename_ip_t * fn_ip)
 
 
 int
-bootp(int boot_device, filename_ip_t * fn_ip, unsigned int retries)
+bootp(int boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries)
 {
 	int i = (int) retries+1;
 	fn_ip->own_ip = 0;
 
 	printf("   ");
+
+	response_buffer = ret_buffer;
 
 	do {
 		printf("\b\b%02d", i);

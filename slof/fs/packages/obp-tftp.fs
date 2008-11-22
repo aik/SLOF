@@ -34,6 +34,10 @@ INSTANCE VARIABLE ciregs-buffer
     \ Generate arg string for snk like
     \ "netboot load-addr length filename"
     (u.) s" netboot " 2swap $cat s"  60000000 " $cat
+
+    \ Allocate 1720 bytes to store the BOOTP-REPLY packet
+    6B8 alloc-mem dup >r (u.) $cat s"  " $cat
+    huge-tftp-load @ IF s"  1 " ELSE s"  0 " THEN $cat
     my-args $cat
 
     \ Call SNK netboot loadr
@@ -42,8 +46,19 @@ INSTANCE VARIABLE ciregs-buffer
     \ Restore to old client interface register 
     ciregs-buffer @ ciregs ciregs-size move
 
+    \ Recover buffer address of BOOTP-REPLY packet
+    r>
+
     r> r> over IF s" bootpath" set-chosen ELSE 2drop THEN
     r> r> over IF s" bootargs" set-chosen ELSE 2drop THEN
+
+    \ Store BOOTP-REPLY packet as property
+    s" /chosen" select-dev
+    dup 6B8 encode-bytes s" bootp-response" property
+    device-end
+
+    \ free buffer
+    6B8 free-mem
 ;
 
 : close ( -- )

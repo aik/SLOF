@@ -13,6 +13,8 @@
 #ifndef _TYPES_H
 #define _TYPES_H
 
+#warning "This file is obsolete. Please use #include <stdint.h> instead."
+
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;

@@ -94,7 +94,7 @@ int netflash(int argc, char * argv[])
 
 	/* Get ip address for our mac address */
 	printf("  Requesting IP address via DHCP: ");
-	arp_failed = dhcp(fd_device, &fn_ip, 30);
+	arp_failed = dhcp(fd_device, 0, &fn_ip, 30);
 
 	if(arp_failed >= 0) {
 		// reinit network stack
@@ -133,7 +133,7 @@ int netflash(int argc, char * argv[])
 
 	strcpy((char *) fn_ip.filename,argv[3]);
 
-	rc = tftp (fd_device, &fn_ip, (unsigned char *) buffer, len, 20, &tftp_err);
+	rc = tftp (fd_device, &fn_ip, (unsigned char *) buffer, len, 20, &tftp_err, 0);
 
 	dhcp_send_release();
 

@@ -9,7 +9,7 @@
  * Contributors:
  *     IBM Corporation - initial implementation
  *****************************************************************************/
-#include <types.h>
+#include <stdint.h>
 #include <hw.h>
 #include <stdio.h>
 #include "stage2.h"

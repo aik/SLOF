@@ -12,23 +12,16 @@
 
 #ifndef IOLIB_H
 #define IOLIB_H
-#include <types.h>
+
+#include <stdint.h>
 
 #define addr_t  	volatile unsigned int
 #define addr8_t 	volatile unsigned char
-
-extern void     out32 (uint64_t base, uint64_t addr, uint32_t val);
-extern void     out16 (uint64_t base, uint64_t addr, uint16_t val);
-extern void     out8  (uint64_t base, uint64_t addr, uint8_t val);
-extern uint32_t in32  (uint64_t base, uint64_t addr);
-extern uint16_t in16  (uint64_t base, uint64_t addr);
-extern uint8_t  in8   (uint64_t base, uint64_t addr);
 
 extern void     halt_sys (unsigned int);
 
 extern uint32_t get_sb_version (void);
 
-extern void     init_uart (void);
 extern void     uart_send_byte(unsigned char b);
 extern void     io_putchar(unsigned char);
 

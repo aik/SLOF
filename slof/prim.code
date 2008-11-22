@@ -413,7 +413,7 @@ MIRP
 code_FILL:
 	{
 		unsigned char c = (dp--)->u;
-		int size = ((dp--)->n);
+		type_n size = ((dp--)->n);
 		unsigned char *d = (unsigned char *)((dp--)->u);
 		type_u fill_v=c | c <<8;
 
@@ -448,7 +448,7 @@ code_FILL:
 
 code_COMP:
 	{
-		int len = ((dp--)->n);
+		type_n len = ((dp--)->n);
 		unsigned char *addr2 = (unsigned char *)((dp--)->u);
 		unsigned char *addr1 = (unsigned char *)((dp--)->u);
 
@@ -527,3 +527,10 @@ PRIM(STRING_X3d_CI)
 	}
 MIRP
 
+// bool dependend pick
+// ?PICK ( v1 v2 bool -- v1|v2 )
+PRIM(_X3f_PICK)
+        type_u b = TOS.u; POP;
+        if (b) { NOS = TOS; }
+        POP;
+MIRP

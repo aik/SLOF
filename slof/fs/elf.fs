@@ -106,6 +106,17 @@ false value elf-claim?
     2drop
 ;
 
+: claim-segment64 ( file-addr program-header-addr -- )
+    elf-claim? IF
+       >r
+       here last-claim , to last-claim                \ Setup ptr to last claim
+       \ Put addr and size ain the data space
+       r@ phdr64>p_vaddr @ dup , r> phdr64>p_memsz @ dup , ( file-addr addr size )
+       0 ['] claim CATCH IF ABORT" Memory for ELF file already in use " THEN
+    THEN
+    2drop
+;
+
 : load-segment ( file-addr program-header-addr -- )
   >r
   ( file-addr  R: program-header-addr )
@@ -175,7 +186,7 @@ false value elf-claim?
       dup phdr64>p_type l@ 1 = IF	  \ PT_LOAD ?
 
   ( file-addr program-header-addr )
-        2dup claim-segment	  \ claim segment
+        2dup claim-segment64	          \ claim segment
 
   ( file-addr program-header-addr )
         2dup load-segment64 THEN	  \ copy segment

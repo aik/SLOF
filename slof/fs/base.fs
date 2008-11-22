@@ -14,6 +14,8 @@
 \ Words missing in *.in files
 VARIABLE mask -1 mask !
 
+VARIABLE huge-tftp-load 0 huge-tftp-load !
+
 : default-hw-exception s" Exception #" type . ;
 
 ' default-hw-exception to hw-exception-handler

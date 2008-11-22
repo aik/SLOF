@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <types.h>
+#include <stdint.h>
 #include <xvect.h>
 #include <hw.h>
 #include <stdio.h>
@@ -21,6 +21,7 @@
 #include "product.h"
 #include "calculatecrc.h"
 #include <cpu.h>
+#include <libelf.h>
 #include <string.h>
 
 uint64_t uart;
@@ -184,9 +185,8 @@ early_c_entry(uint64_t start_addr)
 {
 	struct romfs_lookup_t fileInfo;
 	uint32_t crc;
-	void (*pofwStart) (uint64_t rombase);
+	void (*ofw_start) (uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 	uint64_t *boot_info;
-	uint64_t ofw_start = 0x80000;
 	exception_stack_frame = 0;
 	/* destination for the flash image; we copy it to RAM
 	 * because from flash it is much too slow
@@ -200,6 +200,7 @@ early_c_entry(uint64_t start_addr)
 	uint64_t magic_val = 0;
 	uint64_t startVal = 0;
 	uint64_t flashlen = 0;
+	unsigned long ofw_addr;
 
 	io_init();
 
@@ -209,11 +210,11 @@ early_c_entry(uint64_t start_addr)
 	magic_val = load64_ci((uint64_t) (header->magic));
 
 	printf(" Check ROM  = ");
-	if (strncmp((char *)&magic_val, FLASHFS_MAGIC, 8) == 0) {
+	if (strncmp((char *) &magic_val, FLASHFS_MAGIC, 8) == 0) {
 		// somehow, the first 8 bytes in flashfs are overwritten, if booting from drone...
 		// so if we find "IMG1" in the first 4 bytes, we skip the CRC check...
 		startVal = load64_ci((uint64_t) start_addr);
-		if (strncmp((char *)&startVal, "IMG1", 4) == 0) {
+		if (strncmp((char *) &startVal, "IMG1", 4) == 0) {
 			printf
 			    ("start from RAM detected, skipping CRC check!\r\n");
 			// for romfs accesses (c_romfs_lookup) to work, we must fix the first uint64_t to the value we expect...
@@ -236,7 +237,7 @@ early_c_entry(uint64_t start_addr)
 	} else {
 		printf
 		    ("failed (magic string is \"%.8s\" should be \"%.8s\")\r\n",
-		     (char *)&magic_val, FLASHFS_MAGIC);
+		     (char *) &magic_val, FLASHFS_MAGIC);
 		while (1);
 	}
 
@@ -262,10 +263,22 @@ early_c_entry(uint64_t start_addr)
 	boot_info[1] = start_addr;
 	load_file(0x100, "xvect", 0x100, romfs_base);
 	load_file(SLAVELOOP_LOADBASE, "stageS", 0, romfs_base);
-	load_file(ofw_start, "ofw_main", 0, romfs_base);
-	pofwStart = (void (*)(uint64_t)) &ofw_start;
+	c_romfs_lookup("ofw_main", romfs_base, &fileInfo);
+	load_elf_file((void *) fileInfo.addr_data, &ofw_addr);
+	ofw_start =
+	    (void (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t))
+	    &ofw_addr;
 	// re-enable the cursor
 	printf("%s%s", TERM_CTRL_RESET, TERM_CTRL_CRSON);
+	/* ePAPR 0.5
+	 * r3 = R3 Effective address of the device tree image. Note: this
+	 *      address must be 8-byte aligned in memory.
+	 * r4 = implementation dependent
+	 * r5 = 0
+	 * r6 = 0x65504150 -- ePAPR magic value-to distinguish from
+	 *      non-ePAPR-compliant firmware
+	 * r7 = implementation dependent
+	 */
+	ofw_start(0, romfs_base, 0, 0, 0);
 	// never return
-	pofwStart(romfs_base);
 }

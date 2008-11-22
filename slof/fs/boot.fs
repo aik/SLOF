@@ -133,7 +133,10 @@ defer go ( -- )
 
 
 : do-load ( devstr len -- img-size )	\ Device method wrapper
-   258 set-watchdog                     \ Set watchdog timer to 10 minutes
+                                        \ Set watchdog timer to 10 minutes, mul.
+                                        \ multiply with 2 because DHCP needs 1
+                                        \ sec. per try and add 1 min to avoid
+   4ec set-watchdog                     \ race conditions with watchdog timeout
    my-self >r current-node @ >r         \ Save my-self
    ." Trying to load: " $bootargs type ."  from: " 2dup type ."  ... "
    2dup open-dev dup IF

@@ -11,7 +11,7 @@
  *****************************************************************************/
 
 #include <cpu.h>
-#include <types.h>
+#include <stdint.h>
 #include <hw.h>
 
 uint16_t

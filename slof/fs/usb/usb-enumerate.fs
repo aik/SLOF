@@ -116,9 +116,11 @@
 \ create device tree for SCSI device
 
 : (scsi-create) ( -- )
+   s" SCSI-CREATE " usb-debug-print
    mps new-device-address 0 ch-buffer 1 control-std-get-maxlun ( TRUE|FALSE )
    IF
-      s" GET-MAX-LUN IS WORKING :" usb-debug-print
+\      s" GET-MAX-LUN IS WORKING :" usb-debug-print
+\      ch-buffer  5 dump cr      \ dump the responsed message
    ELSE
       s" ERROR in GET-MAX-LUN " usb-debug-print
       cd-buffer @ 5 + c@ to temp1
@@ -157,9 +159,9 @@
    THEN
    ( interface-subclass )
    CASE
-      02 OF  (atapi-8020-create) s" 2 ATAPI " usb-debug-print ENDOF
-      05 OF  (atapi-8070-create) s" 5 ATAPI " usb-debug-print ENDOF
-      06 OF  (scsi-create) s" 6 SCSI " usb-debug-print ENDOF
+      02 OF  (atapi-8020-create) s" ATAPI Interface " usb-debug-print ENDOF
+      05 OF  (atapi-8070-create) s" ATAPI Interface " usb-debug-print ENDOF
+      06 OF  (scsi-create) s" SCSI Interface " usb-debug-print ENDOF
       dup OF  s" USB storage: Unsupported sub-class code." usb-debug-print ENDOF
    ENDCASE
 ;

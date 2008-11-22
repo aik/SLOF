@@ -26,7 +26,9 @@ VARIABLE controlxfer-cmd
       drop 3drop 2drop FALSE EXIT  ( FALSE )
    THEN
    TO temp1               ( dir addr dlen setup-packet MPS ep-fun )
-   \ s" controlxfer: Allocated ED: " temp1 usb-debug-print-val
+   usb-test-flag IF
+      s" controlxfer: Allocated ED: " temp1 usb-debug-print-val
+   THEN   
    temp1 zero-out-an-ed-except-link ( dir addr dlen setup-packet MPS ep-fun )
    temp1 ed>eattr l@-le or temp1 ed>eattr l!-le ( dir addr dlen setup-ptr MPS )
    dup TO temp2 10 lshift temp1 ed>eattr l@-le or temp1 ed>eattr l!-le
@@ -139,6 +141,7 @@ VARIABLE controlxfer-cmd
 \ Free the ED and TDs associated with it.
 \ PENDING: Above said.
 
+20 CONSTANT max-retire-td
 
 : (transfer-wait-for-doneq)  ( ed-ptr -- TRUE | FALSE )
    dup                               ( ed-ptr ed-ptr )
@@ -147,7 +150,7 @@ VARIABLE controlxfer-cmd
    0 TO td-retire-count              ( ed-ptr )
    0 TO poll-timer  BEGIN            ( ed-ptr )
       td-retire-count num-tds <>     ( ed-ptr TRUE | FALSE )
-      poll-timer d#   5000 < and       ( ed-ptr TRUE | FALSE )
+      poll-timer max-retire-td < and       ( ed-ptr TRUE | FALSE )
    WHILE
       (HC-CHECK-WDH) IF                                   ( ed-ptr )
          hchccadneq rl@-le find-td-list-tail-and-size nip ( ed-ptr n )
@@ -159,7 +162,7 @@ VARIABLE controlxfer-cmd
             s" (transfer-wait-for-doneq: USB device communication error."
             usb-debug-print                 ( ed-ptr done-td failed-td CCcode R: CCcode )
             dup 4 = swap dup 5 = rot or IF  ( ed-ptr done-td failed-td CCcode R: CCcode )
-                d# 5000 TO poll-timer       ( ed-ptr done-td failed-td CCcode R: CCcode )
+                max-retire-td TO poll-timer ( ed-ptr done-td failed-td CCcode R: CCcode )
             THEN
             ( ed-ptr done-td failed-td CCcode R: CCcode)
             usb-debug-flag IF
@@ -185,15 +188,21 @@ VARIABLE controlxfer-cmd
          (free-td-list)                    ( ed-ptr )
          0 hchccadneq rl!-le               ( ed-ptr )
          (HC-ACK-WDH) \ TDs were written to DOne queue. ACK the HC.
-         \ s" Retired = " td-retire-count usb-debug-print-val
-         \ s" Total = " num-tds usb-debug-print-val
+	 usb-test-flag IF							   
+            s" Retired = " td-retire-count usb-debug-print-val
+            s" Total = " num-tds usb-debug-print-val
+	 THEN
       THEN
       poll-timer 1+ TO poll-timer
-      1 ms
+      4 ms \ longer  1 ms
+      usb-test-flag IF
+         s" poll-timer: " poll-timer usb-debug-print-val	   
+      THEN
    REPEAT                                  ( ed-ptr )
    disable-control-list-processing         ( ed-ptr )
    td-retire-count num-tds <> IF           ( ed-ptr )
       dup display-descriptors              ( ed-ptr )
+      s" maximum of retire " usb-debug-print						     
    THEN
    free-ed
    td-retire-count num-tds <>  IF
@@ -429,23 +438,31 @@ VARIABLE controlxfer-cmd
       num-rw-retired-tds num-rw-tds <               ( TRUE | FALSE )
       while-failed FALSE =  and                     ( TRUE | FALSE )
    WHILE
-      d# 5000 (wait-for-DOne-q)  IF                    ( TD-list )
+      d# 800 (wait-for-DOne-q)  IF                    ( TD-list )
          dup find-td-list-tail-and-size nip         ( td-list size )
          num-rw-retired-tds + TO num-rw-retired-tds ( td-list )
          dup (td-list-status)  IF                   ( td-list failed-TD CC )
             dup 4 =  IF
                   saved-list-type  CASE
-                     0 OF 0 0 control-std-clear-feature
+                     0 OF 
+		       0 0 control-std-clear-feature
+		       s" clear feature " usb-debug-print
                      ENDOF
                      1 OF                             \ clean bulk stalled 
-                       disable-bulk-list-processing   \ disable procesing
+                       s" clear bulk when stalled " usb-debug-print
+		       disable-bulk-list-processing   \ disable procesing
                        saved-rw-ed ed>eattr l@-le dup \ extract
                        780 and 7 rshift 80 or         \ endpoint and
                        swap 7f and                    \ usb addr
                        control-std-clear-feature
 		     ENDOF
-                     2 OF 0 saved-rw-ed ed>eattr l@-le
-                     control-std-clear-feature ENDOF
+                     2 OF 
+		       0 saved-rw-ed ed>eattr l@-le
+                     control-std-clear-feature 
+		     ENDOF
+		     dup OF
+		       s" default case von Michael" usb-debug-print 
+		     ENDOF
                      ENDCASE
             ELSE
                    usb-debug-flag IF
@@ -453,7 +470,7 @@ VARIABLE controlxfer-cmd
                    THEN
                    drop drop
                    \ TRUE ABORT" USB device transaction error."
-                   5040 error" (USB) device transaction error."
+                   5040 error" (USB) device transaction error (wait-td-retrire)."
                    ABORT
             THEN
              2drop drop
@@ -466,7 +483,10 @@ VARIABLE controlxfer-cmd
       ELSE
          drop                                       \ drop td-list pointer
          TRUE TO while-failed
+	 s" time out wait for done" usb-debug-print
+	 5 ms \ wait for bad device
       THEN
+   
    REPEAT
 ;
 
@@ -480,11 +500,14 @@ VARIABLE controlxfer-cmd
       1 OF disable-bulk-list-processing ENDOF
       2 OF disable-interrupt-list-processing ENDOF
    ENDCASE
-   saved-rw-ed ed>tdqhp l@-le 2 and 0<> IF
-      1
+   saved-rw-ed ed>tdqhp l@-le 2 and 0<> IF 
+      1 
+      s" retired 1" usb-debug-print
    ELSE
-      0
+      0 
+      s" retired 0" usb-debug-print
    THEN
+   \ s" retired " usb-debug-print-val
    WHILE-failed   IF
       FALSE           ( FALSE )
    ELSE

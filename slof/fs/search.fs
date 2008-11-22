@@ -9,10 +9,6 @@
 \ * Contributors:
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
-\
-\ Copyright 2002,2003,2004  Segher Boessenkool  <segher@kernel.crashing.org>
-\
-
 
 \ stuff we should already have:
 

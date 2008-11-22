@@ -17,7 +17,7 @@ include $(TOPBRDDIR)/config
 include $(TOPCMNDIR)/make.rules
 
 
-all: Makefile.dep OF.ffs slof.bin $(SLOFCMNDIR)/xvect.bin
+all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg
 SLOF_LIBS = $(LIBCMNDIR)/libbootmsg.a

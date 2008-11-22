@@ -116,7 +116,7 @@ here 100 allot CONSTANT pci-device-vec
 : pci-sub-vendor@ ( addr -- sub-id )    2C + rtas-config-l@ FFFF and ;
 \ read Sub Device ID
 : pci-sub-device@ ( addr -- sub-id )    2C + rtas-config-l@ 10 rshift FFFF and ;
-\ read Interrupt Line
+\ read Interrupt Pin
 : pci-interrupt@  ( addr -- interrupt ) 3D + rtas-config-b@ ;
 \ read Minimum Grant
 : pci-min-grant@  ( addr -- min-gnt )   3E + rtas-config-b@ ;
@@ -426,7 +426,7 @@ DEFER func-pci-probe-bus
                 drop                                    \ if not forget it
         ELSE
                 pci-setup-device                        \ if valid setup the device
-	THEN
+        THEN
 ;
 
 \ walk through all 32 possible pci devices on this bus and probe them
@@ -436,7 +436,7 @@ DEFER func-pci-probe-bus
                 dup
                 i pci-probe-device
         LOOP
-	drop
+        drop
 ;
 
 \ setup the function pointer used in pci-bridge-setup
@@ -492,3 +492,8 @@ DEFER func-pci-probe-bus
 
 \ provide all words needed to generate the properties and/or assign BAR values
 #include "pci-properties.fs"
+
+\ provide all words implementing lspci functionality
+#if defined(ELBA) || defined(MALTA)
+#include "pci-lspci.fs"
+#endif

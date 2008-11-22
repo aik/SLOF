@@ -15,8 +15,9 @@ CROSS		?= powerpc64-linux-
 HOSTCC		?= gcc
 HOSTCFLAGS	= -g -Wall -W -O2 -I. -I../include
 
-INCLCMNDIR	?= $(TOP)/../../include
-LIBCMNDIR	?= $(TOP)/../../lib
+ROOTDIR		?= $(TOP)/../..
+INCLCMNDIR	?= $(ROOTDIR)/include
+LIBCMNDIR	?= $(ROOTDIR)/lib
 CFLAGS		= -g -I. -I$(TOP)/include -I$(LIBCMNDIR)/libc/include \
 		  -I$(LIBCMNDIR)/libbootmsg -I$(INCLCMNDIR)/$(CPUARCH) \
 		  -O2 -fno-builtin -ffreestanding -msoft-float -mno-altivec \
@@ -41,3 +42,5 @@ endif
 OBJCOPY 	= $(CROSS)objcopy
 OBJDUMP		= $(CROSS)objdump
 STRIP		= $(CROSS)strip
+AR              = $(CROSS)ar
+RANLIB          = $(CROSS)ranlib

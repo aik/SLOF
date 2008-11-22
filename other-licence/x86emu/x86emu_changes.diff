@@ -1,0 +1,364 @@
+Index: debug.c
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/debug.c,v
+retrieving revision 1.1
+diff -u -u -r1.1 debug.c
+--- debug.c	7 Sep 2007 10:01:21 -0000	1.1
++++ debug.c	19 Oct 2007 08:29:16 -0000
+@@ -185,7 +185,7 @@
+     for (i=0; i< M.x86.enc_pos; i++) {
+         sprintf(buf1+2*i,"%02x", fetch_data_byte_abs(s,o+i));
+     }
+-    printk("%-20s",buf1);
++    printk("%-20s ",buf1);
+ }
+ 
+ static void print_decoded_instruction (void)
+Index: ops.c
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/ops.c,v
+retrieving revision 1.1
+diff -u -u -r1.1 ops.c
+--- ops.c	7 Sep 2007 10:01:21 -0000	1.1
++++ ops.c	19 Oct 2007 08:29:16 -0000
+@@ -2526,6 +2526,8 @@
+         store_data_byte_abs(M.x86.R_ES, M.x86.R_DI, val);
+         M.x86.R_SI += inc;
+         M.x86.R_DI += inc;
++        if (M.x86.intr & INTR_HALTED)
++            break;
+     }
+     DECODE_CLEAR_SEGOVR();
+     END_OF_INSTR();
+@@ -2574,6 +2576,8 @@
+         }
+         M.x86.R_SI += inc;
+         M.x86.R_DI += inc;
++        if (M.x86.intr & INTR_HALTED)
++            break;
+     }
+     DECODE_CLEAR_SEGOVR();
+     END_OF_INSTR();
+@@ -2608,6 +2612,8 @@
+             M.x86.R_DI += inc;
+             if ( (M.x86.mode & SYSMODE_PREFIX_REPE) && (ACCESS_FLAG(F_ZF) == 0) ) break;
+             if ( (M.x86.mode & SYSMODE_PREFIX_REPNE) && ACCESS_FLAG(F_ZF) ) break;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
+     } else {
+@@ -2660,6 +2666,8 @@
+             M.x86.R_DI += inc;
+             if ( (M.x86.mode & SYSMODE_PREFIX_REPE) && ACCESS_FLAG(F_ZF) == 0 ) break;
+             if ( (M.x86.mode & SYSMODE_PREFIX_REPNE) && ACCESS_FLAG(F_ZF) ) break;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
+     } else {
+@@ -2746,6 +2754,8 @@
+             store_data_byte_abs(M.x86.R_ES, M.x86.R_DI, M.x86.R_AL);
+             M.x86.R_CX -= 1;
+             M.x86.R_DI += inc;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
+     } else {
+@@ -2795,6 +2805,8 @@
+             store_data_word_abs(M.x86.R_ES, M.x86.R_DI, M.x86.R_AX);
+         }
+         M.x86.R_DI += inc;
++        if (M.x86.intr & INTR_HALTED)
++            break;
+     }
+     DECODE_CLEAR_SEGOVR();
+     END_OF_INSTR();
+@@ -2822,6 +2834,8 @@
+             M.x86.R_AL = fetch_data_byte(M.x86.R_SI);
+             M.x86.R_CX -= 1;
+             M.x86.R_SI += inc;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
+     } else {
+@@ -2871,6 +2885,8 @@
+             M.x86.R_AX = fetch_data_word(M.x86.R_SI);
+         }
+         M.x86.R_SI += inc;
++        if (M.x86.intr & INTR_HALTED)
++            break;
+     }
+     DECODE_CLEAR_SEGOVR();
+     END_OF_INSTR();
+@@ -2902,6 +2918,8 @@
+             M.x86.R_DI += inc;
+             if (ACCESS_FLAG(F_ZF) == 0)
+                 break;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~SYSMODE_PREFIX_REPE;
+     } else if (M.x86.mode & SYSMODE_PREFIX_REPNE) {
+@@ -2914,6 +2932,8 @@
+             M.x86.R_DI += inc;
+             if (ACCESS_FLAG(F_ZF))
+                 break;          /* zero flag set means equal */
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~SYSMODE_PREFIX_REPNE;
+     } else {
+@@ -2964,6 +2984,8 @@
+             M.x86.R_DI += inc;
+             if (ACCESS_FLAG(F_ZF) == 0)
+                 break;
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~SYSMODE_PREFIX_REPE;
+     } else if (M.x86.mode & SYSMODE_PREFIX_REPNE) {
+@@ -2981,6 +3003,8 @@
+             M.x86.R_DI += inc;
+             if (ACCESS_FLAG(F_ZF))
+                 break;          /* zero flag set means equal */
++            if (M.x86.intr & INTR_HALTED)
++                break;
+         }
+         M.x86.mode &= ~SYSMODE_PREFIX_REPNE;
+     } else {
+@@ -4213,6 +4237,7 @@
+     ip = (s16)fetch_word_imm();
+     ip += (s16)M.x86.R_IP;
+     DECODE_PRINTF2("%04x\n", ip);
++    JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, M.x86.R_CS, ip, " NEAR ");
+     TRACE_AND_STEP();
+     M.x86.R_IP = (u16)ip;
+     DECODE_CLEAR_SEGOVR();
+@@ -4233,6 +4258,7 @@
+     cs = fetch_word_imm();
+     DECODE_PRINTF2("%04x:", cs);
+     DECODE_PRINTF2("%04x\n", ip);
++    JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, cs, ip, " FAR ");
+     TRACE_AND_STEP();
+     M.x86.R_IP = ip;
+     M.x86.R_CS = cs;
+@@ -4254,6 +4280,7 @@
+     offset = (s8)fetch_byte_imm();
+     target = (u16)(M.x86.R_IP + offset);
+     DECODE_PRINTF2("%x\n", target);
++    JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, M.x86.R_CS, target, " BYTE ");
+     TRACE_AND_STEP();
+     M.x86.R_IP = target;
+     DECODE_CLEAR_SEGOVR();
+@@ -5013,12 +5040,14 @@
+             break;
+         case 4:         /* jmp word ptr ... */
+             destval = fetch_data_word(destoffset);
++            JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, M.x86.R_CS, destval, " WORD ");
+             TRACE_AND_STEP();
+             M.x86.R_IP = destval;
+             break;
+         case 5:         /* jmp far ptr ... */
+             destval = fetch_data_word(destoffset);
+             destval2 = fetch_data_word(destoffset + 2);
++            JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, destval2, destval, " FAR ");
+             TRACE_AND_STEP();
+             M.x86.R_IP = destval;
+             M.x86.R_CS = destval2;
+Index: sys.c
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/sys.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -u -r1.1 -r1.2
+--- sys.c	7 Sep 2007 10:01:21 -0000	1.1
++++ sys.c	7 Sep 2007 10:03:13 -0000	1.2
+@@ -45,11 +45,6 @@
+ #include <x86emu/regs.h>
+ #include "debug.h"
+ #include "prim_ops.h"
+-#ifdef LINUXBIOS_VERSION
+-#include "io.h"
+-#else
+-#include <sys/io.h>
+-#endif
+ 
+ #ifdef IN_MODULE
+ #include "xf86_ansic.h"
+@@ -220,7 +215,7 @@
+ {
+ 	DB(if (DEBUG_IO_TRACE())
+ 		printk("inb %#04x \n", addr);)
+-	return inb(addr);
++	return 0;
+ }
+ 
+ /****************************************************************************
+@@ -235,7 +230,7 @@
+ {
+ 	DB(if (DEBUG_IO_TRACE())
+ 		printk("inw %#04x \n", addr);)
+-	return inw(addr);
++	return 0;
+ }
+ 
+ /****************************************************************************
+@@ -250,7 +245,7 @@
+ {
+ 	DB(if (DEBUG_IO_TRACE())
+ 		printk("inl %#04x \n", addr);)
+-	return inl(addr);
++	return 0;
+ }
+ 
+ /****************************************************************************
+@@ -264,7 +259,6 @@
+ {
+ 	DB(if (DEBUG_IO_TRACE())
+ 		printk("outb %#02x -> %#04x \n", val, addr);)
+-	outb(val, addr);
+ 	return;
+ }
+ 
+@@ -279,7 +273,6 @@
+ {
+ 	DB(if (DEBUG_IO_TRACE())
+ 		printk("outw %#04x -> %#04x \n", val, addr);)
+-	outw(val, addr);
+ 	return;
+ }
+ 
+@@ -295,7 +288,6 @@
+ 	DB(if (DEBUG_IO_TRACE())
+ 	       printk("outl %#08x -> %#04x \n", val, addr);)
+ 
+-	outl(val, addr);
+ 	return;
+ }
+ 
+@@ -405,6 +397,6 @@
+ 
+ void X86EMU_setMemBase(void *base, size_t size)
+ {
+-	M.mem_base = (int) base;
++	M.mem_base = (unsigned long) base;
+ 	M.mem_size = size;
+ }
+Index: include/x86emu/debug.h
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/include/x86emu/debug.h,v
+retrieving revision 1.1
+diff -u -u -r1.1 debug.h
+--- include/x86emu/debug.h	7 Sep 2007 10:01:21 -0000	1.1
++++ include/x86emu/debug.h	19 Oct 2007 08:29:16 -0000
+@@ -40,8 +40,6 @@
+ #ifndef __X86EMU_DEBUG_H
+ #define __X86EMU_DEBUG_H
+ 
+-//#define DEBUG 0
+-#undef DEBUG
+ /*---------------------- Macros and type definitions ----------------------*/
+ 
+ /* checks to be enabled for "runtime" */
+@@ -78,6 +76,8 @@
+ # define DEBUG_SYSINT()        	(M.x86.debug & DEBUG_SYSINT_F)
+ # define DEBUG_TRACECALL()     	(M.x86.debug & DEBUG_TRACECALL_F)
+ # define DEBUG_TRACECALLREGS() 	(M.x86.debug & DEBUG_TRACECALL_REGS_F)
++# define DEBUG_TRACEJMP()       (M.x86.debug & DEBUG_TRACEJMP_F)
++# define DEBUG_TRACEJMPREGS()   (M.x86.debug & DEBUG_TRACEJMP_REGS_F)
+ # define DEBUG_SYS()           	(M.x86.debug & DEBUG_SYS_F)
+ # define DEBUG_MEM_TRACE()     	(M.x86.debug & DEBUG_MEM_TRACE_F)
+ # define DEBUG_IO_TRACE()      	(M.x86.debug & DEBUG_IO_TRACE_F)
+@@ -96,6 +96,8 @@
+ # define DEBUG_SYSINT()        	0
+ # define DEBUG_TRACECALL()     	0
+ # define DEBUG_TRACECALLREGS() 	0
++# define DEBUG_TRACEJMP()       0
++# define DEBUG_TRACEJMPREGS()   0
+ # define DEBUG_SYS()           	0
+ # define DEBUG_MEM_TRACE()     	0
+ # define DEBUG_IO_TRACE()      	0
+@@ -174,9 +176,15 @@
+ 		x86emu_dump_regs();                                     \
+ 	if (DEBUG_TRACECALL())                                     	\
+ 		printk("%04x:%04x: %s\n",u,v,n);
++# define  JMP_TRACE(u,v,w,x,s)                                 \
++   if (DEBUG_TRACEJMPREGS()) \
++      x86emu_dump_regs(); \
++   if (DEBUG_TRACEJMP()) \
++      printk("%04x:%04x: JMP %s%04x:%04x\n", u , v, s, w, x);
+ #else
+ # define CALL_TRACE(u,v,w,x,s)
+ # define RETURN_TRACE(n,u,v)
++# define  JMP_TRACE(u,v,w,x,s)
+ #endif
+ 
+ #ifdef DEBUG
+Index: include/x86emu/regs.h
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/include/x86emu/regs.h,v
+retrieving revision 1.1
+diff -u -u -r1.1 regs.h
+--- include/x86emu/regs.h	7 Sep 2007 10:01:21 -0000	1.1
++++ include/x86emu/regs.h	19 Oct 2007 08:29:16 -0000
+@@ -274,9 +274,9 @@
+      */
+     u32                         mode;
+     volatile int                intr;   /* mask of pending interrupts */
+-	int                         debug;
++    volatile int                         debug;
+ #ifdef DEBUG
+-	int                         check;
++    int                         check;
+     u16                         saved_ip;
+     u16                         saved_cs;
+     int                         enc_pos;
+@@ -366,7 +366,7 @@
+ 
+ /* Function to log information at runtime */
+ 
+-//void	printk(const char *fmt, ...);
++void	printk(const char *fmt, ...);
+ 
+ #ifdef  __cplusplus
+ }                       			/* End of "C" linkage for C++   	*/
+Index: include/x86emu/x86emu.h
+===================================================================
+RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/include/x86emu/x86emu.h,v
+retrieving revision 1.1
+diff -u -u -r1.1 x86emu.h
+--- include/x86emu/x86emu.h	7 Sep 2007 10:01:21 -0000	1.1
++++ include/x86emu/x86emu.h	19 Oct 2007 08:29:16 -0000
+@@ -42,14 +42,6 @@
+ #ifndef __X86EMU_X86EMU_H
+ #define __X86EMU_X86EMU_H
+ 
+-/* FIXME: undefine printk for the moment */
+-#ifdef LINUXBIOS_VERSION
+-#include <console.h>
+-#define printk(x...) printk(BIOS_DEBUG, x)
+-#else
+-#define printk printf
+-#endif 
+-
+ #ifdef SCITECH
+ #include "scitech.h"
+ #define	X86API	_ASMAPI
+@@ -189,6 +181,8 @@
+ #define DEBUG_TRACECALL_REGS_F  0x004000
+ #define DEBUG_DECODE_NOPRINT_F  0x008000 
+ #define DEBUG_SAVE_IP_CS_F      0x010000
++#define DEBUG_TRACEJMP_F        0x020000
++#define DEBUG_TRACEJMP_REGS_F   0x040000
+ #define DEBUG_SYS_F             (DEBUG_SVC_F|DEBUG_FS_F|DEBUG_PROC_F)
+ 
+ void 	X86EMU_trace_regs(void);
+@@ -200,5 +194,4 @@
+ #ifdef  __cplusplus
+ }                       			/* End of "C" linkage for C++   	*/
+ #endif
+-
+ #endif /* __X86EMU_X86EMU_H */

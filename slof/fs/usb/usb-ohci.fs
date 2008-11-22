@@ -101,11 +101,17 @@ baseaddrs 34 + CONSTANT hcintrval
 baseaddrs 48 + CONSTANT hcrhdescA
 baseaddrs 54 + CONSTANT hcrhpstat
 
+\ OHCI REGISTER SETTING FOR ELBA STEC 8GBFLASHDISK 
+6C903305 E0 config-l! \ setting EXT1 for 5 ports
+7E020001 40 config-l! \ setting PMC for enable PME
 
-\ Constants for COMSTAT register
-
-
-2 CONSTANT CLF
+usb-debug-flag IF
+    0 config-l@ ." VENID = " . cr
+   40 config-l@ ." PMC   = " . cr
+   44 config-l@ ." PMCSR = " . cr 
+   E0 config-l@ ." EXT1  = " . cr
+   E4 config-l@ ." EXT2  = " . cr
+THEN
 
 \ Constants for INTSTAT register
 
@@ -850,7 +856,7 @@ THEN
    0ffff    hcintdsbl rl!-le
    0000     hcbulkhead rl!-le
    0083     hccontrol rl!-le
-   23f02edf hcintrval rl!-le
+   23f02fff hcintrval rl!-le \ changes from 23f02edf
 ;
 
 
@@ -1068,11 +1074,11 @@ VARIABLE total-rh-ports
       IF
          s" Device at this port!" usb-debug-print
          RHP-PPS current-stat rl!-le   \ port power on
-         hcrhdescA 3 + rb@ 2 * ms      \ wait for POTPGT*2 ms
+         hcrhdescA 3 + rb@ 4 * ms      \ wait for POTPGT*2 ms
          RHP-PES current-stat rl!-le   \ port enable
          50 ms
          RHP-PRS current-stat rl!-le   \ port reset
-         50 ms
+         100 ms
          \ RHP-PRSC current-stat rl!-le
 
          current-stat rl@-le 200 and 4 lshift

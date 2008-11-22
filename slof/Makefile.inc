@@ -85,6 +85,9 @@ paflof: $(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o paflof.o $(SLOFCMNDIR)/entry.o 
 	$(CC) -T$(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o paflof.o \
 	    $(SLOFCMNDIR)/entry.o romfs.o OF.o nvramlog.o $(LLFWBRDDIR)/board_io.o \
 	    $(LLFWBRDDIR)/io_generic_lib.o $(LDFLAGS) $(SLOF_LIBS) -o $@
+	#save a copy of paflof before stripping
+	@cp $@ $@.unstripped
+	$(STRIP) -s $@
 
 paflof.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(SLOFCMNDIR)/paflof.c
@@ -93,9 +96,6 @@ $(SLOFCMNDIR)/xvect.bin: $(SLOFCMNDIR)/lowmem.o
 	$(CC) $(LDFLAGS) -Wl,--oformat,binary -Ttext=0x100 -o xvect.bin.tmp $<
 	dd if=xvect.bin.tmp of=$(SLOFCMNDIR)/xvect.bin bs=256 skip=1 2>/dev/null
 	rm -f xvect.bin.tmp
-
-slof.bin: paflof 
-	$(OBJCOPY) -Obinary paflof $@ 
 
 romfs.o:
 	$(CC) $(CPPFLAGS) $(ASFLAGS) -c -o $@ $(LLFWCMNDIR)/romfs.S
@@ -137,7 +137,7 @@ create_OF_ffs:
 # Targets for cleaning up:
 clean_slof:
 	rm -f $(SLOFCMNDIR)/*.o $(SLOFCMNDIR)/*.bin $(SLOFCMNDIR)/*.elf
-	rm -f dict.xt board.code paflof slof.bin default-font.bin
+	rm -f dict.xt board.code paflof paflof.unstripped default-font.bin
 	rm -f $(filter %.fsi,$(OF_FFS_FILES))
 
 distclean_slof:	clean_slof

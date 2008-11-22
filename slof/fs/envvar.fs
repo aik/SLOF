@@ -20,12 +20,15 @@ wordlist CONSTANT envvars
 
 \ create a definition in  envvars
 : create-env ( "name" -- )
-   get-current  envvars set-current  CREATE  set-current ;
+   get-current  envvars set-current  CREATE  set-current
+;
 
 \ lay out the data for the separate envvar types
 : env-int ( n -- )  1 c, align , DOES> char+ aligned @ ;
-: env-bytes ( a len -- )  2 c, align dup , here swap dup allot move
-   DOES> char+ aligned dup @ >r cell+ r> ;
+: env-bytes ( a len -- )
+   2 c, align dup , here swap dup allot move
+   DOES> char+ aligned dup @ >r cell+ r>
+;
 : env-string ( str len -- )  3 c, string, DOES> char+ count ;
 : env-flag ( f -- )  4 c, c, DOES> char+ c@ 0<> ;
 : env-secmode ( sm -- )  5 c, c, DOES> char+ c@ ;
@@ -38,26 +41,31 @@ wordlist CONSTANT envvars
 : default-secmode ( sm "name" -- )  create-env env-secmode ;
 
 : set-option ( option-name len option len -- )
-  2swap encode-string
-  2swap s" /options" find-node dup IF set-property ELSE drop 2drop 2drop THEN ;
+   2swap encode-string
+   2swap s" /options" find-node dup IF set-property ELSE drop 2drop 2drop THEN
+;
 
 \ find an envvar's current and default value, and its type
 : findenv ( name len -- adr def-adr type | 0 )
    2dup envvars voc-find dup 0<> IF ( ABORT" not a configuration variable" )
-   link> >body char+ >r (find-order) link> >body dup char+ swap c@ r> swap
-   else nip nip THEN ;
+      link> >body char+ >r (find-order) link> >body dup char+ swap c@ r> swap
+   ELSE
+      nip nip
+   THEN
+;
 
 : test-flag ( param len -- true | false )
-  2dup s" true" string=ci -rot s" false" string=ci or
-  ;
+   2dup s" true" string=ci -rot s" false" string=ci or
+;
 
 : test-secmode ( param len -- true | false )
-  2dup s" none" string=ci -rot 2dup s" command" string=ci -rot s" full"
-  string=ci or or
-  ;
+   2dup s" none" string=ci -rot 2dup s" command" string=ci -rot s" full"
+   string=ci or or
+;
 
 : isdigit ( char -- true | false )
-  30 39 between ;
+   30 39 between
+;
 
 : test-int ( param len -- true | false )
   drop c@ isdigit if true else false then ;
@@ -73,8 +81,8 @@ wordlist CONSTANT envvars
 ;
 
 : findtype ( param len name len -- param len name len type )
-  2dup findenv dup 0= \ try to find type of envvar
-  IF             \ no type found
+   2dup findenv dup 0= \ try to find type of envvar
+   IF             \ no type found
     drop 2swap
     2dup test-flag if 4 -rot else
     2dup test-secmode if 5 -rot else
@@ -94,30 +102,30 @@ wordlist CONSTANT envvars
    4dup set-option
    findtype dup 0=
    IF
-     true ABORT" not a configuration variable"
+      true ABORT" not a configuration variable"
    ELSE
-     -rot $CREATE CASE
-     1 OF evaluate env-int ENDOF \ XXX: wants decimal and 0x...
-     \ Since we don't have 0x for hexnumbers, we need to find out the type ...
-     2 OF
-        2dup                    ( param len param len )
-        depth >r                ( param len param len  R: depth-before )
-        ['] evaluate CATCH IF   \ Catch 'unknown Forth words'...
-           ( param len param' len'  R: depth-before )
-           2drop  r> drop
-           env-string           \ and encode 'unknown word' as string
-        ELSE
-           ( param len [...evaluated results...]  R: depth-before )
-           \ If EVALUATE placed two items on the stack, use env-bytes,
-           \ for one item use env-int:
-           depth r> = IF env-bytes ELSE env-int THEN
-           2drop
-        THEN
-     ENDOF
-     3 OF env-string ENDOF
-     4 OF evaluate env-flag ENDOF
-     5 OF evaluate env-secmode ENDOF \ XXX: recognize none, command, full
-     ENDCASE
+      -rot $CREATE CASE
+      1 OF evaluate env-int ENDOF \ XXX: wants decimal and 0x...
+      \ Since we don't have 0x for hexnumbers, we need to find out the type ...
+      2 OF
+         2dup                    ( param len param len )
+         depth >r                ( param len param len  R: depth-before )
+         ['] evaluate CATCH IF   \ Catch 'unknown Forth words'...
+            ( param len param' len'  R: depth-before )
+            2drop  r> drop
+            env-string           \ and encode 'unknown word' as string
+         ELSE
+            ( param len [...evaluated results...]  R: depth-before )
+            \ If EVALUATE placed two items on the stack, use env-bytes,
+            \ for one item use env-int:
+            depth r> = IF env-bytes ELSE env-int THEN
+            2drop
+         THEN
+      ENDOF
+      3 OF env-string ENDOF
+      4 OF evaluate env-flag ENDOF
+      5 OF evaluate env-secmode ENDOF \ XXX: recognize none, command, full
+      ENDCASE
    THEN
 ;
 
@@ -132,11 +140,14 @@ wordlist CONSTANT envvars
    3 OF count type ENDOF
    4 OF c@ IF ." true" ELSE ." false" THEN ENDOF
    5 OF c@ . ENDOF \ XXX: print symbolically
-   ENDCASE ;
+   ENDCASE
+;
 
-: .printenv-header cr
-  s" ---environment variable--------current value-------------default value------"
-  type cr ;
+: .printenv-header ( -- )
+   cr
+   s" ---environment variable--------current value-------------default value------"
+   type cr
+;
 
 DEFER old-emit
 0 VALUE emit-counter
@@ -144,33 +155,43 @@ DEFER old-emit
 : emit-and-count emit-counter 1 + to emit-counter old-emit ;
 
 : .enable-emit-counter
-  0 to emit-counter
-  ['] emit behavior to old-emit
-  ['] emit-and-count to emit ;
+   0 to emit-counter
+   ['] emit behavior to old-emit
+   ['] emit-and-count to emit
+;
 
 : .disable-emit-counter
-  ['] old-emit behavior to emit ;
+   ['] old-emit behavior to emit
+;
 
-: .spaces dup 0 > IF spaces ELSE
-  drop space THEN ;
+: .spaces
+   dup 0 > IF spaces ELSE
+   drop space THEN
+;
 
-: .print-one-env 3 .spaces
-  2dup dup -rot type 1c swap - .spaces
-  findenv rot over
-  .enable-emit-counter
-  (printenv) .disable-emit-counter
-  1a emit-counter - .spaces
-  (printenv) ;
+: .print-one-env
+   3 .spaces
+   2dup dup -rot type 1c swap - .spaces
+   findenv rot over
+   .enable-emit-counter
+   (printenv) .disable-emit-counter
+   1a emit-counter - .spaces
+   (printenv)
+;
 
-: .print-all-env .printenv-header
-  envvars cell+ BEGIN @ dup WHILE dup link> >name
-  name>string .print-one-env cr REPEAT drop ;
+: .print-all-env
+   .printenv-header
+   envvars cell+ BEGIN @ dup WHILE dup link> >name
+   name>string .print-one-env cr REPEAT drop
+;
 
-: printenv parse-word dup 0= IF
-  2drop .print-all-env ELSE findenv dup 0=
-  ABORT" not a configuration variable"
-  rot over cr ." Current: " (printenv)
-  cr ." Default: " (printenv) THEN ;
+: printenv
+   parse-word dup 0= IF
+   2drop .print-all-env ELSE findenv dup 0=
+   ABORT" not a configuration variable"
+   rot over cr ." Current: " (printenv)
+   cr ." Default: " (printenv) THEN
+;
 
 \ set envvar(s) to default value
 : (set-default)  ( def-xt -- )
@@ -179,11 +200,19 @@ DEFER old-emit
    2 OF env-bytes ENDOF
    3 OF env-string ENDOF
    4 OF env-flag ENDOF
-   5 OF env-secmode ENDOF ENDCASE ;
-: set-default  parse-word envvars voc-find
-    dup 0= ABORT" not a configuration variable" link> (set-default) ;
-: set-defaults  envvars cell+ BEGIN @ dup WHILE dup link> (set-default) REPEAT
-                drop ;
+   5 OF env-secmode ENDOF ENDCASE
+;
+
+: set-default
+   parse-word envvars voc-find
+   dup 0= ABORT" not a configuration variable" link> (set-default)
+;
+
+: set-defaults
+   envvars cell+
+   BEGIN @ dup WHILE dup link> (set-default) REPEAT
+   drop
+;
 
 \ the defaults
 \ some of those are platform dependent, and should e.g. be
@@ -226,23 +255,30 @@ VARIABLE nvoff \  70 get-header 2drop nvoff !
    3 OF count type ENDOF
    4 OF c@ IF ." true" ELSE ." false" THEN ENDOF
    5 OF c@ . ENDOF \ XXX: print symbolically
-   ENDCASE ;
-: nvupdate-one   ( def-xt -- )
-  >name name>string
-  ( ." setenv " 2dup type space ) \ Old Implementation
-  2dup type s" =" type
-  findenv nip (nvupdate-one)
-  ( cr ) \ Old Implementation
-  0 emit
-  ;
+   ENDCASE
+;
 
-: (nvupdate)  envvars cell+ BEGIN @ dup WHILE dup link> nvupdate-one REPEAT
-              drop ;
+: nvupdate-one   ( def-xt -- )
+   >name name>string
+   ( ." setenv " 2dup type space ) \ Old Implementation
+   2dup type s" =" type
+   findenv nip (nvupdate-one)
+   ( cr ) \ Old Implementation
+   0 emit
+;
+
+: (nvupdate)
+   envvars cell+
+   BEGIN @ dup WHILE dup link> nvupdate-one REPEAT
+   drop
+;
 
 : nvemit  nvoff @ rb! 1 nvoff +! 0 nvoff @ rb! ;
+
 : nvupdate
-  70 get-header 2drop nvoff !
-  ['] emit behavior  ['] nvemit to emit  (nvupdate)  to emit ;
+   70 get-header 2drop nvoff !
+   ['] emit behavior  ['] nvemit to emit  (nvupdate)  to emit
+;
 
 
 
@@ -299,102 +335,102 @@ get-nv
 
 
 : (nv-findalias) ( alias-ptr alias-len -- pos )
-  \ create a temporary empty string
-  here 0
-  \ append "devalias " to the temporary string
-  s" devalias " string-cat
-  \ append "<name-str>" to the temporary string
-  3 pick 3 pick string-cat
-  \ append a SPACE character to the temporary string
-  s"  " string-cat
-  \ get nvramrc
-  s" nvramrc" evaluate
-  \ get position of the temporary string inside of nvramrc
-  2swap find-substr
-  nip nip
+   \ create a temporary empty string
+   here 0
+   \ append "devalias " to the temporary string
+   s" devalias " string-cat
+   \ append "<name-str>" to the temporary string
+   3 pick 3 pick string-cat
+   \ append a SPACE character to the temporary string
+   s"  " string-cat
+   \ get nvramrc
+   s" nvramrc" evaluate
+   \ get position of the temporary string inside of nvramrc
+   2swap find-substr
+   nip nip
 ;
 
 : (nv-build-real-entry) ( name-ptr name-len dev-ptr dev-len -- str-ptr str-len )
-  \ create a temporary empty string
-  2swap here 0
-  \ append "devalias " to the temporary string
-  s" devalias " string-cat
-  \ append "<name-ptr>" to the temporary string
-  2swap string-cat
-  \ append a SPACE character to the temporary string
-  s"  " string-cat
-  \ append "<dev-ptr> to the temporary string
-  2swap string-cat
-  \ append a CR character to the temporary string
-  0d char-cat
-  \ append a LF character to the temporary string
-  0a char-cat   
+   \ create a temporary empty string
+   2swap here 0
+   \ append "devalias " to the temporary string
+   s" devalias " string-cat
+   \ append "<name-ptr>" to the temporary string
+   2swap string-cat
+   \ append a SPACE character to the temporary string
+   s"  " string-cat
+   \ append "<dev-ptr> to the temporary string
+   2swap string-cat
+   \ append a CR character to the temporary string
+   0d char-cat
+   \ append a LF character to the temporary string
+   0a char-cat
 ;
 
 : (nv-build-null-entry) ( name-ptr name-len dev-ptr dev-len -- str-ptr str-len )
-  4drop here 0
+   4drop here 0
 ;
 
 : (nv-build-nvramrc) ( name-str name-len dev-str dev-len xt-build-entry -- )
-  \ *** PART 1: check if there is still an alias definition available ***
-  ( alias-ptr alias-len path-ptr path-ptr call-build-entry alias-pos )
-  4 pick 4 pick (nv-findalias)
-  \ if our alias definition is a new one
-  dup s" nvramrc" evaluate nip >= IF
-    \ call-build-entry
-    drop execute
-    \ append content of "nvramrc" to the temporary string
-    s" nvramrc" evaluate string-cat
-    \ Allocate the temporary string
-     dup allot
-    \ write the string into nvramrc
-    s" nvramrc" $setenv
-  ELSE  \ if our alias is still defined in nvramrc
-    \ *** PART 2: calculate the memory size for the new content of nvramrc ***
-    \ add number of bytes needed for nvramrc-prefix to number of bytes needed
-    \ for the new entry
-    5 pick 5 pick 5 pick 5 pick 5 pick execute nip over +
-    ( alias-ptr alias-len path-ptr path-ptr build-entry-xt alias-pos tmp-len )
-    \ add number of bytes needed for nvramrc-postfix
-    s" nvramrc" evaluate 3 pick string-at
-    2dup find-nextline string-at nip +
-    \ *** PART 3: build the new content ***
-    \ allocate enough memory for new content
-    alloc-mem 0
-    ( alias-ptr alias-len path-ptr path-ptr build-entry-xt alias-pos mem len )
-    \ add nvramrc-prefix
-    s" nvramrc" evaluate drop 3 pick string-cat
-    \ add new entry
-    rot >r >r >r execute r> r> 2swap string-cat
-    ( mem, len ) ( R: alias-pos )
-    \ add nvramrc-postfix
-    s" nvramrc" evaluate r> string-at
-    2dup find-nextline string-at string-cat
-    ( mem len )
-    \ write the temporary string into nvramrc and clean up memory
-    2dup s" nvramrc" $setenv free-mem
-  THEN
+   \ *** PART 1: check if there is still an alias definition available ***
+   ( alias-ptr alias-len path-ptr path-ptr call-build-entry alias-pos )
+   4 pick 4 pick (nv-findalias)
+   \ if our alias definition is a new one
+   dup s" nvramrc" evaluate nip >= IF
+      \ call-build-entry
+      drop execute
+      \ append content of "nvramrc" to the temporary string
+      s" nvramrc" evaluate string-cat
+      \ Allocate the temporary string
+      dup allot
+      \ write the string into nvramrc
+      s" nvramrc" $setenv
+   ELSE  \ if our alias is still defined in nvramrc
+      \ *** PART 2: calculate the memory size for the new content of nvramrc ***
+      \ add number of bytes needed for nvramrc-prefix to number of bytes needed
+      \ for the new entry
+      5 pick 5 pick 5 pick 5 pick 5 pick execute nip over +
+      ( alias-ptr alias-len path-ptr path-ptr build-entry-xt alias-pos tmp-len )
+      \ add number of bytes needed for nvramrc-postfix
+      s" nvramrc" evaluate 3 pick string-at
+      2dup find-nextline string-at nip +
+      \ *** PART 3: build the new content ***
+      \ allocate enough memory for new content
+      alloc-mem 0
+      ( alias-ptr alias-len path-ptr path-ptr build-entry-xt alias-pos mem len )
+      \ add nvramrc-prefix
+      s" nvramrc" evaluate drop 3 pick string-cat
+      \ add new entry
+      rot >r >r >r execute r> r> 2swap string-cat
+      ( mem, len ) ( R: alias-pos )
+      \ add nvramrc-postfix
+      s" nvramrc" evaluate r> string-at
+      2dup find-nextline string-at string-cat
+      ( mem len )
+      \ write the temporary string into nvramrc and clean up memory
+      2dup s" nvramrc" $setenv free-mem
+   THEN
 ;
 
 : $nvalias ( name-str name-len dev-str dev-len -- )
-  4dup ['] (nv-build-real-entry) (nv-build-nvramrc)
-  set-alias
-  s" true" s" use-nvramrc?" $setenv
-  nvupdate
+   4dup ['] (nv-build-real-entry) (nv-build-nvramrc)
+   set-alias
+   s" true" s" use-nvramrc?" $setenv
+   nvupdate
 ;
 
 : nvalias ( "alias-name< >device-specifier<eol>" -- )
-  parse-word parse-word $nvalias
+   parse-word parse-word $nvalias
 ;
 
 : $nvunalias ( name-str name-len -- )
-  s" " ['] (nv-build-null-entry) (nv-build-nvramrc)
-  nvupdate
+   s" " ['] (nv-build-null-entry) (nv-build-nvramrc)
+   nvupdate
 ;
 
 : nvunalias ( "alias-name< >" -- )
-  parse-word $nvunalias
+   parse-word $nvunalias
 ;
 
-: diagnostic-mode? diag-switch? ;
+: diagnostic-mode? ( -- diag-switch? ) diag-switch? ;
 

@@ -117,9 +117,15 @@ ALSO client-voc DEFINITIONS
   zcount rot get-property 0= IF nip ELSE -1 THEN ;
 
 : setprop ( phandle zstr buf len -- size|-1 )
-  dup >r here dup >r swap dup allot move r> r>
-  dup >r 2swap swap current-node @ >r set-node
-  zcount property r> set-node r> ;
+   dup >r            \ save len
+   encode-bytes      ( phandle zstr prop-addr prop-len )
+   2swap zcount rot  ( prop-addr prop-len name-addr name-len phandle )
+   current-node @ >r \ save current node
+   set-node          \ change to specified node
+   property          \ set property
+   r> set-node       \ restore original node
+   r>                \ always return size, because we can not fail.
+;
 
 \ VERY HACKISH
 : canon ( zstr buf len -- len' )

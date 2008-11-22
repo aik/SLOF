@@ -171,6 +171,7 @@ static uint32_t dhcp_siaddr_ip     = 0;
 static int8_t   dhcp_filename[256];
 static int8_t   dhcp_tftp_name[256];
 
+static char   * response_buffer;
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> IMPLEMENTATION <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
@@ -186,7 +187,7 @@ static int8_t   dhcp_tftp_name[256];
  *                       NON ZERO - error condition occurs.
  */
 int32_t
-dhcp(int32_t boot_device, filename_ip_t * fn_ip, unsigned int retries) {
+dhcp(int32_t boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
 	int i = (int) retries+1;
 
 	uint8_t  dhcp_tftp_mac[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -194,6 +195,7 @@ dhcp(int32_t boot_device, filename_ip_t * fn_ip, unsigned int retries) {
 	strcpy((char *) dhcp_filename, "");
 	strcpy((char *) dhcp_tftp_name, "");
 
+	response_buffer = ret_buffer;
 	dhcp_device_socket = boot_device;
 	memcpy(dhcp_own_mac, fn_ip -> own_mac, 6);
 
@@ -801,6 +803,13 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 	      sizeof(struct iphdr);
 	if (btph -> op != 2)
 		return -1; // it is not Boot Reply
+
+	if(response_buffer) {
+		if(packetsize <= 1720)
+			memcpy(response_buffer, packet, packetsize);
+		else
+			memcpy(response_buffer, packet, 1720);
+	}
 
 	if (memcmp(btph -> vend, dhcp_magic, 4)) {
 		// It is BootP - RFC 951

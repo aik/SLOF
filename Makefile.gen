@@ -106,13 +106,10 @@ copy_disassemblies:	llfw_disassembly
 			../driver-$(RELEASE)/disassemblies/$(RELEASE)-stage2.dis
 		cp $(LLFWBRDDIR)/stageS.dis  \
 			../driver-$(RELEASE)/disassemblies/$(RELEASE)-stageS.dis
-		cp ../llfw/meminit.dis  \
+		cp $(LLFWBRDDIR)/meminit.dis  \
 			../driver-$(RELEASE)/disassemblies/$(RELEASE)-meminit.dis
 		@if [ -e ../clients/snk/client.dis ]; then cp ../clients/snk/client.dis \
 			../driver-$(RELEASE)/disassemblies/$(RELEASE)-client.dis; fi
-		@if [ -e ../llfw/meminit_l2b.dis ]; then cp ../llfw/meminit_l2b.dis \
-			../driver-$(RELEASE)/disassemblies/$(RELEASE)-meminit_l2b.dis; \
-		fi
 
 copy_driver:	copy_disassemblies external_flasher
 		mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \

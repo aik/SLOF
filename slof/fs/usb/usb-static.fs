@@ -10,9 +10,14 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+\ #include "scsi-support.fs"
+
 \ Set usb-debug flag to TRUE for debugging output:
 0 VALUE usb-debug-flag
 0 VALUE usb-test-flag
+
+VARIABLE ihandle-bulk-tran
+VARIABLE ihandle-scsi-tran
 
 \ Print a debug message when usb-debug-flag is set
 : usb-debug-print  ( str len -- )
@@ -79,7 +84,50 @@
    dup IF
        s" cdrom" 2swap              ( alias-name len' dev-path len )
        set-alias                    ( -- )
+       \ cdrom-alias-num 1 + TO cdrom-alias-num
    ELSE 
        drop                         ( -- )
    THEN
 ;
+
+: usb-probe
+
+  usb-scan
+
+  cdrom-alias-num 0= IF
+     ." Not found CDROM! " cr
+  THEN
+     ." CDROM found " cdrom-alias-num . cr 
+;
+
+ 
+: usb-dev-test ( -- TRUE )
+   s" USB Device Test " usb-debug-print
+   1 usb-create-alias-name
+   find-alias ?dup IF
+      ." * open " 2dup type . cr
+   ELSE
+      s" can't found alias " usb-debug-print
+   THEN
+   open-dev ?dup IF
+      dup to my-self
+      dup ihandle>phandle dup set-node
+\     ihandle-bulk-tran s" bulk" open-package
+\     ihandle-scsi-tran s" scsi" open-package
+      s" bulk" $open-package ihandle-bulk-tran !
+      s" scsi" $open-package ihandle-scsi-tran !
+
+\      make-media-ready
+
+      s" close all " usb-debug-print
+      close-dev 0 set-node 0 to my-self
+
+      ihandle-bulk-tran close-package
+      ihandle-scsi-tran close-package
+   ELSE
+      s" can't open usb hub" usb-debug-print
+   THEN
+
+   TRUE
+;
+

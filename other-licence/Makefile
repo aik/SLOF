@@ -17,6 +17,10 @@ endif
 include $(TOP)/make.rules
 
 SUBDIRS=common bcm
+ifeq ($(SNK_BIOSEMU_APPS), 1)
+SUBDIRS += x86emu
+endif
+
 
 all :		
 		for subdir in $(SUBDIRS) ; do $(MAKE) -C $${subdir} || exit 1 ; done

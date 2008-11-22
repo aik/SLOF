@@ -75,8 +75,17 @@ test_all:
 	@for i in $(STD_BOARDS); do make distclean $$i; done
 
 driver:
-		DRIVER=1 make -C board-$(BOARD) driver
-		@$(RM) -f .crc_flash .boot_xdr.ffs
+	@echo "******** Building $(BOARD) system ********"
+	@b=`echo $(BOARD) | grep "-"`; \
+	if [ -n "$$b" ]; then \
+		subboard=$${b##*-}; \
+		board=$${b%%-*}; \
+		DRIVER=1 make -C board-$$board SUBBOARD=$$subboard driver; \
+	else \
+		DRIVER=1 make -C board-$(BOARD) driver; \
+	fi
+	@$(RM) -f .crc_flash .boot_xdr.ffs
+
 cli:
 		make -C clients
 

@@ -14,6 +14,15 @@
 
 hex
 
+: .slof-logo
+   cr ."         ..`. ..     .......  ..           ......      ......."
+   cr ."     ..`...`''.`'. .''``````..''.       .`''```''`.  `''``````"
+   cr ."        .`` .:' ': `''.....  .''.       ''`     .''..''......."
+   cr ."          ``.':.';. ``````''`.''.      .''.      ''``''`````'`"
+   cr ."          ``.':':`   .....`''.`'`...... `'`.....`''.`'`       "
+   cr ."         .`.`'``   .'`'`````.  ``''''''  ``''`'''`. `'`       "
+;
+
 \ as early as possible we want to know if it is js20, js21 or bimini
 \ u3 = js20; u4 = js21/bimini
 \ the difference if bimini or js21 will be done later depending if
@@ -171,6 +180,8 @@ THEN
 
 #include <banner.fs>
 
+: .banner .slof-logo .banner ;
+
 \ Get the secondary CPUs into our own spinloop.
 f8000050 rl@ CONSTANT master-cpu
 \ cr .( The master cpu is #) master-cpu .
@@ -199,8 +210,6 @@ d# 14318378 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 #include "helper.fs"
 260 cp
-
-\ #include <timebase.fs>
 
 : tb@  BEGIN tbu@ tbl@ tbu@ rot over <> WHILE 2drop REPEAT
        20 lshift swap ffffffff and or ;
@@ -300,7 +309,7 @@ takeover? not u4? and  IF
    \ the partition with the type 51 should have been added
    \ by LLFW... if it does not exist then something went
    \ wrong and we just destroy the whole thing
-   51 get-header  IF  0 nvram-base rb!  ELSE  2drop  THEN
+   51 get-header  IF  0 0 nvram-base rb!  ELSE  2drop  THEN
 THEN
 
 880 cp
@@ -320,24 +329,21 @@ check-for-nvramrc
 #include <loaders.fs>
 
 : bios-exec ( arg len -- rc )
-   s" bios-snk" romfs-lookup 0<> IF load-elf-file drop start-elf64
+   s" snk" romfs-lookup 0<> IF load-elf-file drop start-elf64
    ELSE 2drop false THEN
 ;
 
-\ check wether a VGA device was found during pci scan, if it was, and bios-snk is available
+\ check wether a VGA device was found during pci scan, if it was
 \ try to initialize it and create the needed device-nodes
-s" bios-snk" romfs-lookup 0<> dup value biosemu-available? IF drop THEN
 0 value biosemu-vmem
 0 value screen-info
 
-vga-device-node? biosemu-available? AND 0<> IF
+vga-device-node? 0<> IF
    s" VGA Device found: " type vga-device-node? node>path type s"  initializing..." type cr
    \ claim virtual memory for biosemu of 1MB
    100000 4 claim to biosemu-vmem
-
    \ claim memory for screen-info struct (140 bytes)
    d# 140 4 claim to screen-info
-
    \ remember current-node (it might be node 0 so we cannot use get-node)
    current-node @
    \ change into vga device node
@@ -392,20 +398,20 @@ vga-device-node? biosemu-available? AND 0<> IF
    biosemu-vmem 100000 release
 
    s" VGA initialization done." type cr
-THEN \ vga-device-node? AND biosemu-available?
+THEN \ vga-device-node?
 
 \ enable output on framebuffer
-s" screen" find-alias ?dup IF 
+s" screen" find-alias ?dup IF
    \ we need to open/close the screen device once before "ticking" display-emit to emit
    open-dev close-node
-   s" display-emit" $find IF to emit ELSE 2drop THEN 
+   s" display-emit" $find IF to emit ELSE 2drop THEN
 THEN
 8b0 cp
 
 \ do not let the usb scan overwrite the atapi cdrom alias
 pci-cdrom-num TO cdrom-alias-num
 
-s"  Scanning USB..." type usb-scan s"  done." type cr
+usb-scan
 
 s" net" s" net1" find-alias ?dup IF set-alias ELSE 2drop THEN
 s" disk" s" disk0" find-alias ?dup IF set-alias ELSE 2drop THEN
@@ -425,12 +431,21 @@ THEN
 directserial
 
 \ enable USB keyboard
-\ s" keyboard" input
+s" keyboard" find-alias  IF  drop
+   \ s" keyboard" input
+   \ at this point serial input is disabled
+THEN
+
+\ this enables the framebuffer as primary output device
+s" screen" find-alias  IF  drop
+   \ s" screen" output
+   \ at this point serial output is theoretically disabled
+THEN
 
 : .flashside
-  cr ." The currently active flashside is: "
-  rtas-get-flashside 0= IF ." 0 (permanent)" ELSE
-  ." 1 (temporary)" THEN
+   cr ." The currently active flashside is: "
+   rtas-get-flashside 0= IF ." 0 (permanent)" ELSE
+   ." 1 (temporary)" THEN
 ;
 
 bmc? IF  disable-watchdog  THEN

@@ -20,10 +20,10 @@ SECTIONS
         . = 0xE100000;
         _slof_start = .;
 	. = 0x0E10C000;
+	_start_OF = .;
 	.slof.loader : { *(.slof.loader) }
 	. = 0x0E110000; /* + SIZEOF_HEADERS; */
 	_slof_text = .;
-	_start_OF = .;
 /*	.rela : { *(.rela.*) } */
 	.text : { *(.entry_text) *(.text) } = 0x60000000
 	_slof_text_end = .;

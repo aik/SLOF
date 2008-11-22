@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <types.h>
+#include <stdint.h>
 #include <rtas.h>
 #include "rtas_table.h"
 

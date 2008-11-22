@@ -25,9 +25,9 @@ CPPFLAGS	+= -I$(RTASBRDDIR) -I$(RTASCMNDIR) \
 		  -I$(INCLCMNDIR) -I$(INCLBRDDIR) \
 		  -I$(LIBCMNDIR)/libc/include \
 		  -I$(INCLCMNDIR)/$(CPUARCH)
-ASFLAGS		=  $(PLATFORM) -Wa,-mregnames $(FLAG)
+ASFLAGS		= -Wa,-mregnames $(FLAG)
 CFLAGS		+= -g -nostdinc -ffreestanding -Wall -Wextra -O2 -msoft-float \
-		  -mno-altivec -mabi=no-altivec $(PLATFORM) $(FLAG)
+		  -mno-altivec -mabi=no-altivec $(FLAG)
 
 # Common RTAS files:
 RTAS_SRC_ASM	= reloc.S rtas_common.S rtas_entry.S rtas_term.S \

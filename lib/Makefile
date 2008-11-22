@@ -10,7 +10,7 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-SUBDIRS = libc libipmi  libbootmsg libbases 
+SUBDIRS = libc libipmi  libbootmsg libbases   libelf
 
 all:  subdirs
 

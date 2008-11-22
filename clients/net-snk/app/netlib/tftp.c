@@ -432,7 +432,7 @@ get_blksize(unsigned char *buffer, unsigned int len)
  */
 static int
 the_real_tftp(int boot_device, filename_ip_t * fn_ip, unsigned char *buffer,
-	      int len, unsigned int retries, tftp_err_t * tftp_err)
+	      int len, unsigned int retries, tftp_err_t * tftp_err, int huge_load)
 {
 	int i, j = 0;
 	int received_len = 0;
@@ -582,8 +582,13 @@ the_real_tftp(int boot_device, filename_ip_t * fn_ip, unsigned char *buffer,
 			return -1;	// ERROR: unknown error
 		} else if (tftp->th_opcode == DATA) {
 			/* DATA PACKAGE */
-			if (tftp->th_data == block + 1)
-				block++;
+			if (block + 1 == tftp->th_data) {
+				++block;
+			}
+			else if( block == 0xffff && huge_load != 0
+			     &&  (tftp->th_data == 0 || tftp->th_data == 1) ) {
+				block = tftp->th_data;
+			}
 			else if (tftp->th_data == block) {
 #ifdef __DEBUG__
 				printf
@@ -631,8 +636,10 @@ the_real_tftp(int boot_device, filename_ip_t * fn_ip, unsigned char *buffer,
 				break;
 			/* 0xffff is the highest block number possible
 			 * see the TFTP RFCs */
-			if (block >= 0xffff)
+			
+			if (block >= 0xffff && huge_load == 0) {
 				return -9;
+			}
 		} else {
 #ifdef __DEBUG__
 			printf("Unknown packet %x\n", tftp->th_opcode);
@@ -651,8 +658,8 @@ the_real_tftp(int boot_device, filename_ip_t * fn_ip, unsigned char *buffer,
 
 int
 tftp(int boot_device, filename_ip_t * fn_ip, unsigned char *buffer, int len,
-     unsigned int retries, tftp_err_t * tftp_err)
+     unsigned int retries, tftp_err_t * tftp_err, int huge_load)
 {
 	return the_real_tftp(boot_device, fn_ip, buffer, len, retries,
-			     tftp_err);
+			     tftp_err, huge_load);
 }

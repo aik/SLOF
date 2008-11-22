@@ -23,6 +23,10 @@ OBJDIRS = netlib/netlib.o netapps/netboot.o
 OBJDIRS += netapps/netflash.o
 OBJDIRS += netapps/ping.o
 OBJDIRS += netapps/args.o
+ifeq ($(SNK_BIOSEMU_APPS), 1)
+OBJDIRS += biosemu/biosemu_app.o
+CFLAGS += -DSNK_BIOSEMU_APPS
+endif
 
 all: app.o
 

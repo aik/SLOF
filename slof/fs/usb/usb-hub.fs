@@ -299,6 +299,11 @@ s" usb-enumerate.fs" INCLUDED
    BEGIN				( port# )
       status-buffer 4 erase             ( port# )
       status-buffer over control-hub-port-status-get drop ( port# ) 
+       usb-test-flag 
+      IF
+         s" Port Satus: " status-buffer w@-le usb-debug-print-val
+      THEN
+
       status-buffer w@-le 102 and 0= 	( port# TRUE|FALSE )
    WHILE				( port# )
    REPEAT				( port# )
@@ -448,11 +453,13 @@ s" usb-enumerate.fs" INCLUDED
    \             a value of 9.
 
    hd-buffer 2 + c@ to temp2
+\   temp2 1+ to temp2
    s" HUB: Found " usb-debug-print \ temp2 .
    s" number of downstream hub ports! : " temp2 usb-debug-print-val
    hd-buffer 5 + c@ to po2pg \ get bPwrOn2PwrGood
-   temp2 1+ 1 DO 
-      I hub-configure-port
+   temp2 1+ 1 DO
+       s" hub-configure-port: " I usb-debug-print-val
+       I hub-configure-port
    LOOP
 ; 
 

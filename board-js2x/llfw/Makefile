@@ -17,22 +17,20 @@ CPPFLAGS	= -I$(INCLBRDDIR) -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH) \
 CFLAGS		+= -fno-builtin $(CPPFLAGS) -O2  -msoft-float $(MAMBO) $(PLATFORM)
 CFLAGS		+= $(BOOT) $(IOCONF) -Wa,-mregnames $(RELEASE) $(CPUARCHDEF) -Wall
 ASFLAGS         = $(PLATFORM) $(BOOT) $(IOCONF) $(RELEASE)$(CPUARCHDEF)  -Wa,-mregnames
-LDFLAGS1	 = -nostdlib -e__start -Tstage2.lds -N -Ttext=0x100
+LDFLAGS1	= -nostdlib -e__start -Tstage2.lds -N -Ttext=0x100
 
 
 STG1OBJ		 = startup.o boot_abort.o romfs.o hw.o io_generic.o board_io.o 
-#STG1OBJ	 +=  monitor.o ipmi_kcs.o mmu.o
-STG1OBJ		 += stage2_head.o stage2.o comlib.o  \
-		    romfs_wrap.o nvramlog.o
+STG1OBJ		 += stage2_head.o stage2.o comlib.o romfs_wrap.o nvramlog.o
 
-all	: stage1.js2x stage1.bimini stageS.bin
+all: stage1.js2x stage1.bimini stageS.bin Cboot.o
 
-stage1.js2x:	$(STG1OBJ) Cboot.o u4maui.o $(LIBCMNDIR)/libc.a
-		$(LD) $(LDFLAGS1) -o stage1.elf  $(STG1OBJ) u4maui.o  $(LIBCMNDIR)/libc.a
+stage1.js2x:	$(STG1OBJ) u4maui.o $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
+		$(LD) $(LDFLAGS1) -o stage1.elf $^
 		$(OBJCOPY) -O binary stage1.elf stage1.js2x
 
-stage1.bimini:	$(STG1OBJ) Cboot.o u4bimini.o $(LIBCMNDIR)/libc.a
-		$(LD) $(LDFLAGS1) -o stage1.elf  $(STG1OBJ) u4bimini.o  $(LIBCMNDIR)/libc.a
+stage1.bimini:	$(STG1OBJ) u4bimini.o $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
+		$(LD) $(LDFLAGS1) -o stage1.elf $?
 		$(OBJCOPY) -O binary stage1.elf stage1.bimini
 
 stageS.bin:	stage_s.o
@@ -63,12 +61,16 @@ include $(LLFWCMNDIR)/io_generic/Makefile.inc
 
 romfs_wrap.o:	../../llfw/romfs_wrap.c
 		$(CC) $(CFLAGS) -c ../../llfw/romfs_wrap.c
+
 Cboot.o: Cboot.S
 		$(CC) $(CFLAGS) -c $^
 		$(OBJCOPY) -O binary Cboot.o Cboot.bin
 
 $(LIBCMNDIR)/libc.a:
 	$(MAKE) -C $(LIBCMNDIR) libc
+
+$(LIBCMNDIR)/libelf.a:
+	$(MAKE) -C $(LIBCMNDIR) libelf
 
 %.o: %.S
 		$(CC) $(CFLAGS) -c $^

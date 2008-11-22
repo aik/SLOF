@@ -16,6 +16,11 @@
 #include <netapps/netapps.h>
 #include <libbootmsg.h>
 
+#ifdef SNK_BIOSEMU_APPS
+extern int biosemu(char argc, char**argv);
+extern int vbe_get_info(char argc, char**argv);
+#endif
+
 extern void _callback_entry(void);
 
 int
@@ -24,12 +29,19 @@ main(int argc, char *argv[])
 	int i;
 	of_set_callback((void *) &_callback_entry);
 
-	if (strcmp(argv[0], "netboot") == 0 && argc >= 3)
+	if (strcmp(argv[0], "netboot") == 0 && argc >= 4)
 		return netboot(argc, argv);
 	if (strcmp(argv[0], "netflash") == 0)
 		return netflash(argc, argv);
 	if (strcmp(argv[0], "ping") == 0)
 		return ping(argc, argv);
+#ifdef SNK_BIOSEMU_APPS
+	// BIOS Emulator applications
+	if (strcmp(argv[0], "biosemu") == 0)
+		return biosemu(argc, argv);
+	if (strcmp(argv[0], "get_vbe_info") == 0)
+		return vbe_get_info(argc, argv);
+#endif
 
 	printf("Unknown client application called\n");
 	for (i = 0; i < argc; i++)

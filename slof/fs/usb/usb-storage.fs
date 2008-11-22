@@ -21,6 +21,7 @@ s" block" device-type
 2 encode-int s" #address-cells" property
 0 encode-int s" #size-cells" property
 
+#include <packages/scsi-support.fs>
 
 \ -----------------------------------------------------------
 \ Specific properties
@@ -80,10 +81,19 @@ s" usb-storage-support.fs" INCLUDED
 \ to use the general bulk command a lot of global variables
 \ must be set. See for example the inquiry command.
 0 VALUE bulk-cnt
+0 VALUE bulk-cmd-len
+0 VALUE itest
 : do-bulk-command ( resp-buffer resp-size -- TRUE | FALSE )
    TO resp-size
    TO resp-buffer
-   2 TO bulk-cnt
+   \ dump buffer in debug-mode
+   usb-debug-flag IF
+      command-buffer 0E + c@ TO bulk-cmd-len 
+      s" cmd-length: " bulk-cmd-len usb-debug-print-val
+      command-buffer bulk-cmd-len 0E + dump cr
+   THEN
+
+   6 TO bulk-cnt \ 2 old value
    FALSE dup
    BEGIN 0= WHILE
    drop
@@ -94,7 +104,8 @@ s" usb-storage-support.fs" INCLUDED
    ( pt ed-type toggle buffer length mps address )
    rw-endpoint swap		             ( TRUE toggle | FALSE toggle )
    to bulk-out-toggle                        ( TRUE | FALSE )
-   IF
+   IF 
+      s" resp-size : " resp-size usb-debug-print-val
       resp-size 0<> IF  \ do we need a response ?!
         \ read the bulk response
         0 1 bulk-in-toggle resp-buffer resp-size mps-bulk-in
@@ -106,6 +117,7 @@ s" usb-storage-support.fs" INCLUDED
       ELSE
         TRUE
       THEN
+   
       IF
          \ read the bulk CSW
          0 1 bulk-in-toggle csw-buffer D mps-bulk-in
@@ -130,17 +142,24 @@ s" usb-storage-support.fs" INCLUDED
          ( pt ed-type toggle buffer length mps address )
          rw-endpoint swap                    ( TRUE toggle | FALSE toggle )
          to bulk-in-toggle                   ( TRUE | FALSE )
-	 IF
+         IF
 	   s" OK evaluate the CSW ..." usb-debug-print
-           csw-buffer c + l@-le
+           csw-buffer c + c@ dup TO itest
+	   s" CSW Status: " itest usb-debug-print-val
+	   dup
            2 = IF \ Phase Error
-	     s" do a bulk reset-recovery ..." usb-debug-print
+	    s" Phase error do a bulk reset-recovery ..." usb-debug-print
              bulk-out-ep bulk-in-ep my-usb-address
              bulk-reset-recovery-procedure
            THEN
-	 \ ELSE 
-	 \ don't abort if the read fails.
-	 THEN
+           \ ELSE 
+	   \ don't abort if the read fails.
+	   1 = IF \ Command failed
+             s" Command Failed do a bulk-reset-recovery" usb-debug-print
+             bulk-out-ep bulk-in-ep my-usb-address			
+             bulk-reset-recovery-procedure
+           THEN
+  	 THEN
          FALSE dup
       THEN
    ELSE
@@ -154,6 +173,7 @@ s" usb-storage-support.fs" INCLUDED
    REPEAT
 ;
 
+
 \ ---------------------------------------------------------------
 \ Method to 1. Send the INQUIRY command 2. Recieve and analyse
 \ (pending) INQUIRY data
@@ -161,17 +181,26 @@ s" usb-storage-support.fs" INCLUDED
 
 : inquiry ( -- )
    s" usb-storage: inquiry" usb-debug-print
-   command-buffer 1 20 80 lun 0c
+   command-buffer 1 20 80 lun 0C
    ( address tag transfer-len direction lun command-len )
    build-cbw
-   command-buffer SCSI-COMMAND-OFFSET + 20   ( address alloc-len )
-   build-inquiry
-   response-buffer 20 
-   do-bulk-command
+   \ command-buffer SCSI-COMMAND-OFFSET + 20   ( address alloc-len )
+   20 command-buffer SCSI-COMMAND-OFFSET +   ( alloc-len address  )
+   scsi-build-inquiry
+
+   \ s" command buffer:" usb-debug-print
+   \ command-buffer 0C dump cr
+   \ build-inquiry
+   \ s" build-inquiry command buffer:" usb-debug-print
+   \ command-buffer 0C dump cr
+   response-buffer 20 do-bulk-command
    IF
      s" Successfully read INQUIRY data" usb-debug-print
-     s" Inquiry data for 0x20 bytes availabe in Response buffer"
-     usb-debug-print
+     \ response-buffer 8 + c@ 8 vendor-id-str
+     \ usb-debug-flag IF
+     response-buffer .inquiry-text cr
+     \   response-buffer 8 + 16 dump cr      \ dump the rsponsed message
+     \ THEN
    ELSE
      \ TRUE ABORT" USB device transaction error. (inquiry)"
      5040 error" (USB) Device transaction error. (inquiry)"
@@ -186,14 +215,21 @@ s" usb-storage-support.fs" INCLUDED
 
 : read-capacity ( -- )
    s" usb-storage: read-capacity" usb-debug-print
-   command-buffer 1 8 80 lun 0c
+   command-buffer 1 8  80 lun  scsi-length-read-cap-10
    ( address tag transfer-len direction lun command-len )
-   build-cbw
+   build-cbw 
+   \ command-buffer 30 dump cr      \ dump the command buffer
+   command-buffer SCSI-COMMAND-OFFSET +      ( address )   
+   scsi-build-read-cap-10
+   lun 5 lshift
    command-buffer SCSI-COMMAND-OFFSET +      ( address )
-   build-read-capacity
+   read-cap-10>reserved1 c!
+
    response-buffer 8 do-bulk-command
    IF
      s" Successfully read READ CAPACITY data" usb-debug-print
+     \   response-buffer 8 dump cr      \ dump the rsponsed message
+     response-buffer scsi-get-capacity-10 .capacity-text cr
    ELSE
      \ TRUE ABORT" USB device transaction error. (capacity)"
      5040 error" (USB) Device transaction error. (capacity)"
@@ -202,7 +238,7 @@ s" usb-storage-support.fs" INCLUDED
 ;
 
 
-\ --------------------------------------------------------------------
+\ -------------------------------------------------------------------
 \ Method to 1. Send TEST UNIT READY command 2. Analyse the status
 \ of the response
 \ -------------------------------------------------------------------
@@ -246,6 +282,7 @@ s" usb-storage-support.fs" INCLUDED
    response-buffer 12 do-bulk-command
    IF
      s" Read Sense data successfully" usb-debug-print
+     \ response-buffer 12 dump cr      \ dump the rsponsed message
    ELSE
      \ TRUE ABORT" USB device transaction error. (request-sense)"
      5040 error" (USB) Device transaction error. (request-sense)"
@@ -325,7 +362,7 @@ s" usb-storage-support.fs" INCLUDED
    build-read                   ( address )
    temp1 do-bulk-command
    IF
-     s" Read Sense data successfully" usb-debug-print
+     s" Read  data successfully" usb-debug-print
    ELSE
      \ TRUE ABORT" USB device transaction error. (read-blocks)"
      5040 error" (USB) Device transaction error. (read-blocks)"
@@ -439,7 +476,11 @@ d# 800 CONSTANT media-ready-retry
    response-buffer c@
    CASE
       1 OF s" tape" device-name ENDOF
-      5 OF s" cdrom" device-name ENDOF
+      5 OF s" cdrom" device-name s" CDROM found" usb-debug-print ENDOF
+      0 OF s" sbc-dev" device-name s" SBC Direct acces device" usb-debug-print ENDOF
+          \ make-media-redy ENDOF \ read-capacity ENDOF 
+      7 OF s" optical" device-name s" Optical memory found" usb-debug-print ENDOF
+      0E OF s" rbc-dev" device-name s" RBC direct acces device found" usb-debug-print ENDOF
       \ dup OF s" storage" device-name ENDOF
    ENDCASE
 ;

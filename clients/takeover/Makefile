@@ -16,9 +16,8 @@ SNKDIR = $(TOPCMNDIR)/clients/net-snk
 
 CFLAGS += -fno-builtin -I$(LIBCMNDIR)/libc/include
 CFLAGS += -I$(SNKDIR)/include -I. $(CPUARCHDEF)
-CFLAGS += -I$(INCLBRDDIR) -I.. -O2  -msoft-float
-CFLAGS += $(PLATFORM) -I$(INCLCMNDIR)/$(CPUARCH)
-CFLAGS += $(BOOT) -Wa,-mregnames $(RELEASE)
+CFLAGS += -I$(INCLBRDDIR) -I.. -I$(INCLCMNDIR)/$(CPUARCH)
+CFLAGS += -O2 -msoft-float -Wa,-mregnames $(RELEASE)
 
 OBJS = $(SNKDIR)/kernel/kernel.o
 OBJS += $(SNKDIR)/oflib/oflib.o

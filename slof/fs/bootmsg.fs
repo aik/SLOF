@@ -21,7 +21,7 @@ create debugstr 255 allot
   bootmsg-cp ;
 
 : (warning) ( id level ptr len -- )
-  dup 1 + TO debuglen
+  dup TO debuglen
   debugstr swap move           \ copy into buffer
   0 debuglen debugstr + c!     \ terminate '\0'
   debugstr bootmsg-warning
@@ -38,7 +38,7 @@ create debugstr 255 allot
 ; immediate
 
 : (debug-cp) ( id level ptr len -- )
-  dup 1 + TO debuglen
+  dup TO debuglen
   debugstr swap move           \ copy into buffer
   0 debuglen debugstr + c!     \ terminate '\0'
   debugstr bootmsg-debugcp
@@ -55,7 +55,7 @@ create debugstr 255 allot
 ; immediate
 
 : (error) ( id ptr len -- )
-  dup 1 + TO debuglen
+  dup TO debuglen
   debugstr swap move           \ copy into buffer
   0 debuglen debugstr + c!     \ terminate '\0'
   debugstr bootmsg-error

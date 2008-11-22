@@ -150,7 +150,7 @@ ping(int argc, char *argv[])
 	if (!ping_args.client_ip.integer) {
 		/* Get ip address for our mac address */
 		printf("  Requesting IP address via DHCP: ");
-		arp_failed = dhcp(fd_device, &fn_ip, 30);
+		arp_failed = dhcp(fd_device, 0, &fn_ip, 30);
 
 		if (arp_failed == -1) {
 			printf("\n  DHCP: Could not get ip address\n");

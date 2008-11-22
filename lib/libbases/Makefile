@@ -14,7 +14,7 @@ TOPCMNDIR ?= ../..
 
 include $(TOPCMNDIR)/make.rules
 
-ASFLAGS = $(PLATFORM) $(BOOT) $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
+ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
 CFLAGS = -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
 	 -mno-altivec -mabi=no-altivec -Wall
 CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) -I. -I../../include

@@ -35,14 +35,14 @@
  * - if nextpointer is non-zero then just the next file is returned
  *
  * Returns:
- * <Sucess>: 
+ * <Success>: 
  *      R3 = 0
  *	romfs_t is updated
  * <FileNotFound>:
  *      R3 = 1
  * 	romfs_t not touched
  *
- * Potenially modifies the following registers:
+ * Potentially modifies the following registers:
  *
  
  Example usage from C:
@@ -170,10 +170,10 @@ ENTRY(romfs_stat_file)
  * R5 = destination address
  *
  * Returns:
- * <Sucess>: R3 = 0, R6 = size, <FileNotFound>: R3 = 1
+ * <Success>: R3 = 0, R6 = size, <FileNotFound>: R3 = 1
  * R5 is kept
  *  
- * Potenially modifies the following registers:
+ * Potentially modifies the following registers:
  * ctr, r15, r16, r17, r18
  * 
  * Uses the following calls with subsequent register modification:
@@ -225,7 +225,7 @@ ASM_ENTRY(romfs_load)
  * R4 = ROMBASE
  *
  * Returns:
- * <Sucess>: 
+ * <Success>: 
  *      R3 = 0
  *      R4 = address of file header
  *      R5 = address of data (real address)
@@ -234,7 +234,7 @@ ASM_ENTRY(romfs_load)
  * <FileNotFound>:
  *      R3 = 1
  *
- * Potenially modifies the following registers:
+ * Potentially modifies the following registers:
  * R3, R4, R5, R6, R7, R8, R9
  * 
  * Uses the following calls with subsequent register modification:
@@ -296,7 +296,7 @@ ASM_ENTRY(romfs_lookup)
  * Returns:
  * <Match>: R12 = 0 <NoMatch>: R12 = 1
  *
- * Potenially modifies the following registers:
+ * Potentially modifies the following registers:
  * R10, R11, r12, r13, r14 
  *******************************************************************/
 romfs_namematch:
