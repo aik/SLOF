@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS = -O2 -I. -I../common -fno-builtin -ffreestanding -msoft-float -Wall
+CFLAGS = -O2 -I. -I../common -I$(TOP)/clients/net-snk/include -I$(TOP)/lib/libc/include -fno-builtin -ffreestanding -msoft-float -Wall -nostdinc
 
 SRCS   = bcm57xx.c
 

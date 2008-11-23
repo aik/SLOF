@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -33,7 +33,22 @@
 \ The root of the device tree and some of its kids.
 
 s" /" find-device
-vpd-read-model encode-string s" model" property
+\ read model string from VPD
+vpd-read-model ( straddr strlen )
+\ if it is a bimini, we replace the "IBM," in the model string with "TSS,"
+bimini? IF
+   2dup drop 4 ( straddr strlen str 4 ) \ for string comparison: only first 4 bytes ("IBM,")
+   \ string comparison
+   s" IBM," str= IF
+      \ model starts with "IBM,", we replace it with "TSS,"
+      2dup drop s" TSS," ( straddr strlen straddr replacestr len )
+      rot swap ( straddr strlen replacestr straddr len ) \ correct order for move: src dest len
+      move ( straddr strlen ) \ now we have TSS, at beginning of str...
+   THEN
+THEN
+\ store the model string
+encode-string s" model" property
+
 2 encode-int s" #address-cells" property
 2 encode-int s" #size-cells" property
 
@@ -44,8 +59,19 @@ vpd-read-model encode-string s" model" property
 \ Yaboot is stupid.  Without this, it can't/won't find /etc/yaboot.conf.
 s" chrp SLOF based 970 blade" device-type
 
+\ add more information to the compatible property
+js21?  IF
+   bimini?  IF
+      s" IBM,Bimini"
+   ELSE
+      s" IBM,JS21"
+   THEN
+ELSE
+   s" IBM,JS20"
+THEN  encode-string
 \ To get linux-2.6.10 and later to work out-of-the-box.
-s" Momentum,Maple" compatible
+s" Momentum,Maple" encode-string encode+ s" compatible" property
+
 
 \ See 3.6.5, and the PowerPC OF binding document.
 new-device

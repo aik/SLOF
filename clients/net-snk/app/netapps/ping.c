@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,14 +10,14 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <netlib/icmp.h>
-#include <netlib/arp.h>
-#include <netlib/netlib.h>
+#include <netlib/ipv4.h>
+#include <netlib/dhcp.h>
+#include <netlib/ethernet.h>
 #include <sys/socket.h>
-#include <netlib/netbase.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <netapps/args.h>
 
 struct ping_args {
@@ -110,6 +110,7 @@ ping(int argc, char *argv[])
 	filename_ip_t fn_ip;
 	int fd_device;
 	struct ping_args ping_args;
+	uint8_t own_mac[6];
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
@@ -127,7 +128,7 @@ ping(int argc, char *argv[])
 
 	/* Get mac_addr from device */
 	printf("\n  Reading MAC address from device: ");
-	fd_device = socket(0, 0, 0, (char *) fn_ip.own_mac);
+	fd_device = socket(0, 0, 0, (char *) own_mac);
 	if (fd_device == -1) {
 		printf("\nE3000: Could not read MAC address\n");
 		return -100;
@@ -137,11 +138,11 @@ ping(int argc, char *argv[])
 	}
 
 	printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
-	       fn_ip.own_mac[0], fn_ip.own_mac[1], fn_ip.own_mac[2],
-	       fn_ip.own_mac[3], fn_ip.own_mac[4], fn_ip.own_mac[5]);
+	       own_mac[0], own_mac[1], own_mac[2],
+	       own_mac[3], own_mac[4], own_mac[5]);
 
-	// init network stack
-	netbase_init(fd_device, fn_ip.own_mac, fn_ip.own_ip);
+	// init ethernet layer
+	set_mac_address(own_mac);
 	// identify the BOOTP/DHCP server via broadcasts
 	// don't do this, when using DHCP !!!
 	//  fn_ip.server_ip = 0xFFFFFFFF;
@@ -150,7 +151,7 @@ ping(int argc, char *argv[])
 	if (!ping_args.client_ip.integer) {
 		/* Get ip address for our mac address */
 		printf("  Requesting IP address via DHCP: ");
-		arp_failed = dhcp(fd_device, 0, &fn_ip, 30);
+		arp_failed = dhcp(0, &fn_ip, 30);
 
 		if (arp_failed == -1) {
 			printf("\n  DHCP: Could not get ip address\n");
@@ -164,7 +165,7 @@ ping(int argc, char *argv[])
 	}
 
 	// reinit network stack
-	netbase_init(fd_device, fn_ip.own_mac, fn_ip.own_ip);
+	set_ipv4_address(fn_ip.own_ip);
 
 	printf("%d.%d.%d.%d\n",
 	       ((fn_ip.own_ip >> 24) & 0xFF), ((fn_ip.own_ip >> 16) & 0xFF),
@@ -176,23 +177,17 @@ ping(int argc, char *argv[])
 	       ((fn_ip.server_ip >> 8) & 0xFF), (fn_ip.server_ip & 0xFF));
 
 
-	if (ping_args.gateway_ip.integer) {
-		if (!arp_getmac(ping_args.gateway_ip.integer, fn_ip.server_mac)) {
-			printf("failed\n");
-			return -1;
-		}
-	} else {
-		if (!arp_getmac(fn_ip.server_ip, fn_ip.server_mac)) {
-			printf("failed\n");
-			return -1;
+	ping_ipv4(fn_ip.server_ip);
+
+	set_timer(TICKS_SEC / 10 * ping_args.timeout);
+	while(get_timer() > 0) {
+		receive_ether();
+		if(pong_ipv4() == 0) {
+			printf("success\n");
+			return 0;
 		}
 	}
 
-	if (!echo_request(fd_device, &fn_ip, ping_args.timeout)) {
-		printf("success\n");
-		return 0;
-	} else {
-		printf("failed\n");
-		return -1;
-	}
+	printf("failed\n");
+	return -1;
 }

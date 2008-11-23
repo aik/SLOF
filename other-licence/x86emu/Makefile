@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -9,6 +9,7 @@
 # * Contributors:
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
+
 ifndef TOP
   TOP = $(shell while ! test -e make.rules; do cd ..  ; done; pwd)
   export TOP
@@ -22,7 +23,7 @@ ASFLAGS		= -I./include -Wa,-mregnames
 
 #NOTE: -DDEBUG only needed for debugging/tracing...
 #CFLAGS		= -DDEBUG -I. -I./include -I./include/x86emu -I$(ROOTDIR)/include -I$(ROOTDIR)/lib/libc/include -g -O2 -msoft-float -Wall -save-temps -nostdinc -fno-builtin -ffreestanding 
-CFLAGS		= -UDEBUG -m64 -I. -I./include -I./include/x86emu -I$(ROOTDIR)/include -I$(ROOTDIR)/lib/libc/include -O3 -Wall -save-temps -nostdinc -fno-builtin -ffreestanding 
+CFLAGS		= -UDEBUG -m64 -I. -I./include -I./include/x86emu -I$(TOP)/clients/net-snk/include -I$(ROOTDIR)/include -I$(ROOTDIR)/lib/libc/include -O3 -Wall -nostdinc -fno-builtin -ffreestanding 
 
 X86EMU_OBJS	= debug.o decode.o fpu.o ops2.o ops.o prim_ops.o sys.o
 

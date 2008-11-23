@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -22,12 +22,18 @@ quiesce-xts quiesce-xt# cells erase
 : add-quiesce-xt  ( xt -- )
    quiesce-xt# 0 DO
       quiesce-xts I cells +    ( xt arrayptr )
-      dup @ 0= IF              ( xt arrayptr ) 
+      dup @ 0=                 ( xt arrayptr true|false )
+      IF
          ! UNLOOP EXIT
-      ELSE
-         drop                  ( xt )
+      ELSE                     ( xt arrayptr )
+         over swap             ( xt xt arrayptr )
+         @ =                   \ xt already stored ?
+         IF
+            drop UNLOOP EXIT
+         THEN                  ( xt )
       THEN
    LOOP
+   drop                        ( xt -- )
    ." Warning: quiesce xt list is full." cr
 ;
 

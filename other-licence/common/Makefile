@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -16,12 +16,11 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS = -O2 -I./ -fno-builtin -ffreestanding -msoft-float -Wall
+CFLAGS = -O2 -I./ -I$(TOP)/clients/net-snk/include/ -I$(TOP)/lib/libc/include/ -fno-builtin -ffreestanding -msoft-float -nostdinc -Wall
 
 SRCS   = module_entry.c
 
 OBJS   = $(SRCS:.c=.o)
-
 
 all:		Makefile.dep $(OBJS)
 

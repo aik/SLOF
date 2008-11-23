@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -17,7 +17,6 @@ my-space pci-set-irq-line
 \ set Memory Write and Invalidate Enable, SERR# Enable (see PCI 3.0 Spec Chapter 6.2.2 device control)
 7 4 config-w!
 
-true to bimini?
 \ Citrine storage controller.
 s" obsidian"
 

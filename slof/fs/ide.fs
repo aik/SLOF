@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -9,20 +9,23 @@
 \ * Contributors:
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
+\
 \ 26.06.2007  added: two devices (Master/Slave) per channel
- 
+
 1 encode-int s" #address-cells" property
 0 encode-int s" #size-cells" property
 
 : decode-unit  1 hex-decode-unit ;
 : encode-unit  1 hex-encode-unit ;
 
-0 VALUE >ata                                       \ base address for command-block
-0 VALUE >ata1                                      \ base address for control block
+0 VALUE >ata                                 \ base address for command-block
+0 VALUE >ata1                                \ base address for control block
 
-true VALUE no-timeout                              \ flag that no timeout occured
+true VALUE no-timeout                        \ flag that no timeout occured
 
-0c CONSTANT #cdb-bytes                             \ command descriptor block (12 bytes)
+0c  CONSTANT #cdb-bytes                      \ command descriptor block (12 bytes)
+800 CONSTANT atapi-size
+200 CONSTANT ata-size
 
 \ *****************************
 \ Some register access helpers.
@@ -67,11 +70,11 @@ ec CONSTANT cmd#identify-device                    \ ATA and ATAPI
 \ BAR 2 & 3 : Device 1
 \ *****************************
 : set-regs ( n -- )
-\    dup ."  < Set #" .         \ *** DEBUG LINE **** 
    dup
-   01 and                                          \ only Chan 0 or Chan 1 allowed
+   01 and                                    \ only Chan 0 or Chan 1 allowed
    3 lshift dup 10 + config-l@ -4 and to >ata
    14 + config-l@ -4 and to >ata1
+   02 ata-ctrl!                              \ disable interrupts
    02 and
    IF
       10
@@ -79,15 +82,16 @@ ec CONSTANT cmd#identify-device                    \ ATA and ATAPI
       00
    THEN
    ata-dev!
-\    >ata ." /" . ata-astat@ ." /" . ." > "       \ *** DEBUG LINE ***   
 ;
 
-  200 VALUE block-size
-80000 VALUE max-transfer                     \ Arbitrary, really
+ata-size VALUE block-size
+80000    VALUE max-transfer            \ Arbitrary, really
 
 CREATE sector d# 512 allot
-CREATE packet-cb #cdb-bytes allot
-CREATE packet-buffer 800 allot
+CREATE packet-cdb #cdb-bytes allot
+CREATE return-buffer atapi-size allot
+
+scsi-open                             \ add scsi functions
 
 \ ********************************
 \ show all ATAPI-registers
@@ -123,7 +127,11 @@ CREATE packet-buffer 800 allot
          ." ( media changed or reset )"      \ 'unit attention'
          drop                                \ drop err-reg content
       ELSE
-         ." (Err : " .   ." )"               \ show err-reg content
+         dup
+         ." (Err : " .                       \ show err-reg content
+         space
+         rshift 4 .sense-text                \ show text string
+         29 emit
       THEN
       cr
    ELSE
@@ -265,21 +273,11 @@ CREATE packet-buffer 800 allot
    c@
    80 AND 0= IF                  \ is this an ATA drive ?
       sector d# 120 +            \ get word 60 + 61
-      rl@-le                     \ read 32-bit as little endian value 
-      d# 1000 /                  \ bytes -> kbytes (avoid 32-bit overflow)
-      d# 512 *                   \ LBA = 512 Bytes
-      d# 500 +                   \ round +- 0.5
-      d# 1000 /                  \ kB -> MB
-      dup
-      d# 1000 >
-      IF   
-         d# 500 +
-         d# 1000 /
-         ."  (" .d ." GB)"      
-      ELSE
-         ."  (" .d ." MB)"            
-      THEN
-   THEN         
+      rl@-le                     \ read 32-bit as little endian value
+      d# 512                     \ standard ATA block-size
+      swap
+      .capacity-text ( block-size #blocks -- )
+   THEN
    
     sector d# 98 +               \ goto word 49
     w@
@@ -336,8 +334,8 @@ CREATE packet-buffer 800 allot
 \ preset LBA register with maximum
 \ allowed block-size (16-bits)
 \ *******************************
-: set-lba            ( block-length -- )
-   lbsplit           ( quad -- b1.lo b2 b3 b4.hi )
+: set-lba                              ( block-length -- )
+   lbsplit                             ( quad -- b1.lo b2 b3 b4.hi )
    drop                                \ skip upper two bytes
    drop
    ata-lbah!
@@ -348,7 +346,7 @@ CREATE packet-buffer 800 allot
 \ gets byte-count and reads a block of words
 \ from data-register to a buffer
 \ *******************************************
-: read-pio-block                        ( buff-addr -- buff-addr-new)
+: read-pio-block                        ( buff-addr -- buff-addr-new )
    ata-lbah@ 8 lshift                  \ get block length High
    ata-lbam@ or                        \ get block length Low
    1 rshift                            \ bcount -> wcount
@@ -370,132 +368,117 @@ CREATE packet-buffer 800 allot
 \ Send a command block (12 bytes) in PIO mode
 \ read data if requested
 \ ********************************************
-: send-atapi-packet                    ( req-buffer req-len -- )
-   >r                                  ( req-len  R: req-buffer )
-   800 set-lba                         \ set regs to length limit
+: send-atapi-packet                    ( req-buffer -- )
+   >r                                  (   R: req-buffer )
+   atapi-size set-lba                  \ set regs to length limit
    00 ata-feat!
    cmd#packet ata-cmd!                 \ A0 = ATAPI packet command
    48 C8  wait-for-status     ( val mask -- )  \ BSY:0 DRDY:1 DRQ:1
    6 0  do
-      packet-cb i 2 * +                \ transfer command block (12 bytes)
+      packet-cdb i 2 * +                \ transfer command block (12 bytes)
       w@
       ata-data!                        \ 6 doublets PIO transfer to device
       loop                             \ copy packet to data-reg
-   status-check                        \ status err bit set ? -> display
-   wait-for-ready                      \ busy released ?
+   status-check                        ( -- ) \ status err bit set ? -> display
+   wait-for-ready                      ( -- ) \ busy released ?
    BEGIN
    ata-stat@ 08 and 08 = WHILE         \ Data-Request-Bit set ?
-      r>                               \ get target buffer address
+      r>                               \ get last target buffer address
       read-pio-block                   \ only if from device requested
       >r                               \ start of next block
       REPEAT
-   r>
-   drop
+   r>                                  \ original value
+   drop                                \ return clean
 ;   
+
+: atapi-packet-io                      ( -- )
+   return-buffer atapi-size erase      \ clear return buffer
+   return-buffer send-atapi-packet     \ send 'packet-cdb' , get 'return-buffer'
+;
+
+
 
 \ ********************************
 \ ATAPI packet commands
 \ ********************************
-03 CONSTANT scsi-cmd#request-sense
-12 CONSTANT scsi-cmd#inquiry
-28 CONSTANT scsi-cmd#read10
-A8 CONSTANT scsi-cmd#read12
-25 CONSTANT scsi-cmd#read-capacity
-2B CONSTANT scsi-cmd#seek
 
 \ Methods to access atapi disk
 
 : atapi-test ( -- true|false )
-   packet-cb #cdb-bytes erase                      \ command-code 0
-   packet-buffer send-atapi-packet
+   packet-cdb scsi-build-test-unit-ready     \ command-code: 00
+   atapi-packet-io                           ( )  \ send CDB, get return-buffer
    ata-stat@ 1 and IF false ELSE true THEN
 ;
 
-: atapi-sense ( -- ASC sense-key )
-   packet-cb #cdb-bytes erase
-   scsi-cmd#request-sense packet-cb c!             \ set command-code 03h
-   12 packet-cb 4 + c!                             \ allocation length = 18
-   packet-buffer send-atapi-packet
-   packet-buffer d# 12 + c@                        \ additional sense code (ASC)
-   packet-buffer 2 + c@ f and                      \ sense key
+: atapi-sense ( -- ascq asc sense-key )
+   d# 252 packet-cdb scsi-build-request-sense ( alloc-len cdb -- )
+   atapi-packet-io                           ( )  \ send CDB, get return-buffer
+   return-buffer scsi-get-sense-data         ( cdb-addr -- ascq asc sense-key )
 ;
 
-: atapi-inquiry ( -- )
-   packet-cb #cdb-bytes erase                      \ set command-code 12h
-   scsi-cmd#inquiry packet-cb c!
-   24 packet-cb 4 + c!
-   packet-buffer send-atapi-packet
+: atapi-read-blocks                    ( address block# #blocks dev# -- #read-blocks )
+   set-regs                            ( address block# #blocks )
+   dup >r                              ( address block# #blocks )
+   packet-cdb scsi-build-read-10       ( address block# #blocks cdb -- )
+   send-atapi-packet                   ( address -- )
+   r>                                  \ return requested number of blocks
 ;
 
-: atapi-capacity ( -- )
-   packet-cb #cdb-bytes erase
-   scsi-cmd#read-capacity packet-cb c!             \ set command-code 25h
-   packet-buffer send-atapi-packet
+\ ***************************************
+\ read capacity of drive medium
+\ use SCSI-Support Package
+\ ***************************************
+: atapi-read-capacity                        ( -- )
+   packet-cdb scsi-build-read-cap-10         \ fill block with command
+   atapi-packet-io                           ( )  \ send CDB, get return-buffer
+   return-buffer scsi-get-capacity-10        ( cdb -- block-size #blocks )
+   .capacity-text                            ( block-size #blocks -- )
+   status-check                              ( -- )
 ;
 
-: atapi-seek ( offset -- )
-   packet-cb #cdb-bytes erase
-   scsi-cmd#seek packet-cb c!                      \ set command code 2bh
-   packet-cb 4 + l!
-   packet-buffer send-atapi-packet
+\ ***************************************
+\ read capacity of drive medium
+\ use SCSI-Support Package
+\ ***************************************
+: atapi-read-capacity-ext                    ( -- )
+   packet-cdb scsi-build-read-cap-16         \ fill block with command
+   atapi-packet-io                           ( )  \ send CDB, get return-buffer
+   return-buffer scsi-get-capacity-16        ( cdb -- block-size #blocks )
+   .capacity-text                            ( block-size #blocks -- )
+   status-check                              ( -- )
 ;
 
-: atapi-start ( cmd -- )
-   packet-cb #cdb-bytes erase
-   1b packet-cb c!
-   packet-cb 4 + c!
-   packet-buffer send-atapi-packet
-;
-
-: atapi-toc (  -- )
-   packet-cb #cdb-bytes erase
-   43 packet-cb c!
-   200 packet-cb 7 + w!
-   packet-buffer send-atapi-packet
-;
-
-: atapi-read ( offset cnt -- )
-   packet-cb #cdb-bytes erase
-   scsi-cmd#read10 packet-cb c!                    \ set command code 28h
-   packet-cb 7 + w!                                \ 2 bytes: Transfer Length
-   packet-cb 2 + l!                                \ 4 bytes: Block-Address
-   packet-buffer send-atapi-packet
-;
-
-: atapi-read-blocks        ( address block# #blocks dev# -- #read-blocks )
-   set-regs                ( dev# -- )      
-   dup >r
-   packet-cb #cdb-bytes erase
-   scsi-cmd#read10 packet-cb c!                    \ set command code 28h
-   packet-cb 7 + w!                                \ 2 bytes: Transfer Length                           
-   packet-cb 2 + l!                                \ 4 bytes: Block-Address
-   send-atapi-packet
-   r>
-;
 
 \ ***********************************************
 \ wait until media in drive is ready ( max 5 sec)
 \ ***********************************************
-: wait-for-media-ready      ( -- true|false )
-   get-msecs                                       \ initial timer value (start)
+: wait-for-media-ready                 ( -- true|false )
+   get-msecs                                 \ initial timer value (start)
    >r
    BEGIN
-      atapi-test                                   \ unit ready? false if not      
+      atapi-test                             \ unit ready? false if not      
       not
       no-timeout and
       WHILE
-         atapi-sense      ( -- asc sensekey )
-         02 =                                      \ sense key 2 = media error 
-         IF                                        \ check add. sense code
-            3A = IF false to no-timeout ."  empty" THEN      \ medium not present, abort waiting
+         atapi-sense  ( -- ascq asc sense-key )
+         02 =                                \ sense key 2 = media error
+         IF                                  \ check add. sense code
+            3A =                             \ asc: device not ready ?
+            IF
+               false to no-timeout
+               ."  empty (" . 29 emit        \ show asc qualifier
+            ELSE
+               drop                          \ discard asc qualifier
+            THEN                             \ medium not present, abort waiting
          ELSE
-            drop                                   \ discard add. sense code
-         THEN   
-         get-msecs r@ -                            \ calculate timer difference
-         FFFF AND                                  \ mask-off overflow bits
-         d# 5000 >                                 \ 5 seconds exceeded ?
+            drop                             \ discard asc
+            drop                             \ discard ascq
+         THEN
+         get-msecs r@ -                      \ calculate timer difference
+         FFFF AND                            \ mask-off overflow bits
+         d# 5000 >                           \ 5 seconds exceeded ?
          IF
-            false to no-timeout                    \ set global flag
+            false to no-timeout              \ set global flag
          THEN      
    REPEAT
    r>
@@ -511,7 +494,7 @@ A8 CONSTANT scsi-cmd#read12
 \ 2 channels (primary/secondary) per controller
 2 CONSTANT #chan 
 
-\ 2 devices (master/slacve) per channel
+\ 2 devices (master/slave) per channel
 2 CONSTANT #dev
 
 \ results in a total of devices
@@ -522,8 +505,8 @@ A8 CONSTANT scsi-cmd#read12
 CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
 
 \ Execute read-blocks of device
-: dev-read-blocks ( address block# #blocks dev# -- #read-blocks )
-   dup cells read-blocks-xt + @ execute    
+: dev-read-blocks  ( address block# #blocks dev# -- #read-blocks )
+   dup cells read-blocks-xt + @ execute
 ;
 
 \ **********************************************************
@@ -538,12 +521,12 @@ CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
 \ see also ATA/ATAPI errata at:
 \ http://suif.stanford.edu/~csapuntz/blackmagic.html
 \ **********************************************************
-: read-ident       ( -- true|false ) 
+: read-ident  ( -- true|false )
    false
-   00 ata-lbal!                                          \ clear previous signature
+   00 ata-lbal!                              \ clear previous signature
    00 ata-lbam!
    00 ata-lbah!
-   cmd#identify-device ata-cmd! wait-for-ready           \ first try ATA, ATAPI aborts command
+   cmd#identify-device ata-cmd! wait-for-ready \ first try ATA, ATAPI aborts command
    ata-stat@ CF and 48 =
    IF
       drop true                                          \ cmd accepted, this is a ATA
@@ -574,6 +557,9 @@ CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
       THEN
 ;
 
+scsi-close                             \ remove scsi commands from word list
+
+
 \ *************************************************
 \ Init controller ( chan 0 and 1 )
 \ device 0 (= master) and device 1 ( = slave)
@@ -584,12 +570,11 @@ CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
 \   1      0        2          Slave  of Channel 0
 \   1      1        3          Slave  of Channel 1
 \ *************************************************
-
 : find-disks      ( -- )   
    #chan 0 DO                                      \ check 2 channels (primary & secondary)
       #dev 0 DO                                    \ check 2 devices per channel (master / slave)
-         i 2 * j + set-regs                        \ set base address and dev-register for register access
-         02 ata-ctrl!                              \ disable interrupts
+         i 2 * j +
+         set-regs                                  \ set base address and dev-register for register access
          ata-stat@ 7f and 7f <>                    \ Check, if device is connected
          IF
             true to no-timeout                     \ preset timeout-flag
@@ -601,15 +586,16 @@ CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
                   wait-for-media-ready             \ wait up to 5 sec if not ready
                   no-timeout and
                   IF
-                     800 to block-size             \ ATAPI: 2048 bytes
+                     atapi-read-capacity
+                     atapi-size to block-size      \ ATAPI: 2048 bytes
                      80000 to max-transfer
-                     ['] atapi-read-blocks i 2 * j + cells read-blocks-xt + !    
+                     ['] atapi-read-blocks i 2 * j + cells read-blocks-xt + !
                      s" cdrom" strdup i 2 * j + s" generic-disk.fs" included
                   ELSE
                      ."  -"                        \ show hint for not registered
                   THEN    
                ELSE
-                  200 to block-size                \ ATA: 512 bytes
+                  ata-size to block-size           \ ATA: 512 bytes
                   80000 to max-transfer
                   ['] ata-read-blocks i 2 * j + cells read-blocks-xt + !
                   s" disk" strdup i 2 * j + s" generic-disk.fs" included
@@ -617,9 +603,10 @@ CREATE read-blocks-xt #totaldev cells allot read-blocks-xt #totaldev cells erase
             cr
             THEN    
          THEN
+         i 2 * j + 200 + cp
       LOOP
    LOOP
-;  
+;
 
 find-disks
 

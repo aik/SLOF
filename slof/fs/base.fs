@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,11 +10,20 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+: >name ( xt -- nfa ) \ note: still has the "immediate" field!
+   BEGIN char- dup c@ UNTIL ( @lastchar )
+   dup dup aligned - cell+ char- ( @lastchar lenmodcell )
+   dup >r -
+   BEGIN dup c@ r@ <> WHILE
+      cell- r> cell+ >r
+   REPEAT
+   r> drop char-
+;
 
 \ Words missing in *.in files
 VARIABLE mask -1 mask !
 
-VARIABLE huge-tftp-load 0 huge-tftp-load !
+VARIABLE huge-tftp-load 1 huge-tftp-load !
 
 : default-hw-exception s" Exception #" type . ;
 
@@ -94,7 +103,6 @@ CREATE $catpad 100 allot
 
 : (is-user-word) ( name-str name-len xt -- ) -rot $CREATE , DOES> @ execute ;
 
-: zcount ( zstr -- str len )  dup BEGIN dup c@ WHILE char+ REPEAT over - ;
 : zplace ( str len buf -- )  2dup + 0 swap c! swap move ;
 
 : strdup ( str len -- dupstr len ) here over allot swap 2dup 2>r move 2r> ;
@@ -190,6 +198,13 @@ CREATE $catpad 100 allot
    +LOOP
 ;
 
+\ Add special character to string
+
+: add-specialchar ( dst-adr special -- dst-adr' )
+   over c! 1+                        ( dst-adr' )
+   1 >in +!                          \ advance input-index
+;
+
 \ Parse upto next "
 
 : parse-" ( dst-adr -- dst-adr' )
@@ -200,11 +215,17 @@ CREATE $catpad 100 allot
 : (") ( dst-adr -- dst-adr' )
    begin                             ( dst-adr )
       parse-"                        ( dst-adr' )
-      ib >in @ + c@ [char] ( = IF
-	 parse-hexstring
-      ELSE
-	 EXIT
+      >in @ dup span @ >= IF         ( dst-adr' >in-@ )
+         drop
+         EXIT
       THEN
+
+      ib + c@
+      CASE
+         [char] ( OF parse-hexstring ENDOF
+         [char] " OF [char] " add-specialchar ENDOF
+         dup      OF EXIT ENDOF
+      ENDCASE
    again
 ;
 
@@ -248,18 +269,18 @@ CREATE "pad 100 allot
 
 #include <search.fs>
 
-\ The following constants are required in some parts 
-\ of the code, mainly instance variables and see. Having to reverse 
+\ The following constants are required in some parts
+\ of the code, mainly instance variables and see. Having to reverse
 \ engineer our own CFAs seems somewhat weird, but we gained a bit speed.
 
 \ Each colon definition is surrounded by colon and semicolon
 \ constant below contain address of their xt
 
 : (function) ;
-defer (defer) 
-0 value (value) 
+defer (defer)
+0 value (value)
 0 constant (constant)
-variable (variable) 
+variable (variable)
 create (create)
 alias (alias) (function)
 cell buffer: (buffer:)
@@ -268,7 +289,7 @@ cell buffer: (buffer:)
 ' (function) cell + @ \ ( ... <semicolon> )
 ' (defer) @           \ ( ... <defer> )
 ' (value) @           \ ( ... <value> )
-' (constant) @ 	      \ ( ... <constant> )
+' (constant) @	      \ ( ... <constant> )
 ' (variable) @        \ ( ... <variable> )
 ' (create) @          \ ( ... <create> )
 ' (alias) @           \ ( ... <alias> )
@@ -299,6 +320,8 @@ constant <colon>
 ' do+loop  constant <do+loop>
 ' do       constant <do>
 ' exit     constant <exit>
+' doleave  constant <doleave>
+' do?leave  constant <do?leave>
 
 
 \ provide the memory management words
@@ -463,7 +486,7 @@ defer cursor-off ( -- )
 : nop-get-flashside ( -- side ) ." Cannot get flashside" cr ABORT ;
 : nop-set-flashside ( side -- status ) ." Cannot set flashside" cr ABORT ;
 : nop-read-bootlist ( -- ) ;
-: nop-furnish-bootfile ( -- adr len ) s" :NONE" ;
+: nop-furnish-bootfile ( -- adr len ) s" net:" ;
 : nop-set-boot-file ( adr len -- ) 2drop ;
 : nop-mfg-mode? ( -- flag ) false ;
 : nop-of-prompt? ( -- flag ) false ;
@@ -504,3 +527,29 @@ defer cursor-off ( -- )
 #include "rmove.fs"
 \ provide a simple run time preprocessor
 #include <preprocessor.fs>
+
+: $dnumber base @ >r decimal $number r> base ! ;
+: (.d) base @ >r decimal (.) r> base ! ;
+
+\ IP address conversion
+
+: (ipaddr) ( "a.b.c.d" -- FALSE | n1 n2 n3 n4 TRUE )
+   base @ >r decimal
+   over s" 000.000.000.000" comp 0= IF 2drop false r> base ! EXIT THEN
+   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
+   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
+   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
+   $number IF false r> base ! EXIT THEN
+   true r> base !
+;
+
+: (ipformat)  ( n1 n2 n3 n4 -- str len )
+   base @ >r decimal
+   0 <# # # # [char] . hold drop # # # [char] . hold
+   drop # # # [char] . hold drop # # #s #>
+   r> base !
+;
+
+: ipformat  ( n1 n2 n3 n4 -- ) (ipformat) type ;
+
+

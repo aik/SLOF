@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -182,7 +182,7 @@ INSTANCE VARIABLE cd-buffer
 ;
 
 : control-std-get-maxlun
-   ( MPS fun-addr dir data-buff data-len -- TRUE|FALSE)
+   ( MPS fun-addr dir data-buff data-len -- TRUE|FALSE )
    s" control-std-get-maxlun" $call-parent 
 ;
 
@@ -203,6 +203,11 @@ INSTANCE VARIABLE cd-buffer
 
 : debug-td ( -- )
    s" debug-td" $call-parent
+;
+
+\ *** NEW ****
+: control-bulk-reset ( MPS fun-addr dir data-buff data-len -- TRUE | FALSE )
+   s" control-bulk-reset" $call-parent
 ;
 
 
@@ -288,55 +293,32 @@ s" usb-enumerate.fs" INCLUDED
 
 : hub-configure-port ( port# -- )
 
-   \ Step 1: set the Port Power
-   usb-test-flag 
-   IF
-      ." Port: " dup . cr
-      150 ms \ wait for bad devices
-   THEN   
+\ this port has been powered on
+\ send reset to enable port and
+\ start device detection by hub
+\ some devices require a long timeout here (10s)
 
-   dup control-hub-port-power-set drop	( port# )
+   \ Step 1: check if reset state ended
+
    BEGIN				( port# )
       status-buffer 4 erase             ( port# )
       status-buffer over control-hub-port-status-get drop ( port# ) 
-       usb-test-flag 
-      IF
-         s" Port Satus: " status-buffer w@-le usb-debug-print-val
-      THEN
-
       status-buffer w@-le 102 and 0= 	( port# TRUE|FALSE )
    WHILE				( port# )
-   REPEAT				( port# )
+   REPEAT			( port# )
    po2pg 3 * ms    \ wait for bPwrOn2PwrGood*3 ms
    
-   usb-test-flag 
-   IF
-      150 ms
-   THEN
    \ STEP 2: Reset the port.
-
+   \         (this also enables the port)
    dup control-hub-port-reset-set drop	( port# )
    BEGIN				( port# )
       status-buffer 4 erase             ( port# )
       status-buffer over control-hub-port-status-get drop ( port# ) 
       status-buffer w@-le 10 and 	( port# TRUE|FALSE )
-      usb-test-flag 
-      IF
-         s" Port Satus: " status-buffer w@-le usb-debug-print-val
-      THEN
    WHILE				( port# )
    REPEAT				( port# )
 
-   \ after reset set port enable -important-
-   dup control-hub-port-enable drop     ( port# )
-   
-   usb-test-flag 
-   IF
-      10 ms
-   THEN
-
-   \ STEP 3: Check if a device is connected to the
-   \ port.
+   \ STEP 3: Check if a device is connected to the port.
 
    status-buffer 4 erase                ( port# )
    status-buffer over control-hub-port-status-get drop ( port# ) 
@@ -348,19 +330,6 @@ s" usb-enumerate.fs" INCLUDED
       EXIT 
    THEN 
 
-   \ New addition: Sometimes the port status returns connected
-   \ but Set address was failing. Analysis showed that such
-   \ ports do not set this bit to 1.
-
-   status-buffer 2 + w@-le 1 and    1 <> ( port# ) 
-   IF 					 ( port# )
-      drop				 
-      s" No device connected to port- set addresss failed" usb-debug-print
-      EXIT 
-   THEN 
-   s" HUB: New device found!!!" usb-debug-print
-\   s" HUB: Status buffer first word -> " usb-debug-print 
-\   s" HUB: Status buffer second word -> " usb-debug-print 
 
    \ STEP 4: Assign an address to this device.
 
@@ -393,8 +362,10 @@ s" usb-enumerate.fs" INCLUDED
             dd-buffer @ DEVICE-DESCRIPTOR-LEN mps new-device-address
             ( buffer descp-len mps usb-addr )
             \ s" DEVICE DESCRIPTOR: " usb-debug-print
-            control-std-get-device-descriptor drop
-	    \ dd-buffer usb-debug-print-val       
+            control-std-get-device-descriptor invert
+            IF
+               s" ** reading dev-descriptor failed ** " usb-debug-print
+            THEN
             create-usb-device-tree
          THEN
       ELSE
@@ -452,14 +423,27 @@ s" usb-enumerate.fs" INCLUDED
    \          2. HUB descriptor size is variable. Currently we r hardcoding
    \             a value of 9.
 
-   hd-buffer 2 + c@ to temp2
-\   temp2 1+ to temp2
-   s" HUB: Found " usb-debug-print \ temp2 .
+   hd-buffer 2 + c@ to temp2     \ number of downstream ports
+
+   s" HUB: Found " usb-debug-print
    s" number of downstream hub ports! : " temp2 usb-debug-print-val
-   hd-buffer 5 + c@ to po2pg \ get bPwrOn2PwrGood
+   hd-buffer 5 + c@ to po2pg     \ get bPwrOn2PwrGood
+
+   \ power on all present hub ports
+   \ to allow slow devices to set up
+
    temp2 1+ 1 DO
-       s" hub-configure-port: " I usb-debug-print-val
-       I hub-configure-port
+      i control-hub-port-power-set drop
+      d# 20 ms
+   LOOP
+
+   d# 200 ms      \ some devices need a long time (10s)
+
+   \ now start detection and configuration for these ports
+   
+   temp2 1+ 1 DO
+       s" hub-configure-port: " i usb-debug-print-val
+       i hub-configure-port
    LOOP
 ; 
 

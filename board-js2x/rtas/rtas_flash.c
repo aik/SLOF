@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -228,6 +228,7 @@ copy_flash(short mode)
 {
 	unsigned char *flash = (unsigned char *) FLASH;
 	uint64_t blockCnt;
+   uint64_t hash = 0;
 	short notmode = mode ^ 0x1;
 	if (bmc_set_flashside(notmode) != notmode) {
 		return -1;
@@ -261,12 +262,19 @@ copy_flash(short mode)
 		}
 		write_flash_page(blockCnt,
 				 (unsigned short *) manage_flash_buffer);
+
+      //progress output...
+      print_progress();
+      if (blockCnt > hash * progress) {
+         print_hash();
+         hash++;
+      }
 	}
 	enter_data_mode();
 	if (bmc_set_flashside(mode) != mode) {
 		return -1;
 	}
-	printf("\b# ");
+	printf("\b#\n");
 	return 0;
 }
 
@@ -498,9 +506,16 @@ rtas_update_flash(rtas_args_t * rtas_args)
 	dump_blocklist(bl, version);
 #endif
 
+   // from SLOF we pass a second (unofficial) parameter, if this parameter is 1, we do not
+   // check wether we are on permanent side. Needed for update-flash -c to work!
+   uint8_t perm_check = 1;
+   if ((rtas_args->nargs > 1) && (rtas_args->args[1] == 1)) {
+      perm_check = 0;
+   }
+
 	//first check if we are running on P
 	//we do not flash on the permanent side
-	if (bmc_get_flashside() == 0) {
+	if (perm_check && (bmc_get_flashside() == 0)) {
 		rtas_args->args[rtas_args->nargs] = -9002;	//not authorized
 		return;
 	}

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -25,7 +25,7 @@
     dup rtas-size erase
     s" rtas" romfs-lookup 0=
     ABORT" romfs-lookup for rtas failed"
-    hsprg1 swap start-rtas ;
+    rtas-config swap start-rtas ;
 
 here fff + fffffffffffff000 and here - allot
 here rtas-size allot CONSTANT rtas-start-addr

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,13 +10,11 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-
 \ Hypertransport.
 
 \ See the PCI OF binding document.
 
 new-device
-
 
 s" ht" 2dup device-name device-type
 s" u3-ht" compatible
@@ -26,8 +24,14 @@ s" U3" encode-string s" model" property
 2 encode-int s" #size-cells" property
 
 s" /mpic" find-node encode-int s" interrupt-parent" property
-\ XXX should have interrupt map, etc.  this works for now though.
-\ linux gets the PCI irqs right; only need to tell it the lpc irqs are edge.
+
+4000 encode-int 0 encode-int+ 0 encode-int+
+1 encode-int+ s" /mpic" find-node encode-int+ 
+10 encode-int+ 0 encode-int+
+s" interrupt-map" property
+
+f800 encode-int 0 encode-int+ 0 encode-int+
+7 encode-int+ s" interrupt-map-mask" property
 
 : decode-unit  2 hex-decode-unit 3 lshift or
                8 lshift 0 0 rot ;
@@ -64,10 +68,10 @@ f2000000 CONSTANT my-puid
 00000000 encode-int+ f4000000 encode-int+ 
 00000000 encode-int+ 00400000 encode-int+
 
-\ 1.75GB of memory space @ 80000000.
+\ 1 GB of memory space @ 80000000
 02000000 encode-int+ 00000000 encode-int+ 80000000 encode-int+ 
 00000000 encode-int+ 80000000 encode-int+ 
-00000000 encode-int+ 4000000 encode-int+ s" ranges" property
+00000000 encode-int+ 40000000 encode-int+ s" ranges" property
 
 \ Host bridge, so full bus range.
 0 encode-int ff encode-int+ s" bus-range" property
@@ -137,51 +141,18 @@ clearht f8070111 rb@ setwidth
 f8070120 rw@ 2log dup .(  Switching top HT bus to ) ht>freq 0 d# .r .( MHz...) cr
 setfreq u3? IF ldtstop THEN u4? IF ldtstop1 THEN
 
-
-\ #include <pci-scan.fs>
-
-
 : open  true ;
 : close ;
 
-
-\ 80000000 next-pci-mem !
-\ b8000000  max-pci-mem !
-\ b8000000 next-pci-mmio !
-\ c0000000  max-pci-mmio !
-\    10000 next-pci-io !
-\ 100000000  max-pci-io !
-\        0 next-pci-bus !
-
-\ 0 probe-pci
 \ : probe-pci-host-bridge ( bus-max bus-min mmio-max mmio-base mem-max mem-base io-max io-base my-puid -- )
 s" /mpic" find-node my-puid pci-irq-init drop
 1f 0 c0000000 b8000000 b8000000 80000000 100000000 10000
 my-puid probe-pci-host-bridge
 
-
-
-
 : msi
-\  \ on citrine (pass2)
-\  f8005000 101054 config-l!   0 101058 config-l!
-\         f 10105c config-w!  81 101052 config-b!
-
-\  \ on citrine (pass4)
-\  f8005000 010854 config-l!   0 010858 config-l!
-\         f 01085c config-w!  81 010852 config-b!
-
-  \ on citrine (pass4), using old vector
   f80040f0 010854 config-l!   0 010858 config-l!
       ffff 01085c config-w!  81 010852 config-b!
-
-  \ on pxb1
-\  f8000000 08a4 config-l!   0 08a8 config-l!  1 08a2 config-b! ;
-\  f8000000 08a4 config-l!  fd 08a8 config-l!  1 08a2 config-b! ;
-
 ;
-
-
 
 \ This works.  Needs cleaning up though; and we need to communicate the
 \ MSI address range to the client program.  (We keep the default range
@@ -189,96 +160,14 @@ my-puid probe-pci-host-bridge
 : msi-on  7 1 DO 10000 i 800 * a0 + config-l! LOOP ;
 msi-on
 
-
-
-\ \ \
-\ \ \ IRQ DEBUG CODE
-\ \ \
-
-: >mpic0  f8041000 + ;
-: mpic0@  >mpic0 rl@ ;
-: mpic0!  >mpic0 rl! ;
-
-: >mpic  f8050000 + ;
-: mpic@  >mpic rl@ ;
-: mpic!  >mpic rl! ;
-
-: mpic-on  dup 20 * 00880000 rot + over mpic! 1 swap 10 + mpic! ;
-: mpic-all-on  7c 0 DO i mpic-on LOOP ;
-
-: mpic-cpu-on  0 f8060080 rl! ;
-: mpic-cur  cr ." pending: " 4 0 DO f80600a0 i c lshift + rl@ . LOOP ;
-: mpic-eoi  0 f80600b0 rl! ;
-
-: one-by-one  7c 0 DO cr i . i mpic-on mpic-cur mpic-eoi LOOP ;
-
-CREATE pcie-cnfg-space 24 allot
-
-: .pci-express-capabilites-reg ( val -- )
-  cr ." Cap ID    :" dup ff and u.
-  cr ." Next Cap  :" dup 8 rshift ff and u.
-  cr ." Type      :" dup 14 rshift f and
-  CASE
-  0 OF ." PCI Express Endpoint" ENDOF
-  1 OF ." Legacy PCI Express Endpoint" ENDOF
-  4 OF ." Root Port" ENDOF
-  5 OF ." Switch upstream port" ENDOF
-  6 OF ." Switch downstream port" ENDOF
-  7 OF ." Express-to-PCI/PCI-X bridge" ENDOF
-  8 OF ." PCI/PCI-X to Express bridge" ENDOF
-  dup OF 0 ENDOF ." Reserved" ENDCASE  
-  drop
-;
-
-: .pci-device-capabilites-reg ( val -- )
-  cr ." MaxPS    :" dup 7 and u.
-  drop
-;
-
-: .pci-device-control-reg ( val -- )
-  cr ." MaxPS act:" dup 5 rshift 7 and u.
-  cr ." MaxRS act:" dup c rshift 7 and u.
-  cr ." ERROR    :" dup 10 rshift 3f and u.
-  drop
-;
-
-: .pci-link-capabilites-reg ( val -- )
-  cr ." Max linkW:" dup 4 rshift 3f and u.
-  drop
-;
-
-: .pci-link-control-reg ( val -- )
-  cr ." Neg linkW:" dup 4 10 + rshift 3f and u.
-  cr ." Train ERR:" dup a 10 + rshift 1 and u.
-  cr ." Train act:" dup b 10 + rshift 1 and u.
-  drop
-;
-
-: .pcie-ext
-  8 0 DO dup i 4 * dup >r + config-l@  r> pcie-cnfg-space + l! LOOP
-\  pcie-cnfg-space 24 dump
-  pcie-cnfg-space      l@ .pci-express-capabilites-reg
-  pcie-cnfg-space 4  + l@ .pci-device-capabilites-reg
-  pcie-cnfg-space 8  + l@ .pci-device-control-reg
-  pcie-cnfg-space c  + l@ .pci-link-capabilites-reg
-  pcie-cnfg-space 10 + l@ .pci-link-control-reg
-;
-
-
 \ PCIe debug / fixup
-: find-pcie-cap ( devfn -- offset | 0 )
-  >r 34 BEGIN r@ + config-b@ dup ff <> over and WHILE
-  dup r@ + config-b@ 10 = IF r> drop EXIT THEN 1+ REPEAT r> 2drop 0 ;
-: .pcie ( devfn -- )
-  dup find-pcie-cap ?dup IF cr over . ." cap @ " dup . +
-\ .pcie-ext
-  dup 8 + config-w@ 5 rshift 7 and 80 swap lshift cr ."  max payload size: " .d
-  dup 8 + config-w@ c rshift 7 and 80 swap lshift cr ."  max read req: " .d
-  dup 12 + config-w@ 4 rshift 3f and              cr ."  link width: " .d
-  THEN drop ;
-: .pcies ( -- )
-  cr cr ." PCIe:"
-  10000 0 DO i 8 lshift .pcie LOOP ;
+: find-pcie-cap  ( devfn -- offset | 0 )
+   >r 34  BEGIN  r@ + config-b@ dup ff <> over and  WHILE
+      dup r@ + config-b@ 10 = IF
+         r> drop EXIT 
+      THEN 1+
+   REPEAT r> 2drop 0
+;
 
 : (set-ps) ( ps addr -- )
   8 + >r 5 lshift r@ config-w@ ff1f and or r> config-w! ;
@@ -294,16 +183,7 @@ CREATE pcie-cnfg-space 24 allot
   10000 0 DO i 8 lshift dup find-pcie-cap ?dup IF
   + 2dup (set-rr) THEN drop LOOP drop ;
 
-bimini? IF 
-	100 set-ps  200 set-rr  
-\	.pcies
-ELSE
-	100 set-ps  200 set-rr  
-\	.pcies
-THEN
-
-: set-ps  set-ps .pcies ;
-: set-rr  set-rr .pcies ;
-
+100 set-ps  200 set-rr  
+100 set-ps  200 set-rr  
 
 finish-device

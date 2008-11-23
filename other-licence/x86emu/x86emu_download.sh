@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -47,7 +47,7 @@ cp -v x86emu/x86emu/*.c .
 cp -v x86emu/x86emu/*.h include/x86emu
 cp -v x86emu/include/x86emu/*.h include/x86emu
 
-echo "Removing checked out subversion directory..."
+echo "Removing checkedout subversion director..."
 
 rm -rf x86emu
 

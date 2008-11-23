@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -9,9 +9,6 @@
  * Contributors:
  *     IBM Corporation - initial implementation
  *****************************************************************************/
-// ============================================================================
-// ============================================================================
-
 
 //
 // Copyright 2002,2003,2004  Segher Boessenkool  <segher@kernel.crashing.org>
@@ -27,6 +24,14 @@ cod(COMP-BUFFER)
 
 cod(HEAP-START)
 cod(HEAP-END)
+// flattened device tree start address
+cod(FDT-START)
+// romfs start address
+cod(ROMFS-BASE)
+// if the low level firmware is epapr compliant it will put the
+// epapr magic into r6 before starting paflof
+// epapr-magic is a copy of r6
+cod(EPAPR-MAGIC)
 
 cod(BRANCH) _ADDING _O
 cod(0BRANCH) _ADDING _O
@@ -93,7 +98,4 @@ cod(EXECUTE)
 cod(MOVE)
 // cod(RMOVE64)
 cod(RMOVE)
-
-
-
-
+cod(ZCOUNT)

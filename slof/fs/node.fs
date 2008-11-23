@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -85,13 +85,50 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
 
 \ Unit address.
 : #address-cells  s" #address-cells" rot parent get-property
-  ABORT" parent doesn't have a #address-cells property!"
-  decode-int nip nip ;
-: my-#address-cells  get-node #address-cells ; \ bit of a misnomer...  "my-"
+   ABORT" parent doesn't have a #address-cells property!"
+   decode-int nip nip
+;
 
-: encode-phys  ( phys.hi ... phys.low -- str len )
+\ my-#address-cells returns the #address-cells property of the parent node.
+\ child-#address-cells returns the #address-cells property of the current node.
+
+\ This is confusing in several ways: Remember that a node's address is always
+\ described in the parent's address space, thus the parent's property is taken
+\ into regard, rather than the own.
+
+\ Also, an address-cell here is always a 32bit cell, no matter whether the
+\ "real" cell size is 32bit or 64bit.
+
+: my-#address-cells  ( -- #address-cells )
+   get-node #address-cells
+;
+
+: child-#address-cells  ( -- #address-cells )
+   s" #address-cells" get-node get-property
+   ABORT" node doesn't have a #address-cells property!"
+   decode-int nip nip
+;
+
+: child-#size-cells  ( -- #address-cells )
+   s" #size-cells" get-node get-property
+   ABORT" node doesn't have a #size-cells property!"
+   decode-int nip nip
+;
+
+: encode-phys  ( phys.hi ... phys.low -- prop len )
    encode-first?  IF  encode-start  ELSE  here 0  THEN
-   my-#address-cells 0 ?DO rot encode-int+ LOOP ;
+   my-#address-cells 0 ?DO rot encode-int+ LOOP
+;
+
+: encode-child-phys  ( phys.hi ... phys.low -- prop len )
+   encode-first?  IF  encode-start  ELSE  here 0  THEN
+   child-#address-cells 0 ?DO rot encode-int+ LOOP
+;
+
+: encode-child-size  ( size.hi ... size.low -- prop len )
+   encode-first? IF  encode-start  ELSE  here 0  THEN
+   child-#size-cells 0 ?DO rot encode-int+ LOOP
+;
 
 : decode-phys
   my-#address-cells BEGIN dup WHILE 1- >r decode-int r> swap >r REPEAT drop

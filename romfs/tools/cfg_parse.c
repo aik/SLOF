@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -19,28 +19,32 @@
 
 #include <cfgparse.h>
 
-int glob_come_from_cr = 0;
+static int inbetween_white(char *s, int max, char **start, char **end,
+			   char **next);
+static int add_header(struct ffs_chain_t *, struct ffs_header_t *);
 
-int find_next_entry(int file, struct ffs_chain_t *chain)
+static int glob_come_from_cr = 0;
+
+static int
+find_next_entry(int file, struct ffs_chain_t *chain)
 {
 #define MAX_LINE_SIZE 1024
-	char lnbuf[MAX_LINE_SIZE], b0=0, b1=0;
+	char lnbuf[MAX_LINE_SIZE], b0 = 0, b1 = 0;
 	char *start, *end, *next;
-	struct ffs_header_t *hdr; //, *hdr2;
+	struct ffs_header_t *hdr;	//, *hdr2;
 	int lc, rc;
 	char c;
-	
+
 	/* search for new config line */
 	if (0 == glob_come_from_cr) {
 		while (1 == (rc = read(file, &c, 1))) {
 			//printf("b0=%c b1=%c c=%c\n",
-			//		b0, b1, c);
+			//              b0, b1, c);
 			b0 = b1;
 			b1 = c;
 			/* this looks for starting sign "<CR>[^#]" */
-			if (  ((0x0a == b0)  || (0x0d == b0)) &&
-			      (('#'   != b1) && (0x0a != b1)  && 
-			       (0x0d != b1))) {
+			if (((0x0a == b0) || (0x0d == b0)) &&
+			    (('#' != b1) && (0x0a != b1) && (0x0d != b1))) {
 				break;
 			}
 		}
@@ -60,7 +64,7 @@ int find_next_entry(int file, struct ffs_chain_t *chain)
 	}
 
 	/* now buffer it until end of line */
-	memset((void*) lnbuf, 0, MAX_LINE_SIZE);
+	memset((void *) lnbuf, 0, MAX_LINE_SIZE);
 	lnbuf[0] = c;
 	lc = 1;
 	while ((1 == read(file, &(lnbuf[lc]), 1)) && (lc < MAX_LINE_SIZE)) {
@@ -79,7 +83,7 @@ int find_next_entry(int file, struct ffs_chain_t *chain)
 		perror("alloc memory");
 		return 2;
 	}
-	memset((void*)hdr, 0, sizeof(struct ffs_header_t));
+	memset((void *) hdr, 0, sizeof(struct ffs_header_t));
 
 	/* attach header to chain */
 	if (0 != add_header(chain, hdr)) {
@@ -127,19 +131,20 @@ int find_next_entry(int file, struct ffs_chain_t *chain)
 
 	/* check if entry is linked to another header */
 	if (':' == *start) {
-		printf("\nERROR: links are removed as feature in this version\n");
+		printf
+		    ("\nERROR: links are removed as feature in this version\n");
 		return 2;
 
 		/*
-		start++;
-		if (0 != find_entry_by_token(chain, hdr->imagefile+1, &hdr2)) {
-			printf("[%s]: link to [%s] not found\n", 
-					hdr->token, hdr->imagefile+1);
-			dump_fs_contents(chain);
-			return 2;
-		}
-		hdr->linked_to = hdr2;
-		*/
+		   start++;
+		   if (0 != find_entry_by_token(chain, hdr->imagefile+1, &hdr2)) {
+		   printf("[%s]: link to [%s] not found\n", 
+		   hdr->token, hdr->imagefile+1);
+		   dump_fs_contents(chain);
+		   return 2;
+		   }
+		   hdr->linked_to = hdr2;
+		 */
 	}
 
 	/**********************************************************/
@@ -175,21 +180,27 @@ int find_next_entry(int file, struct ffs_chain_t *chain)
 	return 0;
 }
 
-void debug_print_range(char *s, char *e)
+int
+read_config(int conf_file, struct ffs_chain_t *ffs_chain)
 {
-	while (s < e) {
-		printf("%c", *s);
-		s++;
+	int rc;
+
+	while (1) {
+		rc = find_next_entry(conf_file, ffs_chain);
+		if (rc != 0)
+			break;
 	}
+	return rc;
 }
 
-int inbetween_white(char *s, int max, char **start, char **end, char **next)
+static int
+inbetween_white(char *s, int max, char **start, char **end, char **next)
 {
 	int pos = 0, posalt;
 
 	if (NULL != *start) {
 		pos = *start - s;
-		s   = *start;
+		s = *start;
 	}
 
 	/* wind to first non white */
@@ -212,7 +223,7 @@ int inbetween_white(char *s, int max, char **start, char **end, char **next)
 	/* wind to end of non white or end of buffer */
 	posalt = pos;
 	while (pos < max) {
-		if ((' '  == *s) || ('	' == *s) || 
+		if ((' ' == *s) || ('	' == *s) ||
 		    (0x0a == *s) || (0x0d == *s)) {
 			break;
 		}
@@ -235,11 +246,13 @@ int inbetween_white(char *s, int max, char **start, char **end, char **next)
 	return 0;
 }
 
-int add_header(struct ffs_chain_t *chain, struct ffs_header_t *hdr)
+int
+add_header(struct ffs_chain_t *chain, struct ffs_header_t *hdr)
 {
 	struct ffs_header_t *next;
 
 	if (NULL == chain->first) {
+		chain->count = 1;
 		chain->first = hdr;
 		return 0;
 	}
@@ -250,40 +263,13 @@ int add_header(struct ffs_chain_t *chain, struct ffs_header_t *hdr)
 		next = next->next;
 	}
 	next->next = hdr;
+	chain->count++;
 
 	return 0;
 }
 
-int find_entry_by_token(struct ffs_chain_t *chain, char *token,
-			struct ffs_header_t **hdr)
-{
-	struct ffs_header_t *next;
-
-	if (NULL == chain->first) {
-		*hdr = NULL;
-		return 1;
-	}
-	next = chain->first;
-
-	//printf("debug: search for [%s]...\n", token);
-
-	while (1) {
-		//printf("       > [%s]\n", next->token);
-		if (strcmp(token, next->token) == 0) {
-			*hdr = next;
-			//printf("       > found\n");
-			break;
-		}
-		if (NULL == next->next) {
-			//printf("       > reached end of chain, not found\n");
-			return 1;
-		}
-		next = next->next;
-	}
-	return 0;
-}
-
-void dump_fs_contents(struct ffs_chain_t *chain)
+void
+dump_fs_contents(struct ffs_chain_t *chain)
 {
 	struct ffs_header_t *next;
 
@@ -308,11 +294,11 @@ void dump_fs_contents(struct ffs_chain_t *chain)
 
 		printf("flags<%llx>, ", next->flags);
 		printf("romaddr<%llx>, ", next->romaddr);
-		
+
 		if (NULL != next->linked_to) {
 			printf("linked to [%s]", next->linked_to->token);
 		}
-		
+
 		printf("\n");
 		if (NULL == next->next) {
 			break;
@@ -320,10 +306,11 @@ void dump_fs_contents(struct ffs_chain_t *chain)
 
 		next = next->next;
 	}
-			
+
 }
 
-void free_chain_memory(struct ffs_chain_t *chain)
+void
+free_chain_memory(struct ffs_chain_t *chain)
 {
 	struct ffs_header_t *hdr, *next_hdr;
 
@@ -353,7 +340,8 @@ void free_chain_memory(struct ffs_chain_t *chain)
 /*
  * Detect duplicate entries in the romfs list
  */
-void find_duplicates(struct ffs_chain_t *chain)
+void
+find_duplicates(struct ffs_chain_t *chain)
 {
 	struct ffs_header_t *act, *sub;
 
@@ -366,12 +354,12 @@ void find_duplicates(struct ffs_chain_t *chain)
 	do {
 		sub = act->next;
 		while (sub != NULL) {
-		
+
 			if (act->token == NULL || sub->token == NULL) {
 				printf("find_duplicates: token not set!\n");
-			}
-			else if (strcmp(act->token, sub->token) == 0) {
-				printf("*** NOTE: duplicate romfs file '%s'.\n", act->token);
+			} else if (strcmp(act->token, sub->token) == 0) {
+				printf("*** NOTE: duplicate romfs file '%s'.\n",
+				       act->token);
 			}
 			sub = sub->next;
 		}
@@ -379,5 +367,5 @@ void find_duplicates(struct ffs_chain_t *chain)
 		act = act->next;
 
 	} while (act != NULL);
-	
+
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -261,7 +261,7 @@ early_c_entry(uint64_t start_addr)
 	c_romfs_lookup("bootinfo", romfs_base, &fileInfo);
 	boot_info = (uint64_t *) fileInfo.addr_data;
 	boot_info[1] = start_addr;
-	load_file(0x100, "xvect", 0x100, romfs_base);
+	load_file(0x100, "xvect", 0, romfs_base);
 	load_file(SLAVELOOP_LOADBASE, "stageS", 0, romfs_base);
 	c_romfs_lookup("ofw_main", romfs_base, &fileInfo);
 	load_elf_file((void *) fileInfo.addr_data, &ofw_addr);

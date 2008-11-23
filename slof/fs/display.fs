@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -75,12 +75,12 @@ CREATE default-font-ctrblk /font allot default-font-ctrblk
 
 : display-default-font ( str len -- )
    romfs-lookup dup 0= IF drop EXIT THEN
-   600 <> IF ." Only support 60x8x16 fonts ! " drop EXIT THEN  
+   600 <> IF ." Only support 60x8x16 fonts ! " drop EXIT THEN
    default-font-ctrblk font>addr !
 ;
 
 s" default-font.bin" display-default-font
-   
+
 \ \\\\\\\\\\\\\\ Implementation Independent Methods (Depend on Previous)
 \ *
 \ *
@@ -120,5 +120,4 @@ s" default-font.bin" display-default-font
 : default-font ( -- addr width height advance min-char #glyphs )
     default-font-ctrblk /font 0 DO dup cell+ >r @ r> 1 cells +LOOP drop
 ;
-
 

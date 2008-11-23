@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -20,20 +20,4 @@
    0 rtas-cb rtas>args3 l!
    enter-rtas
    rtas-cb rtas>args3 l@
-;
-
-: rtas-freeze-timebase  ( -- status )
-   [ s" freeze-time-base" rtas-get-token ] LITERAL rtas-cb rtas>token l!
-   0 rtas-cb rtas>nargs l!
-   1 rtas-cb rtas>nret l!
-   enter-rtas
-   rtas-cb rtas>args0 l@
-;
-
-: rtas-thaw-timebase  ( -- status )
-   [ s" thaw-time-base" rtas-get-token ] LITERAL rtas-cb rtas>token l!
-   0 rtas-cb rtas>nargs l!
-   1 rtas-cb rtas>nret l!
-   enter-rtas
-   rtas-cb rtas>args0 l@
 ;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -9,8 +9,11 @@
  * Contributors:
  *     IBM Corporation - initial implementation
  *****************************************************************************/
+
 #include <macros.h>
-	
+
+#define STACKSIZE 0x1000
+
 	#
 	# The generic exception code.
 	#
@@ -20,12 +23,17 @@
 	.section ".entry_text"
 
 the_handler:
-	.quad handler
+	.quad	handler
 
 eregs:
-	.quad _slof_start  # XXX make configurable at startup time
-			# should stay page aligned!
-
+	/* the_exception_frame is a C variable which is usually
+	 * defined in $(TARG).c
+	 * the_exception_frame can be accessed from paflof through
+	 * the word eregs
+	 * in the case an excpetion is handled paflof will read
+	 * from eregs the values of all registers and print them
+	 * out in the exception handler */
+	.quad	the_exception_frame
 
 handler:
 	mtsprg 1,1	# SPRG1 = saved GPR1
@@ -38,24 +46,20 @@ handler:
 	std \i,\i*8(1)
 	.endr		# save GPR2..GPR31
 
-	mr 3,0		// GPR3 = vector
+	li r3, 3        // GPR3 = mode (param_1, param_2)
+	mr 4,0		// GPR4 = vector
 
 	mfsprg 0,0
 	std 0,0(1)	# save GPR0
 	mfsprg 0,1
 	std 0,8(1)	# save GPR1
 
-	cmpwi	r3, 0x900	# Decrementer interrupt
+	cmpwi	r4, 0x900	# Decrementer interrupt
 	bne	0f
-	mfdec	r4		# Save old value of decrementer as reason
+	mfdec	r5		# Save old value of decrementer as reason
 	lis	r0,0x7fff	# Set decrementer to highest value 
 	mtdec	r0
-0:		
-	cmpwi	r3, 0x500	# External interrupt
-	bne	0f
-	LOAD64(r4, 0x20000508408) 
-	ld	r4, 0(r4)	# Read destructive interrupt reason
-0:		
+0:
 	mfcr 0
 	std 0,0x100(1)
 	mfxer 0
@@ -73,10 +77,18 @@ handler:
 	mfdsisr 0
 	std 0,0x138(1)	# save special regs
 
-	addi 1,1,0x7000
-	li 0,0
-	stdu 0,-0x10(1)
-	stdu 1,-0x100(1) # set up stack
+	bcl	20, 31, over
+base:
+	.align	3
+.the_system_stack:
+	.quad   the_system_stack+STACKSIZE-base
+over:
+	mflr	r2				/* gpr 2 is the base */
+	ld	r1, .the_system_stack-base(r2)	/* load stack pointer */
+	add	r1, r1, r2			/* add base */
+	li	r0, 0
+	stdu	r0, -0x10(r1)
+	stdu	r1, -0x100(r1)
 
 	lis 2,engine@ha
 	ld 0,engine@l(2) # set up entry
@@ -94,8 +106,20 @@ handler:
 	#
 
 swap_ci_regs:
-	lis 8,_slof_start@ha
-	addi 8,8,0x0400
+	/* save lr */
+	mflr	r0
+	/* let's find out where our client stack is */
+	bcl	20, 31, client_over
+client_base:
+	.align	3
+.the_client_frame:
+	.quad   the_client_frame-client_base
+client_over:
+	mflr	r8				/* gpr 2 is the client_base */
+	mtlr	r0				/* restore the original lr */
+	ld	r0, .the_client_frame-client_base(r8)
+	add	r8, r0, r8			/* add the client_base */
+	/* r8 now contains the address of the_client_frame */
 
 	.irp i, 1,2,3,4,5,6,7, \
 		13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
@@ -159,3 +183,5 @@ call_client:
 	mtlr 4
 	li 3, -1 # client app return
 	blr
+
+	.lcomm	the_system_stack, STACKSIZE, 16

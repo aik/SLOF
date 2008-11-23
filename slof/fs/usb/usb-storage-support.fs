@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -52,73 +52,6 @@
 : analyze-csw ( address -- residue tag TRUE | reason FALSE )
    s" analyze-csw" ihandle-bulk @ $call-method
    ( residue tag TRUE | reason FALSE )
-;
-
-
-\ ---------------------------------------------------------------------------
-\ SCSI support package methods
-\ ---------------------------------------------------------------------------
-
-: build-read ( address lba #blocks --  )
-   s" build-read" ihandle-scsi @ $call-method
-;
-
-: build-inquiry ( address alloc-len -- )
-   s" build-inquiry" ihandle-scsi @ $call-method
-;
-
-: return-inquiry  ( address -- version# peripheral-device-type )
-   s" return-inquiry" ihandle-scsi @  $call-method
-   ( version# peripheral-device-type )
-;
-
-: build-mode-sense ( address alloc-len page-code page-control -- )
-   s" build-mode-sense" ihandle-scsi @ $call-method
-;
-
-: build-read-capacity ( address -- )
-   s" build-read-capacity" ihandle-scsi @ $call-method
-;
-
-: build-seek ( address lba -- )
-   s" build-seek" ihandle-scsi @  $call-method
-;
-
-: build-start ( address -- )
-   s" build-start" ihandle-scsi @ $call-method
-;
-
-: build-stop ( address -- )
-   s" build-stop" ihandle-scsi @ $call-method
-;
-
-\ : build-load ( address -- )
-\    s" build-load" ihandle-scsi @  $call-method
-\ ;
-
-\ : build-unload ( address -- )
-\    s" build-unload" ihandle-scsi @ $call-method
-\ ;
-
-: build-test-unit-ready ( address -- )
-   s" build-test-unit-ready" ihandle-scsi @ $call-method
-;
-
-: return-test-unit-ready ( address -- status )
-   s" return-unit-ready" ihandle-scsi @  $call-method  ( status )
-;
-
-: build-read-toc ( address session# alloc-len -- )
-   s" build-read-toc" ihandle-scsi @ $call-method
-;
-
-: build-request-sense ( address alloc-len -- )
-   s" build-request-sense" ihandle-scsi @ $call-method
-;
-
-: return-request-sense ( address -- FALSE | ASCQ ASC sense-key TRUE )
-   s" return-request-sense" ihandle-scsi @ $call-method
-   ( FALSE | ASCQ ASC sense-key TRUE )
 ;
 
 

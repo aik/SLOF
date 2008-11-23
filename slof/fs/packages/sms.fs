@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -11,24 +11,19 @@
 \ ****************************************************************************/
 
 
-s" sms.fs" romfs-lookup [IF]
-   drop
+s" /packages" find-device
 
-   s" /packages" find-device
+new-device
+   s" sms" device-name
 
-   new-device
+   : open true ;
 
-      s" sms" device-name
+   : close ;
 
-      : open true ;
+   \ The rest of methods is loaded dynamically from the romfs
+   \ on a first call to sms-start
 
-      : close ;
+finish-device
 
-      \ The rest of methods is loaded dynamically from the romfs
-      \ on a first call to sms-start
-
-   finish-device
-
-   device-end
-[THEN]
+device-end \ leave /packages
 

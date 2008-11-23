@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -19,7 +19,7 @@ include ../make.rules
 
 ifdef DRIVER
 RELEASE=$(shell cat ../VERSION)
-export DRIVER_NAME=$(shell cat ../VERSION | sed -e "s/-/./g" | awk -F . '{ printf("%s%02x%02x%1x%02x",$$1,$$2,$$3,$$4,$$5); }')
+export DRIVER_NAME=$(shell cat ../VERSION | sed -e "s/-/./g" | awk -F . '{ printf("%s%02d%02d%1x%02x",$$1,$$2,$$3,$$4,$$5); }')
 else
 RELEASE="$(USER)@$(HOSTNAME)(private build)"
 export DRIVER_NAME=HEAD
@@ -51,39 +51,41 @@ romfs_build:
 		@$(CC) -v >> ../build_info.img 2>&1
 		@$(LD) -V >> ../build_info.img 2>&1
 
-boot_rom.bin: 	$(BUILDS) ../romfs/copyright.img ../build_info.img
+../$(SUBBOARD).dtb:
+		@if [ -e dts/$(SUBBOARD).dts ]; then \
+			 dtc -q -I dts -O dtb dts/$(SUBBOARD).dts > $@; \
+		fi
+
+boot_rom.bin boot_xdr.bin: 	$(BUILDS) ../romfs/copyright.img ../build_info.img ../$(SUBBOARD).dtb
 		@echo " ====== Building $@ ======"
 		@if [ -e $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs ]; then \
 			cat $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs > ../.boot_rom.ffs; \
 		else \
 			cat $(ROMFSBRDDIR)/boot_rom.ffs > ../.boot_rom.ffs; \
 		fi
-		cat $(PCDBRDDIR)/pcdfiles.ffs >> ../.boot_rom.ffs
+		@if [ -e $(PCDBRDDIR)/pcdfiles.ffs ]; then \
+			cat $(PCDBRDDIR)/pcdfiles.ffs >> ../.boot_rom.ffs; \
+		fi
 		cat $(SLOFBRDDIR)/OF.ffs >> ../.boot_rom.ffs
 		@echo build_info.img  build_info.img 0 0 >> ../.boot_rom.ffs
-		cd .. && ./romfs/tools/build_romfs .boot_rom.ffs boot_rom.bin
-		cd .. && if [ -f boot_rom.bin.gz ]; then rm -f boot_rom.bin.gz; gzip -9 boot_rom.bin; fi
-		rm -f ../.boot_rom.ffs
-
-boot_xdr.bin: 	$(BUILDS) ../romfs/copyright.img ../build_info.img
-		@echo " ====== Building $@ ======"
-		@if [ -e $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs ]; then \
-			cat $(ROMFSBRDDIR)/boot_rom.$(SUBBOARD).ffs > ../.boot_xdr.ffs; \
-		else \
-			cat $(ROMFSBRDDIR)/boot_rom.ffs > ../.boot_xdr.ffs; \
+		@if [ -e ../$(SUBBOARD).dtb ]; then \
+			echo dtb $(SUBBOARD).dtb 0 0 >> ../.boot_rom.ffs; \
 		fi
-		cat $(PCDBRDDIR)/pcdfiles.ffs >> ../.boot_xdr.ffs
-		@echo build_info.img build_info.img 0 0 >> ../.boot_xdr.ffs
-		cat ./slof/OF.ffs >> ../.boot_xdr.ffs
-		cd .. && ./romfs/tools/build_romfs .boot_xdr.ffs boot_xdr.bin
-		rm -f ../.boot_xdr.ffs
+		cd .. && ./romfs/tools/build_romfs .boot_rom.ffs $@
+		cd .. && if [ -f $@.gz ]; then rm -f $@.gz; gzip -9 $@ ; fi
+		rm -f ../.boot_rom.ffs
+		rm -f ../$(SUBBOARD).dtb
 
-../boot_l2b.bin:	$(BUILDS) ../romfs/copyright.img
+../boot_l2b.bin:	$(BUILDS) ../romfs/copyright.img ../$(SUBBOARD).dtb
 		@if [ -e $(ROMFSBRDDIR)/boot_l2.$(SUBBOARD).ffs ]; then \
 			cd .. && ./romfs/tools/build_romfs $(ROMFSBRDDIR)/boot_l2.$(SUBBOARD).ffs boot_l2b.bin; \
 		else \
 			cd .. && ./romfs/tools/build_romfs $(ROMFSBRDDIR)/boot_l2.ffs boot_l2b.bin; \
 		fi
+		@if [ -e ../$(SUBBOARD).dtb ]; then \
+			echo dtb $(SUBBOARD).dtb 0 0 >> ../.boot_rom.ffs; \
+		fi
+		rm -f ../$(SUBBOARD).dtb
 
 boot_l2-dd2.ad: ../boot_l2b.bin
 		@cd ../tools && ./elf2l2 dd2 ../boot_l2b.bin 0 ../boot_l2-dd2.ad
@@ -137,6 +139,7 @@ tar_gz:		copy_driver
 clean_top:
 		@rm -f ../build_info.img
 		@rm -f ../.crc_flash
+		@rm -f ../$(SUBBOARD).dtb
 
 clean_gen:	clean_top
 		make -C ../romfs/tools BOARD=$(BOARD) clean

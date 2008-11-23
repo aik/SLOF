@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -25,8 +25,12 @@ defer nvramlog-write-byte
 ' .nvramlog-write-byte to nvramlog-write-byte
 
 : nvramlog-write-string ( str len -- )
-  0 DO dup c@ 
-  nvramlog-write-byte char+ LOOP drop ;
+   dup 0> IF
+      0 DO dup c@ 
+      nvramlog-write-byte char+ LOOP
+   ELSE
+      drop
+   THEN drop ;
 
 : nvramlog-write-number ( number format -- )
   0 swap <# 0 ?DO # LOOP #> 

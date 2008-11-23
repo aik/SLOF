@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -62,48 +62,26 @@ c0000000 encode-64+  30000000 encode-64+ s" ranges" property
 \ Host bridge, so full bus range.
 f0 encode-int ff encode-int+ s" bus-range" property
 
-\ cr .( Scanning Attu PCIe...)
-\ INCLUDE hw/pci-scan.fs
-
-\ INCLUDE pci-scan.fs
-
-
 : open  true ;
 : close ;
 
-\  c0000000 next-pci-mem !
-\  e8000000  max-pci-mem !
-\  e8000000 next-pci-mmio !
-\  f0000000  max-pci-mmio !
-\ for x86emu io access must have 16 bit addresses, so start I/O space at 0xf000
-\      f000 next-pci-io !
-\ 100000000  max-pci-io !
-\         0 next-pci-bus !
-
-\ 0 probe-pci
 \ : probe-pci-host-bridge ( bus-max bus-min mmio-max mmio-base mem-max mem-base io-max io-base my-puid -- )
-0 my-puid pci-irq-init drop
+s" /mpic" find-node my-puid pci-irq-init drop
 
 00fff1f0 18 config-l!
 
 ff F0 f0000000 e8000000 e8000000 c0000000 100000000 f000
 my-puid probe-pci-host-bridge
 
-
 \ \ PCIe debug / fixup
- : find-pcie-cap ( devfn -- offset | 0 )
-   >r 34 BEGIN r@ + config-b@ dup ff <> over and WHILE
-   dup r@ + config-b@ 10 = IF r> drop EXIT THEN 1+ REPEAT r> 2drop 0 ;
- : .pcie ( devfn -- )
-   dup find-pcie-cap ?dup IF cr over . ." cap @ " dup . +
-   dup 8 + config-w@ 5 rshift 7 and 80 swap lshift cr ."  max payload size: " .d
-   dup 8 + config-w@ c rshift 7 and 80 swap lshift cr ."  max read req: " .d
-   dup 12 + config-w@ 4 rshift 3f and              cr ."  link width: " .d
-  THEN drop ;
- : .pcies ( -- )
-   cr cr ." PCIe:"
-   10000 0 DO i 8 lshift .pcie LOOP ;
- 
+: find-pcie-cap  ( devfn -- offset | 0 )
+   >r 34  BEGIN  r@ + config-b@ dup ff <> over and  WHILE
+       dup r@ + config-b@ 10 =  IF
+          r> drop EXIT
+       THEN 1+
+   REPEAT r> 2drop 0
+;
+
  : (set-ps) ( ps addr -- )
    8 + >r 5 lshift r@ config-w@ ff1f and or r> config-w! ;
  : set-ps ( ps -- )
@@ -119,8 +97,5 @@ my-puid probe-pci-host-bridge
    + 2dup (set-rr) THEN drop LOOP drop ;
 
 80 set-ps  80 set-rr  
-\ .pcies
-
 
 finish-device
-

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -14,15 +14,6 @@
 
 hex
 
-: .slof-logo
-   cr ."         ..`. ..     .......  ..           ......      ......."
-   cr ."     ..`...`''.`'. .''``````..''.       .`''```''`.  `''``````"
-   cr ."        .`` .:' ': `''.....  .''.       ''`     .''..''......."
-   cr ."          ``.':.';. ``````''`.''.      .''.      ''``''`````'`"
-   cr ."          ``.':':`   .....`''.`'`...... `'`.....`''.`'`       "
-   cr ."         .`.`'``   .'`'`````.  ``''''''  ``''`'''`. `'`       "
-;
-
 \ as early as possible we want to know if it is js20, js21 or bimini
 \ u3 = js20; u4 = js21/bimini
 \ the difference if bimini or js21 will be done later depending if
@@ -30,7 +21,8 @@ hex
 \ f8000000 is probably the place of the u3/u4 version
 f8000000 rl@ CONSTANT uni-n-version
 uni-n-version 4 rshift  dup 3 = CONSTANT u3?  4 = CONSTANT u4?
-false value bimini?
+\ if (f4000682 >> 4) == 1... it is a bimini...
+f4000682 rb@ 4 rshift 1 = CONSTANT bimini?
 
 \ to decide wether vga initialisation using bios emulation should be attempted,
 \ we need to know wether a vga-device was found during pci-scan.
@@ -60,8 +52,6 @@ defer planar-id  ( -- planar-id )
 #include "serial.fs"
 
 cr
-
-eregs 11 8 * + @ CONSTANT hsprg1
 
 #include "base.fs"
 
@@ -178,6 +168,7 @@ THEN
 
 200 cp
 
+#include <slof-logo.fs>
 #include <banner.fs>
 
 : .banner .slof-logo .banner ;
@@ -220,6 +211,10 @@ d# 14318378 VALUE tb-frequency   \ default value - needed for "ms" to work
 : us 999 + 1000 / ms ;
 
 280 cp
+
+\ rtas-config is not used
+0 CONSTANT rtas-config
+
 #include "rtas.fs"
 290 cp
 s" update_flash.fs" included
@@ -256,6 +251,7 @@ create vpd-bootlist 4 allot
 300 cp
 #include <usb/usb-static.fs>
 320 cp
+#include <scsi-loader.fs>
 #include <root.fs>
 360 cp
 #include "tree.fs"
@@ -309,7 +305,7 @@ takeover? not u4? and  IF
    \ the partition with the type 51 should have been added
    \ by LLFW... if it does not exist then something went
    \ wrong and we just destroy the whole thing
-   51 get-header  IF  0 0 nvram-base rb!  ELSE  2drop  THEN
+   51 get-nvram-partition IF  0 0 nvram-c!  ELSE  2drop  THEN
 THEN
 
 880 cp
@@ -336,12 +332,13 @@ check-for-nvramrc
 \ check wether a VGA device was found during pci scan, if it was
 \ try to initialize it and create the needed device-nodes
 0 value biosemu-vmem
+100000 value biosemu-vmem-size
 0 value screen-info
 
 vga-device-node? 0<> IF
    s" VGA Device found: " type vga-device-node? node>path type s"  initializing..." type cr
    \ claim virtual memory for biosemu of 1MB
-   100000 4 claim to biosemu-vmem
+   biosemu-vmem-size 4 claim to biosemu-vmem
    \ claim memory for screen-info struct (140 bytes)
    d# 140 4 claim to screen-info
    \ remember current-node (it might be node 0 so we cannot use get-node)
@@ -352,8 +349,10 @@ vga-device-node? 0<> IF
    \ s" Time before biosemu:" type .date cr
    vga-device-node? node>path ( pathstr len )
    s" biosemu " biosemu-vmem $cathex ( pathstr len paramstr len )
-   20 char-cat \ add a space
-   2swap $cat ( paramstr len ) bios-exec
+   20 char-cat \ add a space ( pathstr len paramstr len )
+   biosemu-vmem-size $cathex \ add VMEM Size ( pathstr len paramstr len )
+   20 char-cat \ add a space ( pathstr len paramstr len )
+   2swap $cat ( paramstr+path len ) bios-exec
    \ s" Time after biosemu:" type .date cr
    s" VGA initialization: detecting displays..." type cr
    \ try to get info for two monitors
@@ -374,8 +373,10 @@ vga-device-node? 0<> IF
       \ we need to call it before assembling the parameter string
       vga-device-node? node>path ( pathstr len )
       s" get_vbe_info " biosemu-vmem $cathex ( pathstr len paramstr len )
-      20 char-cat \ add a space
-      2swap $cat ( paramstr len ) 
+      20 char-cat \ add a space ( pathstr len paramstr len )
+      biosemu-vmem-size $cathex \ add VMEM Size ( pathstr len paramstr len )
+      20 char-cat \ add a space ( pathstr len paramstr len )
+      2swap $cat ( paramstr+path len )
       20 char-cat
       screen-info $cathex bios-exec
       \ s" Time after client exec:" type .date cr
@@ -395,7 +396,7 @@ vga-device-node? 0<> IF
    set-node
    \ release the claimed memory
    screen-info d# 140 release 
-   biosemu-vmem 100000 release
+   biosemu-vmem biosemu-vmem-size release
 
    s" VGA initialization done." type cr
 THEN \ vga-device-node?
@@ -410,7 +411,6 @@ THEN
 
 \ do not let the usb scan overwrite the atapi cdrom alias
 pci-cdrom-num TO cdrom-alias-num
-
 usb-scan
 
 s" net" s" net1" find-alias ?dup IF set-alias ELSE 2drop THEN
@@ -429,17 +429,29 @@ THEN
 ;
 
 directserial
-
-\ enable USB keyboard
-s" keyboard" find-alias  IF  drop
-   \ s" keyboard" input
-   \ at this point serial input is disabled
-THEN
-
-\ this enables the framebuffer as primary output device
-s" screen" find-alias  IF  drop
-   \ s" screen" output
-   \ at this point serial output is theoretically disabled
+  
+\ on bimini we want to automatically enable screen and keyboard, if they are detected...
+bimini? IF
+   key? IF
+      cr ." input available on current console input device, not switching input / output." cr
+   ELSE
+      \ this enables the framebuffer as primary output device
+      s" screen" find-alias  IF  drop
+         s" screen" output
+         \ at this point serial output is theoretically disabled
+         ." screen detected and set as default output device" cr
+      THEN
+      \ enable USB keyboard
+      s" keyboard" find-alias  IF  drop
+         s" keyboard" input
+         \ at this point serial input is disabled
+         \ if key-available? method is found, defer it to key?
+         
+         ." keyboard detected and set as default output device" cr
+         ."  Press and hold 's' to enter Open Firmware." cr
+         1000 ms \ wait, in case user wants to press 's' 
+      THEN
+   THEN
 THEN
 
 : .flashside
@@ -469,6 +481,24 @@ bmc? IF  disable-watchdog  THEN
 \ for the blades we read the bootlist from the VPD
 bimini? takeover? or 0=  IF  ['] vpd-boot-import to read-bootlist  THEN
 
+\ for the bimini, we try to boot from disk, if it exists, 
+\ only if "boot-device" is not set in the nvram
+: bimini-bootlist
+   \ check nvram
+   s" boot-device" evaluate swap drop ( boot-device-strlen )
+   0= IF
+      \ no boot-device set in NVRAM, check if disk is available and set it...
+      \ clear boot-device list
+      0 0 set-boot-device
+      s" disk" find-alias ?dup IF
+         \ alias found, use it as default
+         add-boot-device
+      THEN
+   THEN
+;
+
+bimini? IF ['] bimini-bootlist to read-bootlist THEN
+
 #include <start-up.fs>
 
 #include <boot.fs>
@@ -480,3 +510,11 @@ cr
 
 \ this CATCH is to ensure the code bellow always executes:  boot may ABORT!
 ' start-it CATCH drop
+
+#include <history.fs>
+nvram-history? [IF]
+." loading shell history .. "
+history-load
+." done" cr
+[THEN]
+

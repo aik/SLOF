@@ -2516,9 +2516,11 @@ void x86emuOp_movs_byte(u8 X86EMU_UNUSED(op1))
     count = 1;
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        count = M.x86.R_CX;
+        /* move them until (E)CX is ZERO. */
+        count = (M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX;
         M.x86.R_CX = 0;
+	if (M.x86.mode & SYSMODE_32BIT_REP)
+            M.x86.R_ECX = 0;
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
     }
     while (count--) {
@@ -2561,9 +2563,11 @@ void x86emuOp_movs_word(u8 X86EMU_UNUSED(op1))
     count = 1;
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        count = M.x86.R_CX;
+        /* move them until (E)CX is ZERO. */
+        count = (M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX;
         M.x86.R_CX = 0;
+	if (M.x86.mode & SYSMODE_32BIT_REP)
+            M.x86.R_ECX = 0;
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
     }
     while (count--) {
@@ -2602,12 +2606,15 @@ void x86emuOp_cmps_byte(u8 X86EMU_UNUSED(op1))
 
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* REPE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             val1 = fetch_data_byte(M.x86.R_SI);
             val2 = fetch_data_byte_abs(M.x86.R_ES, M.x86.R_DI);
                      cmp_byte(val1, val2);
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_SI += inc;
             M.x86.R_DI += inc;
             if ( (M.x86.mode & SYSMODE_PREFIX_REPE) && (ACCESS_FLAG(F_ZF) == 0) ) break;
@@ -2650,8 +2657,8 @@ void x86emuOp_cmps_word(u8 X86EMU_UNUSED(op1))
     TRACE_AND_STEP();
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* REPE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
                 val1 = fetch_data_long(M.x86.R_SI);
                 val2 = fetch_data_long_abs(M.x86.R_ES, M.x86.R_DI);
@@ -2661,7 +2668,10 @@ void x86emuOp_cmps_word(u8 X86EMU_UNUSED(op1))
                 val2 = fetch_data_word_abs(M.x86.R_ES, M.x86.R_DI);
                 cmp_word((u16)val1, (u16)val2);
             }
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_SI += inc;
             M.x86.R_DI += inc;
             if ( (M.x86.mode & SYSMODE_PREFIX_REPE) && ACCESS_FLAG(F_ZF) == 0 ) break;
@@ -2749,10 +2759,13 @@ void x86emuOp_stos_byte(u8 X86EMU_UNUSED(op1))
     TRACE_AND_STEP();
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             store_data_byte_abs(M.x86.R_ES, M.x86.R_DI, M.x86.R_AL);
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_DI += inc;
             if (M.x86.intr & INTR_HALTED)
                 break;
@@ -2793,9 +2806,11 @@ void x86emuOp_stos_word(u8 X86EMU_UNUSED(op1))
     count = 1;
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        count = M.x86.R_CX;
+        /* move them until (E)CX is ZERO. */
+        count = (M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX;
         M.x86.R_CX = 0;
+	if (M.x86.mode & SYSMODE_32BIT_REP)
+            M.x86.R_ECX = 0;
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
     }
     while (count--) {
@@ -2829,10 +2844,13 @@ void x86emuOp_lods_byte(u8 X86EMU_UNUSED(op1))
         inc = 1;
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             M.x86.R_AL = fetch_data_byte(M.x86.R_SI);
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_SI += inc;
             if (M.x86.intr & INTR_HALTED)
                 break;
@@ -2873,9 +2891,11 @@ void x86emuOp_lods_word(u8 X86EMU_UNUSED(op1))
     count = 1;
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* move them until CX is ZERO. */
-        count = M.x86.R_CX;
+        /* move them until (E)CX is ZERO. */
+        count = (M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX;
         M.x86.R_CX = 0;
+	if (M.x86.mode & SYSMODE_32BIT_REP)
+            M.x86.R_ECX = 0;
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
     }
     while (count--) {
@@ -2910,11 +2930,14 @@ void x86emuOp_scas_byte(u8 X86EMU_UNUSED(op1))
         inc = 1;
     if (M.x86.mode & SYSMODE_PREFIX_REPE) {
         /* REPE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             val2 = fetch_data_byte_abs(M.x86.R_ES, M.x86.R_DI);
             cmp_byte(M.x86.R_AL, val2);
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_DI += inc;
             if (ACCESS_FLAG(F_ZF) == 0)
                 break;
@@ -2924,11 +2947,14 @@ void x86emuOp_scas_byte(u8 X86EMU_UNUSED(op1))
         M.x86.mode &= ~SYSMODE_PREFIX_REPE;
     } else if (M.x86.mode & SYSMODE_PREFIX_REPNE) {
         /* REPNE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             val2 = fetch_data_byte_abs(M.x86.R_ES, M.x86.R_DI);
             cmp_byte(M.x86.R_AL, val2);
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_DI += inc;
             if (ACCESS_FLAG(F_ZF))
                 break;          /* zero flag set means equal */
@@ -2971,8 +2997,8 @@ void x86emuOp_scas_word(u8 X86EMU_UNUSED(op1))
     TRACE_AND_STEP();
     if (M.x86.mode & SYSMODE_PREFIX_REPE) {
         /* REPE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
                 val = fetch_data_long_abs(M.x86.R_ES, M.x86.R_DI);
                 cmp_long(M.x86.R_EAX, val);
@@ -2980,7 +3006,10 @@ void x86emuOp_scas_word(u8 X86EMU_UNUSED(op1))
                 val = fetch_data_word_abs(M.x86.R_ES, M.x86.R_DI);
                 cmp_word(M.x86.R_AX, (u16)val);
             }
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_DI += inc;
             if (ACCESS_FLAG(F_ZF) == 0)
                 break;
@@ -2990,8 +3019,8 @@ void x86emuOp_scas_word(u8 X86EMU_UNUSED(op1))
         M.x86.mode &= ~SYSMODE_PREFIX_REPE;
     } else if (M.x86.mode & SYSMODE_PREFIX_REPNE) {
         /* REPNE  */
-        /* move them until CX is ZERO. */
-        while (M.x86.R_CX != 0) {
+        /* move them until (E)CX is ZERO. */
+        while (((M.x86.mode & SYSMODE_32BIT_REP) ? M.x86.R_ECX : M.x86.R_CX) != 0) {
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
                 val = fetch_data_long_abs(M.x86.R_ES, M.x86.R_DI);
                 cmp_long(M.x86.R_EAX, val);
@@ -2999,7 +3028,10 @@ void x86emuOp_scas_word(u8 X86EMU_UNUSED(op1))
                 val = fetch_data_word_abs(M.x86.R_ES, M.x86.R_DI);
                 cmp_word(M.x86.R_AX, (u16)val);
             }
-            M.x86.R_CX -= 1;
+            if (M.x86.mode & SYSMODE_32BIT_REP)
+                M.x86.R_ECX -= 1;
+            else
+                M.x86.R_CX -= 1;
             M.x86.R_DI += inc;
             if (ACCESS_FLAG(F_ZF))
                 break;          /* zero flag set means equal */
@@ -4044,8 +4076,11 @@ void x86emuOp_loopne(u8 X86EMU_UNUSED(op1))
     ip += (s16) M.x86.R_IP;
     DECODE_PRINTF2("%04x\n", ip);
     TRACE_AND_STEP();
-    M.x86.R_CX -= 1;
-    if (M.x86.R_CX != 0 && !ACCESS_FLAG(F_ZF))      /* CX != 0 and !ZF */
+    if (M.x86.mode & SYSMODE_PREFIX_ADDR)
+        M.x86.R_ECX -= 1;
+    else
+        M.x86.R_CX -= 1;
+    if (((M.x86.mode & SYSMODE_PREFIX_ADDR) ? M.x86.R_ECX : M.x86.R_CX) != 0 && !ACCESS_FLAG(F_ZF))      /* (E)CX != 0 and !ZF */
         M.x86.R_IP = ip;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
@@ -4065,8 +4100,11 @@ void x86emuOp_loope(u8 X86EMU_UNUSED(op1))
     ip += (s16) M.x86.R_IP;
     DECODE_PRINTF2("%04x\n", ip);
     TRACE_AND_STEP();
-    M.x86.R_CX -= 1;
-    if (M.x86.R_CX != 0 && ACCESS_FLAG(F_ZF))       /* CX != 0 and ZF */
+    if (M.x86.mode & SYSMODE_PREFIX_ADDR)
+        M.x86.R_ECX -= 1;
+    else
+        M.x86.R_CX -= 1;
+    if (((M.x86.mode & SYSMODE_PREFIX_ADDR) ? M.x86.R_ECX : M.x86.R_CX) != 0 && ACCESS_FLAG(F_ZF))      /* (E)CX != 0 and ZF */
         M.x86.R_IP = ip;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
@@ -4086,8 +4124,11 @@ void x86emuOp_loop(u8 X86EMU_UNUSED(op1))
     ip += (s16) M.x86.R_IP;
     DECODE_PRINTF2("%04x\n", ip);
     TRACE_AND_STEP();
-    M.x86.R_CX -= 1;
-    if (M.x86.R_CX != 0)
+    if (M.x86.mode & SYSMODE_PREFIX_ADDR)
+        M.x86.R_ECX -= 1;
+    else
+        M.x86.R_CX -= 1;
+    if (((M.x86.mode & SYSMODE_PREFIX_ADDR) ? M.x86.R_ECX : M.x86.R_CX) != 0)      /* (E)CX != 0 */
         M.x86.R_IP = ip;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
@@ -4384,6 +4425,8 @@ void x86emuOp_repne(u8 X86EMU_UNUSED(op1))
     DECODE_PRINTF("REPNE\n");
     TRACE_AND_STEP();
     M.x86.mode |= SYSMODE_PREFIX_REPNE;
+    if (M.x86.mode & SYSMODE_PREFIX_ADDR)
+        M.x86.mode |= SYSMODE_32BIT_REP;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -4398,6 +4441,8 @@ void x86emuOp_repe(u8 X86EMU_UNUSED(op1))
     DECODE_PRINTF("REPE\n");
     TRACE_AND_STEP();
     M.x86.mode |= SYSMODE_PREFIX_REPE;
+    if (M.x86.mode & SYSMODE_PREFIX_ADDR)
+        M.x86.mode |= SYSMODE_32BIT_REP;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }

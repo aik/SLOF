@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -9,6 +9,10 @@
 \ * Contributors:
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
+\
+\ Copyright 2002,2003,2004  Segher Boessenkool  <segher@kernel.crashing.org>
+\
+
 
 \ stuff we should already have:
 
@@ -68,12 +72,6 @@ VARIABLE wordlists  forth-wordlist wordlists !
 \ XXX we'd like to swap forth and forth-wordlist around (for .voc 's sake)
 : FORTH ( -- )  clean-hash  forth-wordlist context ! ;
 
-\ XXX this one needs to be elsewhere
-: >name ( xt -- nfa ) \ note: still has the "immediate" field!
-	BEGIN char- dup c@ UNTIL ( @lastchar )
-	dup dup aligned - cell+ char- ( @lastchar lenmodcell )
-	dup >r - BEGIN dup c@ r@ <> WHILE
-	cell- r> cell+ >r REPEAT r> drop char- ;
 : .voc ( wid -- ) \ display name for wid \ needs work ( body> or something like that )
 	dup cell- @ ['] vocabulary ['] forth within IF
 	2 cells - >name name>string type ELSE u. THEN  space ;

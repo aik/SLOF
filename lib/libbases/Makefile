@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -15,8 +15,6 @@ TOPCMNDIR ?= ../..
 include $(TOPCMNDIR)/make.rules
 
 ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
-CFLAGS = -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
-	 -mno-altivec -mabi=no-altivec -Wall
 CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) -I. -I../../include
 LDFLAGS = -nostdlib
 

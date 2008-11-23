@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -19,11 +19,12 @@ include $(TOPCMNDIR)/make.rules
 
 all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
-CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg
-SLOF_LIBS = $(LIBCMNDIR)/libbootmsg.a
+CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libnvram
+SLOF_LIBS = $(LIBCMNDIR)/libbootmsg.a $(LIBCMNDIR)/libnvram.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
-	$(LIBCMNDIR)/libbases/libbases.in
+	$(LIBCMNDIR)/libbases/libbases.in  \
+	$(LIBCMNDIR)/libnvram/libnvram.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc
@@ -50,7 +51,9 @@ USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/usb/usb-storage-wrapper.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-keyboard.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-kbd-device-support.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-mouse.fs
+	$(SLOFCMNDIR)/fs/usb/usb-mouse.fs \
+	$(SLOFCMNDIR)/fs/scsi-support.fs
+
 
 
 # Files that should go into the ROM fs (and so have to be listed in OF.ffs):
@@ -82,6 +85,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/pci-properties.fs \
 	$(SLOFCMNDIR)/fs/pci-config-bridge.fs \
 	$(SLOFCMNDIR)/fs/update_flash.fs \
+	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-device_10de_0141.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-class_02.fs \
 	$(SLOFBRDDIR)/default-font.bin \

@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -17,27 +17,15 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-OBJS = entry.o init.o systemcall.o lowmem.o crt0.o endian.o timer.o
-OBJDIRS = driver/net.o
+OBJS =  init.o systemcall.o crt0.o endian.o timer.o modules.o
+OBJS2 = entry.o lowmem.o
 
 all: kernel.o 
 
-driver/net.o:	
-		make -C driver 
-
-kernel.o: subdirs $(OBJS)
-		$(LD) $(LDFLAGS) $(OBJDIRS) $(OBJS) -o $@ -r
-
-subdirs:
-	for dir in $(dir $(OBJDIRS)); do \
-		$(MAKE) -C $$dir DIRECTORY=$(DIRECTORY)$$dir || exit 1; \
-	done
+kernel.o: $(OBJS) $(OBJS2)
+		$(LD) $(LDFLAGS) $(OBJS) $(OBJS2) -o $@ -r
 
 clean:		
 		$(RM) -f *.o *.a *.i
-		@for dir in $(dir $(OBJDIRS)); do \
-			$(CLEAN); \
-			$(MAKE) -C $$dir DIRECTORY=$(DIRECTORY)$$dir clean; \
-		done
 
 include $(TOP)/make.depend

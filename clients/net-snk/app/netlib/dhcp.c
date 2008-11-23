@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -43,17 +43,18 @@
 
 /*>>>>>>>>>>>>>>>>>>>>> DEFINITIONS & DECLARATIONS <<<<<<<<<<<<<<<<<<<<<<*/
 
-#include <types.h>
-#include <ctype.h>
-#include <stdlib.h>
+#include <dhcp.h>
+#include <ethernet.h>
+#include <ipv4.h>
+#include <udp.h>
+#include <dns.h>
+
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <netlib/netlib.h>
-#include <netlib/netbase.h>
-#include <netlib/arp.h>
-#include <netlib/dns.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 /* DHCP Message Types */
 #define DHCPDISCOVER    1
@@ -162,10 +163,7 @@ strtoip(int8_t * str, uint32_t * ip);
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> LOCAL VARIABLES <<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
 static uint8_t  ether_packet[ETH_MTU_SIZE];
-static int32_t  dhcp_device_socket = 0;
-static uint8_t  dhcp_own_mac[]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint32_t dhcp_own_ip        = 0;
-static uint8_t  dhcp_server_mac[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static uint32_t dhcp_server_ip     = 0;
 static uint32_t dhcp_siaddr_ip     = 0;
 static int8_t   dhcp_filename[256];
@@ -187,17 +185,14 @@ static char   * response_buffer;
  *                       NON ZERO - error condition occurs.
  */
 int32_t
-dhcp(int32_t boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
+dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
 	int i = (int) retries+1;
 
-	uint8_t  dhcp_tftp_mac[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	uint32_t dhcp_tftp_ip     = 0;
 	strcpy((char *) dhcp_filename, "");
 	strcpy((char *) dhcp_tftp_name, "");
 
 	response_buffer = ret_buffer;
-	dhcp_device_socket = boot_device;
-	memcpy(dhcp_own_mac, fn_ip -> own_mac, 6);
 
 	printf("    ");
 
@@ -224,15 +219,6 @@ dhcp(int32_t boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int 
 		strcpy((char *) dhcp_filename, (char *) fn_ip->filename);
 	}
 
-	// Information from DHCP server were obtained
-	PRINT_MSGIP("\n\nClient IP:\t\t", dhcp_own_ip);
-	PRINT_MSGMAC("Client MAC:\t\t", dhcp_own_mac);
-	PRINT_MSGIP("\nDHCP Server IP:\t\t", dhcp_server_ip);
-
-	// Obtain DHCP-server MAC to be able to send dhcp_release
-	net_iptomac(dhcp_server_ip, dhcp_server_mac);
-	PRINT_MSGMAC("DHCP Server MAC:\t", dhcp_server_mac);
-
 	// TFTP SERVER
 	if (!strlen((char *) dhcp_tftp_name)) {
 		if (!dhcp_siaddr_ip) {
@@ -245,7 +231,6 @@ dhcp(int32_t boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int 
 	}
 	else {
 		// TFTP server defined by its name
-		NET_DEBUG_PRINTF("\nTFTP server name:\t%s\n", dhcp_tftp_name);
 		if (!strtoip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
 			if (!dns_get_ip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
 				// DNS error - can't obtain TFTP-server name  
@@ -261,26 +246,9 @@ dhcp(int32_t boot_device, char *ret_buffer, filename_ip_t * fn_ip, unsigned int 
 		}
 	}
 
-	PRINT_MSGIP("\nTFTP server IP:\t\t", dhcp_tftp_ip);
-	if (!net_iptomac(dhcp_tftp_ip, dhcp_tftp_mac)) {
-		// printf("\nERROR:\t\t\tCan't obtain TFTP server MAC!\n");
-		return -2;
-	}
-
-	PRINT_MSGMAC("TFTP server MAC:\t", dhcp_tftp_mac);
-
-//	// Bootfile name
-//	if (!strlen(dhcp_filename)) {
-//		// ERROR: Bootfile name is not presented
-//		return -5;
-//	}
-
-	NET_DEBUG_PRINTF("\nBootfile name:\t\t%s\n\n", dhcp_filename);
-
 	// Store configuration info into filename_ip strucutre
 	fn_ip -> own_ip = dhcp_own_ip;
 	fn_ip -> server_ip = dhcp_tftp_ip;
-	memcpy(fn_ip -> server_mac, dhcp_tftp_mac, 6);
 	strcpy((char *) fn_ip -> filename, (char *) dhcp_filename);
 
 	return 0;
@@ -645,21 +613,20 @@ dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
  */
 static void
 dhcp_send_discover(void) {
-	uint32_t packetsize = sizeof(struct ethhdr) + sizeof(struct iphdr) +
+	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
-	uint8_t dest_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	dhcp_options_t opt;
 
 	memset(ether_packet, 0, packetsize);
 
-	btph = (struct btphdr *) (&ether_packet[sizeof(struct ethhdr) +
+	btph = (struct btphdr *) (&ether_packet[
 	       sizeof(struct iphdr) + sizeof(struct udphdr)]);
 
 	btph -> op = 1;
 	btph -> htype = 1;
 	btph -> hlen = 6;
-	memcpy(btph -> chaddr, dhcp_own_mac, 6);
+	memcpy(btph -> chaddr, get_mac_address(), 6);
 
 	memset(&opt, 0, sizeof(dhcp_options_t));
 
@@ -673,17 +640,14 @@ dhcp_send_discover(void) {
 
 	dhcp_encode_options(btph -> vend, &opt);
 
-	fill_udphdr(&ether_packet[sizeof(struct ethhdr) + sizeof(struct iphdr)],
+	fill_udphdr(&ether_packet[sizeof(struct iphdr)],
 	            sizeof(struct btphdr) + sizeof(struct udphdr),
 	            UDPPORT_BOOTPC, UDPPORT_BOOTPS);
-	fill_iphdr(&ether_packet[sizeof(struct ethhdr)], sizeof(struct btphdr) +
+	fill_iphdr(ether_packet, sizeof(struct btphdr) +
 	           sizeof(struct udphdr) + sizeof(struct iphdr),
 	           IPTYPE_UDP, dhcp_own_ip, 0xFFFFFFFF);
-	fill_ethhdr(&ether_packet[0], ETHERTYPE_IP, dhcp_own_mac, dest_mac);
 
-	PRINT_SENDING(ether_packet, packetsize);
-
-	send(dhcp_device_socket, ether_packet, packetsize, 0); 
+	send_ipv4(ether_packet, packetsize);
 }
 
 /**
@@ -691,21 +655,20 @@ dhcp_send_discover(void) {
  */
 static void
 dhcp_send_request(void) {
-	uint32_t packetsize = sizeof(struct ethhdr) + sizeof(struct iphdr) + 
+	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
-	uint8_t dest_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	dhcp_options_t opt;
 
 	memset(ether_packet, 0, packetsize);
 
-	btph = (struct btphdr *) (&ether_packet[sizeof(struct ethhdr) +
+	btph = (struct btphdr *) (&ether_packet[
 	       sizeof(struct iphdr) + sizeof(struct udphdr)]);
 
 	btph -> op = 1;
 	btph -> htype = 1;
 	btph -> hlen = 6;
-	memcpy(btph -> chaddr, dhcp_own_mac, 6);
+	memcpy(btph -> chaddr, get_mac_address(), 6);
 
 	memset(&opt, 0, sizeof(dhcp_options_t));
 
@@ -723,17 +686,14 @@ dhcp_send_request(void) {
 
 	dhcp_encode_options(btph -> vend, &opt);
 
-	fill_udphdr(&ether_packet[sizeof(struct ethhdr) + sizeof(struct iphdr)],
+	fill_udphdr(&ether_packet[sizeof(struct iphdr)],
 	            sizeof(struct btphdr) + sizeof(struct udphdr),
 	            UDPPORT_BOOTPC, UDPPORT_BOOTPS);
-	fill_iphdr(&ether_packet[sizeof(struct ethhdr)], sizeof(struct btphdr) +
+	fill_iphdr(ether_packet, sizeof(struct btphdr) +
 	           sizeof(struct udphdr) + sizeof(struct iphdr),
 	           IPTYPE_UDP, 0, 0xFFFFFFFF);
-	fill_ethhdr(&ether_packet[0], ETHERTYPE_IP, dhcp_own_mac, dest_mac);
 
-	PRINT_SENDING(ether_packet, packetsize);
-
-	send(dhcp_device_socket, ether_packet, packetsize, 0);
+	send_ipv4(ether_packet, packetsize);
 }
 
 
@@ -741,12 +701,12 @@ dhcp_send_request(void) {
  * DHCP: Sends DHCP-Release message. Releases occupied IP.
  */
 void dhcp_send_release(void) {
-	uint32_t packetsize = sizeof(struct ethhdr) + sizeof(struct iphdr) +
+	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
 	dhcp_options_t opt;
 
-	btph = (struct btphdr *) (&ether_packet[sizeof(struct ethhdr) +
+	btph = (struct btphdr *) (&ether_packet[
 	       sizeof(struct iphdr) + sizeof(struct udphdr)]);
 
 	memset(ether_packet, 0, packetsize);
@@ -755,7 +715,7 @@ void dhcp_send_release(void) {
 	btph -> htype = 1;
 	btph -> hlen = 6;
 	strcpy((char *) btph -> file, "");
-	memcpy(btph -> chaddr, dhcp_own_mac, 6);
+	memcpy(btph -> chaddr, get_mac_address(), 6);
 	btph -> ciaddr = htonl(dhcp_own_ip);
 
 	memset(&opt, 0, sizeof(dhcp_options_t));
@@ -766,17 +726,14 @@ void dhcp_send_release(void) {
 
 	dhcp_encode_options(btph -> vend, &opt);
 
-	fill_udphdr(&ether_packet[sizeof(struct ethhdr) + sizeof(struct iphdr)], 
+	fill_udphdr(&ether_packet[sizeof(struct iphdr)], 
 	            sizeof(struct btphdr) + sizeof(struct udphdr),
 	            UDPPORT_BOOTPC, UDPPORT_BOOTPS);
-	fill_iphdr(&ether_packet[sizeof(struct ethhdr)], sizeof(struct btphdr) +
+	fill_iphdr(ether_packet, sizeof(struct btphdr) +
 	           sizeof(struct udphdr) + sizeof(struct iphdr), IPTYPE_UDP,
 	           dhcp_own_ip, dhcp_server_ip);
-	fill_ethhdr(&ether_packet[0], ETHERTYPE_IP, dhcp_own_mac, dhcp_server_mac);
 
-	PRINT_SENDING(ether_packet, packetsize);
-
-	send(dhcp_device_socket, ether_packet, packetsize, 0);
+	send_ipv4(ether_packet, packetsize);
 }
 
 /**
@@ -813,8 +770,6 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 
 	if (memcmp(btph -> vend, dhcp_magic, 4)) {
 		// It is BootP - RFC 951
-		NET_DEBUG_PRINTF("WARNING:\t\tBooting via BootP 951\n");
-
 		dhcp_own_ip    = htonl(btph -> yiaddr);
 		dhcp_siaddr_ip = htonl(btph -> siaddr);
 		dhcp_server_ip = htonl(iph -> ip_src);
@@ -887,8 +842,6 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 
 	if (!opt.msg_type) {
 		// It is BootP with Extensions - RFC 1497
-		NET_DEBUG_PRINTF("WARNING:\t\tBooting via BootP 1497\n");
-
 		// retrieve conf. settings from BootP - reply
 		dhcp_own_ip = htonl(btph -> yiaddr);
 		dhcp_siaddr_ip = htonl(btph -> siaddr);
@@ -975,38 +928,20 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 
 		// initialize network entity with real own_ip
 		// to be able to answer for foreign requests
-		netbase_init(dhcp_device_socket, dhcp_own_mac, dhcp_own_ip);
+		set_ipv4_address(dhcp_own_ip);
 
 		/* Subnet mask */
 		if (opt.flag[DHCP_MASK]) {
 			/* Router */
 			if (opt.flag[DHCP_ROUTER]) {
-				if(net_setrouter(opt.router_IP, opt.subnet_mask)
-				   == 0) {
-					// don't abort if ARP faild
-					// dhcp_state = DHCP_STATE_FAULT;
-					// return -1;
-
-					// pretend like no router was specified
-					opt.flag[DHCP_ROUTER] = 0;
-					net_setrouter(0, opt.subnet_mask);
-				}
+				set_ipv4_router(opt.router_IP);
+				set_ipv4_netmask(opt.subnet_mask);
 			}
-
-			if (! opt.flag[DHCP_ROUTER]) {
-				NET_DEBUG_PRINTF("WARNING:\t\tRouter IP is not presented!\n");
-			}
-		}
-		else {
-			NET_DEBUG_PRINTF("\nWARNING:\t\tSubnet mask is not presented!\n");
 		}
 
 		/* DNS-server */
 		if (opt.flag[DHCP_DNS]) {
-			dns_init(dhcp_device_socket, dhcp_own_mac, dhcp_own_ip, opt.dns_IP);
-		}
-		else {
-			NET_DEBUG_PRINTF("WARNING:\t\tDomain Name Server IP is not presented!\n");
+			dns_init(opt.dns_IP);
 		}
 	}
 

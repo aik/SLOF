@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -131,6 +131,23 @@ ENTRY(bootmsg_debugcp)
 	ble     print_msg       // if UserLevel<=SystemLevel print and return
 	blr                     // else return
 
+//*****************************************************************************
+// Check warning level
+// input  : r3=cp-id, r4=level
+// change : r3,r4,r5,r6,r7,r9,r10,r11
+// output : r3 (true, false)
+// r3=cp-id, r4=level
+ENTRY(bootmsg_checklevel)
+	mflr    r11
+	mr      r5, r4
+	slwi    r3, r3, 8
+	bl	GET_WRNG_LVL    // check UserLevel against SystemLevel
+	li      r3, 0           // return 0
+	bgt     0f              // IF ( UserLevel < SystemLevel )
+	li      r3, 1           // | return 1
+0:	mtlr    r11             // FI
+	blr
+
 // r3=area|pkg, r4=level
 ENTRY(bootmsg_setlevel)
 	mflr    r5
@@ -150,7 +167,7 @@ ENTRY(bootmsg_setlevel)
 ENTRY(bootmsg_nvupdate)
 	mflr	r10
 	LOAD64(r3, SB_NVRAM_FWONLY_adr)
-	lbz	r4, 0(r3)
+	lwz	r4, 0(r3)
 	cmpwi	r4, 0x424E                 // find bootmsg area header
 	bne	0f
 
@@ -167,39 +184,11 @@ ENTRY(bootmsg_nvupdate)
 	bdnz+   1b
 	b	2f
 
-0:                                    // find last partition an resize it
-	li	r4, 0x10
-	mtctr	r4
-	li	r4, 0x0
-	li	r7, 0x0
-	LOAD64(r5, SB_NVRAM_adr)
-	LOAD64(r8, NVRAM_LENGTH)
-1:
-	bdz+	2f
-	add	r5, r5, r4
-	lhz	r6, 2(r5)
-	rldicl	r6, r6, 4, 0
-	mr	r4, r6
-	add	r7, r7, r4
-	cmpw	r7, r8
-	ble	1b
-
-	sub	r7, r7, r4              // write new size
-	sub	r6, r8, r7
-	sradi	r6, r6, 4
-	sth	r6, 2(r5)
-
-	mr	r7, r3
-	mr	r8, r5
-	mr	r3, r5
-	bl .calPartitionHeaderChecksum
-	stb	r3, 1(r8)               // write checksum
-
-	mr	r3, r7
+0:
 	LOAD64(r5, bootmsg_area_size)
 	mtctr	r5
 	li	r4, 0x424E              // clear bootmsg log area
-	stb	r4, 0(r3)
+	stw	r4, 0(r3)
 	li	r4, 0
 
 1:	stdu	r4, 8(r3)

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -23,7 +23,7 @@
 
 \ for update-flash
 : (set-flashside)  ( flashside -- status )
-   dup rtas-set-flashside =  IF  -1  ELSE  0  THEN
+   dup rtas-set-flashside =  IF  0  ELSE  -1  THEN
 ;
 
 ' (set-flashside) to set-flashside
@@ -198,11 +198,14 @@ blist 50 erase
 
 : rtas-ibm-update-flash-64  ( block-list -- status )
    [ s" ibm,update-flash-64" rtas-get-token ] LITERAL rtas-cb rtas>token l!
-   1 rtas-cb rtas>nargs l!
+   2 rtas-cb rtas>nargs l!
    1 rtas-cb rtas>nret l!
    rtas-cb rtas>args0 l!
+   \ special unofficial parameter: if this is set to 1, the rtas function will not check, wether
+   \ we are on the perm side... this is needed for "update-flash -c" to work...
+   1 rtas-cb rtas>args1 l!
    enter-rtas
-   rtas-cb rtas>args1 l@
+   rtas-cb rtas>args2 l@
 ;
 
 \ for update-flash
@@ -228,8 +231,8 @@ blist 50 erase
    [ s" rtas-get-blade-descr" rtas-get-token ] LITERAL rtas-cb rtas>token l!
    2 rtas-cb rtas>nargs l!
    2 rtas-cb rtas>nret l!
-   rtas-cb rtas>args0 l!
    rtas-cb rtas>args1 l!
+   rtas-cb rtas>args0 l!
    enter-rtas
    rtas-cb rtas>args2 l@
    rtas-cb rtas>args3 l@

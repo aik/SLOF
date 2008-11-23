@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -493,7 +493,3 @@ DEFER func-pci-probe-bus
 \ provide all words needed to generate the properties and/or assign BAR values
 #include "pci-properties.fs"
 
-\ provide all words implementing lspci functionality
-#if defined(ELBA) || defined(MALTA)
-#include "pci-lspci.fs"
-#endif

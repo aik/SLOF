@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,13 +10,6 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-\ \\\\\\\\\\\\\\ Global Data
-CREATE (bootdevice) 2 cells allot (bootdevice) 2 cells erase
-CREATE bootargs 2 cells allot bootargs 2 cells erase
-CREATE load-list 2 cells allot load-list 2 cells erase
-
-' (bootdevice) to bootdevice
-
 0 VALUE load-size
 0 VALUE go-entry
 VARIABLE state-valid false state-valid !
@@ -25,19 +18,20 @@ CREATE go-args 2 cells allot go-args 2 cells erase
 \ \\\\\\\\\\\\\\ Structure/Implementation Dependent Methods
 
 : $bootargs
-	bootargs 2@ ?dup IF
-	ELSE s" diagnostic-mode?" evaluate and IF s" diag-file" evaluate
-		ELSE s" boot-file" evaluate THEN THEN
+   bootargs 2@ ?dup IF
+   ELSE s" diagnostic-mode?" evaluate and IF s" diag-file" evaluate
+   ELSE s" boot-file" evaluate THEN THEN
 ;
 
 : $bootdev
-   bootdevice 2@ ?dup IF
-   ELSE s" diagnostic-mode?" evaluate and IF
-	 s" diag-device" evaluate
-      ELSE
-	 s" boot-device" evaluate
-      THEN
+   bootdevice 2@ dup IF s"  " $cat THEN
+   s" diagnostic-mode?" evaluate IF
+      s" diag-device" evaluate
+   ELSE
+      s" boot-device" evaluate
    THEN
+   $cat \ prepend bootdevice setting from vpd-bootlist
+   strdup
    ?dup 0= IF
       disable-watchdog
       drop ABORT" No boot device!"
@@ -51,12 +45,14 @@ CREATE go-args 2 cells allot go-args 2 cells erase
 : set-boot-args ( str len -- ) dup IF strdup ELSE nip dup THEN bootargs 2! ;
 
 : (set-boot-device) ( str len -- )
-	?dup IF 1+ strdup 1- ELSE drop 0 0 THEN bootdevice 2! ;
+   ?dup IF 1+ strdup 1- ELSE drop 0 0 THEN bootdevice 2!
+;
 
 ' (set-boot-device) to set-boot-device
 
 : (add-boot-device) ( str len -- )	\ Concatenate " str" to "bootdevice"
-        bootdevice 2@ ?dup IF $cat-space ELSE drop THEN set-boot-device ;
+   bootdevice 2@ ?dup IF $cat-space ELSE drop THEN set-boot-device
+;
 
 ' (add-boot-device) to add-boot-device
 
@@ -90,9 +86,9 @@ defer go ( -- )
    THEN
 
    dup ['] elf-check-file CATCH IF
-	( -64 THROW ) \ Not now, let the 'go' (i.e. no-go) whine about it
-	drop 0
-   THEN 
+      ( -64 THROW ) \ Not now, let the 'go' (i.e. no-go) whine about it
+      drop 0
+   THEN
    CASE
       1 OF true swap ['] load-elf32-claim CATCH IF
 	    2drop drop -66 THROW
@@ -117,26 +113,28 @@ defer go ( -- )
 ;
 
 : init-program ( -- )
-	$bootargs LOAD-BASE ['] load-elf-init CATCH ?dup IF
-		boot-exception-handler
-		2drop 2drop false          \ Could not claim
-	ELSE IF
-      		0 ciregs 2dup >r3 ! >r4 !  \ Valid (ELF ) Image
-	    THEN
-	THEN
+   $bootargs LOAD-BASE ['] load-elf-init CATCH ?dup IF
+      boot-exception-handler
+      2drop 2drop false          \ Could not claim
+   ELSE IF
+         0 ciregs 2dup >r3 ! >r4 !  \ Valid (ELF ) Image
+      THEN
+   THEN
 ;
+
 
 \ \\\\\\\\\\\\\\ Exported Interface:
 \ *
 \ Generic device load method:
 \ *
 
-
 : do-load ( devstr len -- img-size )	\ Device method wrapper
-                                        \ Set watchdog timer to 10 minutes, mul.
-                                        \ multiply with 2 because DHCP needs 1
-                                        \ sec. per try and add 1 min to avoid
-   4ec set-watchdog                     \ race conditions with watchdog timeout
+   use-load-watchdog? IF
+      \ Set watchdog timer to 10 minutes, multiply with 2 because DHCP
+      \ needs 1 second per try and add 1 min to avoid race conditions
+      \ with watchdog timeout.
+      4ec set-watchdog
+   THEN
    my-self >r current-node @ >r         \ Save my-self
    ." Trying to load: " $bootargs type ."  from: " 2dup type ."  ... "
    2dup open-dev dup IF
@@ -168,7 +166,7 @@ defer go ( -- )
 : parse-load ( "{devlist}" -- success )	\ Parse-execute boot-device list
    cr BEGIN parse-word dup WHILE
 	 ( de-alias ) do-load dup 0< IF drop 0 THEN IF
-	    state-valid @ IF ."   Successfully loaded" cr THEN 
+	    state-valid @ IF ."   Successfully loaded" cr THEN
 	    true 0d parse strdup load-list 2! EXIT
 	 THEN
    REPEAT 2drop 0 0 load-list 2! false
@@ -177,11 +175,7 @@ defer go ( -- )
 : load ( "{params}<eol>"} -- success )	\ Client interface to load
    parse-word 0d parse -leading 2swap ?dup IF
       de-alias
-      over c@ [char] / = IF
-	 set-boot-device
-      ELSE
-	 s" " 2swap $cat $cat
-      THEN
+      set-boot-device
    ELSE
       drop
    THEN
@@ -189,14 +183,13 @@ defer go ( -- )
 ;
 
 : load-next ( -- success )	\ Continue after go failed
-	load-list 2@ ?dup IF s" parse-load " 2swap $cat strdup evaluate
-	ELSE drop false THEN
+   load-list 2@ ?dup IF s" parse-load " 2swap $cat strdup evaluate
+   ELSE drop false THEN
 ;
 
 \ \\\\\\\\\\\\\\\\\\\\\\\\\\
 \ load/go utilities
 \ -> Should be in loaders.fs
-\ *
 
 : noload false ;
 
@@ -217,28 +210,27 @@ read-bootlist
 \ IEEE 1275 : load (user interface)
 \ *
 : boot
-	load IF
-		disable-watchdog (go-and-catch)
-		BEGIN load-next WHILE
-			(go-and-catch)
-		REPEAT
+   load 0= IF -65 boot-exception-handler EXIT THEN
+   disable-watchdog (go-and-catch)
+   BEGIN load-next WHILE
+      (go-and-catch)
+   REPEAT
 
-		\ When we return from boot print the banner again.
-		.banner
-	ELSE
-		-65 boot-exception-handler
-	THEN
+   \ When we return from boot print the banner again.
+   .banner
 ;
 
 : load load 0= IF -65 boot-exception-handler THEN ;
 
 \ \\\\ Temporary hacks for backwards compatibility
-: yaboot ." use 'boot disk' instead " ;
+: yaboot ." Use 'boot disk' instead " ;
 
 : netboot ( -- rc ) ." Use 'boot net' instead " ;
 
-: netboot-arg ( arg-string -- rc ) s" boot net " 2swap $cat (parse-line) $cat
-	evaluate ;
+: netboot-arg ( arg-string -- rc )
+   s" boot net " 2swap $cat (parse-line) $cat
+   evaluate
+;
 
 : netload ( -- rc ) (parse-line)
    load-base >r FLASH-LOAD-BASE to load-base
@@ -246,5 +238,6 @@ read-bootlist
    r> to load-base
    load-size
 ;
+
 : neteval ( -- ) FLASH-LOAD-BASE netload evaluate ;
 

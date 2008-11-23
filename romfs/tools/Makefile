@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -10,6 +10,11 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
+# FIXME review -I ...
+# export NEW_BUILD=1
+
+TOPCMNDIR	?= ../..
+INCLCMNDIR	?= ../../include
 
 include $(TOPCMNDIR)/make.rules
 
@@ -20,8 +25,13 @@ CFLAGS += $(FLAG)
 SRCS = build_ffs.c cfg_parse.c create_flash.c create_crc.c
 OBJS = $(SRCS:%.c=%.o)
 
+all: build_romfs
+
 build_romfs: $(OBJS)
 	$(HOSTCC) $(HOSTCFLAGS) $(FLAG) -o $@ $^
+
+testing: build_romfs
+	make -C test
 
 %.o: %.c
 	$(HOSTCC) $(CPPFLAGS) $(HOSTCFLAGS) $(FLAG) -c $< -o $@
@@ -39,7 +49,7 @@ depend:
 	$(MAKE) Makefile.dep
 
 Makefile.dep: Makefile
-	$(HOSTCC) -MM $(CPPFLAGS) $(CFLAGS) $(SRCS) > Makefile.dep
+	$(HOSTCC) -MM $(CPPFLAGS) $(HOSTCFLAGS) $(SRCS) > Makefile.dep
 
 # Include dependency file if available:
 -include Makefile.dep

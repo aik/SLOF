@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -22,14 +22,15 @@ CFLAGS = -g -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -O2 \
 	 -fno-builtin -ffreestanding -nostdinc -msoft-float -Wall
 LDFLAGS= -nostdlib
 
-OBJS	= socket/socket.o time/time.o sbrk.o io.o ioctl.o
-SUBDIRS = $(filter-out ./,$(dir $(OBJS)))
+OBJS	= sbrk.o io.o ioctl.o
+OBJDIRS = socket/socket.o time/time.o
+SUBDIRS = $(filter-out ./,$(dir $(OBJDIRS)))
 
 
 all: libc-glue.o
 
 libc-glue.o: subdirs sbrk.o io.o ioctl.o
-	$(LD) $(LDFLAGS) $(OBJS) -o $@ -r
+	$(LD) $(LDFLAGS) $(OBJS) $(OBJDIRS) -o $@ -r
 
 
 subdirs :
@@ -45,4 +46,3 @@ clean:
 	done
 
 include $(TOP)/make.depend
-

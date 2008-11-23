@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -13,6 +13,8 @@
 #include <cpu.h>
 
 #include "debug.h"
+
+uint32_t debug_flags = 0;
 
 void
 dump(uint8_t * addr, uint32_t len)

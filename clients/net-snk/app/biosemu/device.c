@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -177,10 +177,107 @@ dev_get_device_vendor_id()
 		     bios_device.pci_device_id, bios_device.pci_vendor_id);
 }
 
+/* check, wether the device has a valid Expansion ROM, also search the PCI Data Structure and
+ * any Expansion ROM Header (using dev_scan_exp_header()) for needed information */
+uint8_t
+dev_check_exprom()
+{
+	int i = 0;
+	translate_address_t ta;
+	uint64_t rom_base_addr = 0;
+	uint16_t pci_ds_offset;
+	pci_data_struct_t pci_ds;
+	// check for ExpROM Address (Offset 30) in taa
+	for (i = 0; i <= taa_last_entry; i++) {
+		ta = translate_address_array[i];
+		if (ta.cfg_space_offset == 0x30) {
+			rom_base_addr = ta.address + ta.address_offset;	//translated address
+			break;
+		}
+	}
+	// in the ROM there could be multiple Expansion ROM Images... start searching
+	// them for a x86 image
+	do {
+		if (rom_base_addr == 0) {
+			printf("Error: no Expansion ROM address found!\n");
+			return -1;
+		}
+		set_ci();
+		uint16_t rom_signature = *((uint16_t *) rom_base_addr);
+		clr_ci();
+		if (rom_signature != 0x55aa) {
+			printf
+			    ("Error: invalid Expansion ROM signature: %02x!\n",
+			     *((uint16_t *) rom_base_addr));
+			return -1;
+		}
+		set_ci();
+		// at offset 0x18 is the (16bit little-endian) pointer to the PCI Data Structure
+		pci_ds_offset = in16le((void *) (rom_base_addr + 0x18));
+		//copy the PCI Data Structure
+		memcpy(&pci_ds, (void *) (rom_base_addr + pci_ds_offset),
+		       sizeof(pci_ds));
+		clr_ci();
+#ifdef DEBUG
+		DEBUG_PRINTF("PCI Data Structure @%llx:\n",
+			     rom_base_addr + pci_ds_offset);
+		dump((void *) &pci_ds, sizeof(pci_ds));
+#endif
+		if (strncmp((const char *) pci_ds.signature, "PCIR", 4) != 0) {
+			printf("Invalid PCI Data Structure found!\n");
+			break;
+		}
+		//little-endian conversion
+		pci_ds.vendor_id = in16le(&pci_ds.vendor_id);
+		pci_ds.device_id = in16le(&pci_ds.device_id);
+		pci_ds.img_length = in16le(&pci_ds.img_length);
+		pci_ds.pci_ds_length = in16le(&pci_ds.pci_ds_length);
+		if (pci_ds.vendor_id != bios_device.pci_vendor_id) {
+			printf
+			    ("Image has invalid Vendor ID: %04x, expected: %04x\n",
+			     pci_ds.vendor_id, bios_device.pci_vendor_id);
+			break;
+		}
+		if (pci_ds.device_id != bios_device.pci_device_id) {
+			printf
+			    ("Image has invalid Device ID: %04x, expected: %04x\n",
+			     pci_ds.device_id, bios_device.pci_device_id);
+			break;
+		}
+		//DEBUG_PRINTF("Image Length: %d\n", pci_ds.img_length * 512);
+		//DEBUG_PRINTF("Image Code Type: %d\n", pci_ds.code_type);
+		if (pci_ds.code_type == 0) {
+			//x86 image
+			//store image address and image length in bios_device struct
+			bios_device.img_addr = rom_base_addr;
+			bios_device.img_size = pci_ds.img_length * 512;
+			// we found the image, exit the loop
+			break;
+		} else {
+			// no x86 image, check next image (if any)
+			rom_base_addr += pci_ds.img_length * 512;
+		}
+		if ((pci_ds.indicator & 0x80) == 0x80) {
+			//last image found, exit the loop
+			DEBUG_PRINTF("Last PCI Expansion ROM Image found.\n");
+			break;
+		}
+	}
+	while (bios_device.img_addr == 0);
+	// in case we did not find a valid x86 Expansion ROM Image
+	if (bios_device.img_addr == 0) {
+		printf("Error: no valid x86 Expansion ROM Image found!\n");
+		return -1;
+	}
+	return 0;
+}
+
 uint8_t
 dev_init(char *device_name)
 {
+	uint8_t rval = 0;
 	//init bios_device struct
+	DEBUG_PRINTF("%s(%s)\n", __FUNCTION__, device_name);
 	memset(&bios_device, 0, sizeof(bios_device));
 	bios_device.ihandle = of_open(device_name);
 	if (bios_device.ihandle == 0) {
@@ -192,7 +289,7 @@ dev_init(char *device_name)
 	dev_find_vmem_addr();
 	dev_get_puid();
 	dev_get_device_vendor_id();
-	return 0;
+	return rval;
 }
 
 // translate address function using translate_address_array assembled

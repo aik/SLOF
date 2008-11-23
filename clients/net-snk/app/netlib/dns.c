@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -12,17 +12,15 @@
 
 /*>>>>>>>>>>>>>>>>>>>>> DEFINITIONS & DECLARATIONS <<<<<<<<<<<<<<<<<<<<<<*/
 
-#include <types.h>
-#include <ctype.h>
-#include <stdlib.h>
+#include <dns.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <netlib/netlib.h>
-#include <netlib/netbase.h>
-#include <netlib/arp.h>
-#include <netlib/dns.h>
 #include <time.h>
+#include <sys/socket.h>
+
+#include <ethernet.h>
+#include <ipv4.h>
+#include <udp.h>
 
 #define DNS_FLAG_MSGTYPE    0xF800	/**< Message type mask (opcode) */
 #define DNS_FLAG_SQUERY     0x0000 	/**< Standard query type        */
@@ -83,10 +81,6 @@ hosttodomain(char * host_name, char * domain_name);
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>> LOCAL VARIABLES <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
 static uint8_t ether_packet[ETH_MTU_SIZE];
-static int32_t dns_device_socket = 0;
-static uint8_t dns_own_mac[]     = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static int32_t dns_own_ip        = 0;
-static uint8_t dns_server_mac[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static int32_t dns_server_ip     = 0;
 static int32_t dns_result_ip     = 0;
 static int8_t  dns_error         = 0;        /**< Stores error code or 0 */
@@ -100,32 +94,14 @@ static int8_t  dns_domain_cname[0x100];      /**< Canonical domain name  */
  *      To perfrom DNS-queries use the function dns_get_ip.
  *
  * @param  device_socket a socket number used to send and recieve packets
- * @param  own_mac       client hardware-address (MAC)
- * @param  own_ip        client IPv4 address (e.g. 127.0.0.1)
  * @param  server_ip     DNS-server IPv4 address (e.g. 127.0.0.1)
  * @return               TRUE in case of successful initialization;
  *                       FALSE in case of fault (e.g. can't obtain MAC).
  * @see                  dns_get_ip
  */
 int8_t
-dns_init(int32_t device_socket, uint8_t own_mac[], uint32_t own_ip,
-	 uint32_t server_ip) {
-	dns_device_socket = device_socket;
-	memcpy(dns_own_mac, own_mac, 6);
-	dns_own_ip = own_ip;
-	dns_server_ip = server_ip;
-
-	PRINT_MSGIP("\nDomain Name Server IP:\t", dns_server_ip);
-	if (net_iptomac(dns_server_ip, dns_server_mac)) {
-		PRINT_MSGMAC("DNS Server MAC:\t\t", dns_server_mac);
-		return 1;
-	}
-
-	dns_server_ip = 0;
-	dns_own_ip = 0;
-	memset(dns_server_mac, 0, 6);
-
-	NET_DEBUG_PRINTF("\nWARNING:\t\tCan't obtain DNS server MAC!\n");
+dns_init(uint32_t _dns_server_ip) {
+	dns_server_ip = _dns_server_ip;
 	return 0;
 }
 
@@ -173,15 +149,6 @@ dns_get_ip(int8_t * url, uint32_t * domain_ip) {
 		printf("\nERROR:\t\t\tCan't resolve domain name "
 		       "(DNS server is not presented)!\n");
 		return 0;
-	}
-	if (dns_server_mac[0] == 0 && dns_server_mac[1] == 0 &&
-	    dns_server_mac[2] == 0 && dns_server_mac[3] == 0 &&
-	    dns_server_mac[4] == 0 && dns_server_mac[5] == 0) {
-		if(!net_iptomac(dns_server_ip, dns_server_mac)) {
-			printf("\nERROR:\t\t\tCan't resolve domain name "
-			       "(DNS server is not presented)!\n");
-			return 0;
-		}
 	}
 
 	// Use DNS-server to obtain IP
@@ -245,7 +212,6 @@ handle_dns(uint8_t * packet, int32_t packetsize) {
 
 	// Is error condition occurs? (check error field in incoming packet)
 	if ((dnsh -> flags & htons(DNS_FLAG_RCODE)) != DNS_RCODE_NERROR) {
-		NET_DEBUG_PRINTF("\nERROR:\t\t\tDNS error - can't obtain IP!\n");
 		dns_error = 1;
 		return 0;
 	}
@@ -317,27 +283,24 @@ static void
 dns_send_query(int8_t * domain_name) {
 	int qry_len = strlen((char *) domain_name) + 5;
 
-	uint32_t packetsize = sizeof(struct iphdr) + sizeof(struct ethhdr) +
+	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct dnshdr) +
 	                      qry_len;
 
 	memset(ether_packet, 0, packetsize);
-	fill_dnshdr(&ether_packet[sizeof(struct ethhdr) +
+	fill_dnshdr(&ether_packet[
 	            sizeof(struct iphdr) + sizeof(struct udphdr)],
 	            domain_name);
-	fill_udphdr(&ether_packet[sizeof(struct ethhdr) +
+	fill_udphdr(&ether_packet[
 	            sizeof(struct iphdr)], sizeof(struct dnshdr) +
 	            sizeof(struct udphdr) + qry_len,
 	            UDPPORT_DNSC, UDPPORT_DNSS);
-	fill_iphdr(ether_packet + sizeof(struct ethhdr),
+	fill_iphdr(ether_packet,
 	           sizeof(struct dnshdr) + sizeof(struct udphdr) +
 	           sizeof(struct iphdr) + qry_len,
-	           IPTYPE_UDP, dns_own_ip, dns_server_ip);
-	fill_ethhdr(ether_packet, ETHERTYPE_IP, dns_own_mac, dns_server_mac);
+	           IPTYPE_UDP, 0, dns_server_ip);
 
-	PRINT_SENDING(ether_packet, packetsize);
-
-	send(dns_device_socket, ether_packet, packetsize, 0);
+	send_ipv4(ether_packet, packetsize);
 }
 
 /**

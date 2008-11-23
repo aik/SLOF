@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -19,6 +19,7 @@ extern int ipmi_kcs_cmd(uint8_t *, uint8_t *, uint32_t, uint32_t *);
 
 extern void ipmi_system_reboot(void);
 extern void ipmi_power_off(void);
+extern int ipmi_set_sensor(const int sensor, int number_of_args, ...);
 
 extern int ipmi_oem_stop_bootwatchdog(void);
 extern int ipmi_oem_set_bootwatchdog(uint16_t seconds);

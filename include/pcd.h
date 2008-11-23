@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -36,7 +36,7 @@
 /* ... and so on..                                            */
 /**************************************************************/
 #define PCDF_MEM_NUM       0
-#define PCDF_MEMN_BASE(N)  (8 + (N * 8))
+#define PCDF_MEMN_BASE(N)  (8 + ((N) * 16))
 #define PCDF_MEMN_SIZE(M)  (PCDF_MEMN_BASE(M) + 8)
 
 /* PCD File Definition ****************************************/

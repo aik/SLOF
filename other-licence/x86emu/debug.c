@@ -52,7 +52,11 @@ static int      parse_line (char *s, int *ps, int *n);
 void X86EMU_trace_regs (void)
 {
     if (DEBUG_TRACE()) {
-        x86emu_dump_regs();
+	if (M.x86.mode & (SYSMODE_PREFIX_DATA | SYSMODE_PREFIX_ADDR)) {
+	        x86emu_dump_xregs();
+	} else {
+	        x86emu_dump_regs();
+	}
     }
     if (DEBUG_DECODE() && ! DEBUG_DECODE_NOPRINT()) {
         printk("%04x:%04x ",M.x86.saved_cs, M.x86.saved_ip);

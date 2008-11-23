@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -388,14 +388,16 @@ col(SKIPWS IB SPAN @ DUP >IN @ > 0BRANCH(14) OVER >IN @ + C@ BL <= 0BRANCH(5) 1 
 col(PARSE-WORD SKIPWS BL PARSE)
 var(WHICHPOCKET 0)
 // We reserved 0x1000 for the pockets. So we have 16 pockets a 0x100
-col(POCKET POCKETS WHICHPOCKET @ LIT(POCKETSIZE) * + WHICHPOCKET @ 1 + DUP LIT(16) = 0BRANCH(2) DROP 0 WHICHPOCKET !)
+col(POCKET POCKETS WHICHPOCKET @ LIT(POCKETSIZE) * + WHICHPOCKET @ 1 + DUP LIT(NUMPOCKETS) = 0BRANCH(2) DROP 0 WHICHPOCKET !)
 
 col(WORD POCKET >R PARSE DUP R@ C! BOUNDS R> DUP 2SWAP DO?DO(7) CHAR+ I C@ OVER C! DOLOOP(-7) DROP)
 
 // Some simple parsing words.
 col(CHAR PARSE-WORD DROP C@)
 imm(( LIT(')') PARSE 2DROP)
-imm(\ LINEFEED PARSE 2DROP)
+// Removing comments out of the code, the code from the backslash to the next \n is removed.
+// We need to start from cursor -1 (the backslash) to handle the case backslash+linefeed correctly 0x5c0a
+imm(\ >IN @ 1- >IN ! LINEFEED PARSE 2DROP)
 
 // The compiler infrastructure.
 var(STATE 0)
@@ -411,6 +413,7 @@ imm(; ?COMP DOTICK SEMICOLON COMPILE, REVEAL [)
 // Compiling strings.
 imm(C" ?COMP LIT('"') PARSE DOTICK SLITERAL COMPILE, DUP C, BOUNDS DO?DO(5) I C@ C, DOLOOP(-5) ALIGN)
 imm(S" STATE @ 0BRANCH(5) C" DOTICK COUNT COMPILE, EXIT LIT('"') PARSE DUP >R POCKET DUP >R SWAP MOVE R> R>)
+imm(Z" S" 2DUP + 0 SWAP C! DROP)
 imm(." STATE @ 0BRANCH(5) S" DOTICK TYPE COMPILE, EXIT  LIT('"') PARSE TYPE)
 imm(.( LIT(')') PARSE TYPE)
 

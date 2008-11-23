@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -11,7 +11,7 @@
 # ****************************************************************************/
 
 
-STDLIB_SRC_C =  error.c strtoul.c strtol.c rand.c \
+STDLIB_SRC_C =  error.c atoi.c atol.c strtoul.c strtol.c rand.c \
 		 malloc.c memalign.c realloc.c free.c
 		
 STDLIB_SRC_ASM = 

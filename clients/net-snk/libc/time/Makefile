@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -24,20 +24,22 @@ CFLAGS = -g -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -O2 -msoft-float \
 LDFLAGS= -nostdlib
 
 
-OBJS=timer.c ftime.c
+OBJS = timer.o ftime.o
 
 
 all: time.o
 	
 
-time.o: $(OBJS:.c=.o)
-	$(LD) $(LDFLAGS) -r $^ -o $@	
+time.o: $(OBJS)
+	$(LD) $(LDFLAGS) -r $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) -c $^ -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 clean:
 	$(RM) -f *.o *.i *.s
 
 distclean mrproper: clean
+
+include $(TOP)/make.depend

@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -20,6 +20,7 @@ SUBDIRS=common bcm
 ifeq ($(SNK_BIOSEMU_APPS), 1)
 SUBDIRS += x86emu
 endif
+CLEANSUBDIRS = $(SUBDIRS) 
 
 
 all :		
@@ -27,4 +28,4 @@ all :
 
 # Common targets for all subdirectories:
 clean distclean depend:		
-		for subdir in $(SUBDIRS) ; do $(MAKE) -C $${subdir} $@ ; done
+		for subdir in $(CLEANSUBDIRS) ; do $(MAKE) -C $${subdir} $@ ; done

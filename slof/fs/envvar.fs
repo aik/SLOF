@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -16,7 +16,9 @@
 wordlist CONSTANT envvars
 
 \ list the names in  envvars
-: listenv  get-current  envvars set-current  words  set-current ;
+: listenv  ( -- )
+   get-current envvars set-current  words  set-current
+;
 
 \ create a definition in  envvars
 : create-env ( "name" -- )
@@ -24,21 +26,21 @@ wordlist CONSTANT envvars
 ;
 
 \ lay out the data for the separate envvar types
-: env-int ( n -- )  1 c, align , DOES> char+ aligned @ ;
-: env-bytes ( a len -- )
+: env-int     ( n -- )  1 c, align , DOES> char+ aligned @ ;
+: env-bytes   ( a len -- )
    2 c, align dup , here swap dup allot move
    DOES> char+ aligned dup @ >r cell+ r>
 ;
-: env-string ( str len -- )  3 c, string, DOES> char+ count ;
-: env-flag ( f -- )  4 c, c, DOES> char+ c@ 0<> ;
+: env-string  ( str len -- )  3 c, string, DOES> char+ count ;
+: env-flag    ( f -- )  4 c, c, DOES> char+ c@ 0<> ;
 : env-secmode ( sm -- )  5 c, c, DOES> char+ c@ ;
 
 \ create default envvars
-: default-int ( n "name" -- )  create-env env-int ;
-: default-bytes ( a len "name" -- )  create-env env-bytes ;
-: default-string ( a len "name" -- )  create-env env-string ;
-: default-flag ( f "name" -- )  create-env env-flag ;
-: default-secmode ( sm "name" -- )  create-env env-secmode ;
+: default-int     ( n "name" -- )      create-env env-int ;
+: default-bytes   ( a len "name" -- )  create-env env-bytes ;
+: default-string  ( a len "name" -- )  create-env env-string ;
+: default-flag    ( f "name" -- )      create-env env-flag ;
+: default-secmode ( sm "name" -- )     create-env env-secmode ;
 
 : set-option ( option-name len option len -- )
    2swap encode-string
@@ -53,6 +55,7 @@ wordlist CONSTANT envvars
       nip nip
    THEN
 ;
+
 
 : test-flag ( param len -- true | false )
    2dup s" true" string=ci -rot s" false" string=ci or
@@ -129,9 +132,6 @@ wordlist CONSTANT envvars
    THEN
 ;
 
-\ : setenv  parse-word skipws 0 parse 2swap $setenv ;
-: setenv  parse-word ( skipws ) 0d parse -leading 2swap $setenv ;
-
 \ print an envvar
 : (printenv) ( adr type -- )
    CASE
@@ -203,91 +203,70 @@ DEFER old-emit
    5 OF env-secmode ENDOF ENDCASE
 ;
 
-: set-default
-   parse-word envvars voc-find
-   dup 0= ABORT" not a configuration variable" link> (set-default)
-;
+\ Enviroment variables might be board specific
 
-: set-defaults
-   envvars cell+
-   BEGIN @ dup WHILE dup link> (set-default) REPEAT
-   drop
-;
+#include <envvar_defaults.fs>
 
-\ the defaults
-\ some of those are platform dependent, and should e.g. be
-\ created from VPD values
-true default-flag auto-boot?
-s" " default-string boot-device
-s" " default-string boot-file
-s" boot" default-string boot-command
-s" " default-string diag-device
-s" " default-string diag-file
-false default-flag diag-switch?
-true default-flag fcode-debug?
-s" " default-string input-device
-s" " default-string nvramrc
-s" " default-string oem-banner
-false default-flag oem-banner?
-0 0 default-bytes oem-logo
-false default-flag oem-logo?
-s" " default-string output-device
-200 default-int screen-#columns
-200 default-int screen-#rows
-0 default-int security-#badlogins
-0 default-secmode security-mode
-s" " default-string security-password
-0 default-int selftest-#megs
-false default-flag use-nvramrc?
-false default-flag direct-serial?
-true default-flag real-mode?
-true default-flag use-axon-ddr?
+VARIABLE nvoff \ offset in envvar partition
 
-
-set-defaults
-
-VARIABLE nvoff \  70 get-header 2drop nvoff !
-
-: (nvupdate-one) ( adr type -- )
+: (nvupdate-one) ( adr type -- "value" )
    CASE
-   1 OF aligned @ . ENDOF
-   2 OF drop ." 0 0" ENDOF
-   3 OF count type ENDOF
-   4 OF c@ IF ." true" ELSE ." false" THEN ENDOF
-   5 OF c@ . ENDOF \ XXX: print symbolically
+   1 OF aligned @ (.) ENDOF
+   2 OF drop s" 0 0" ENDOF
+   3 OF count ENDOF
+   4 OF c@ IF s" true" ELSE s" false" THEN ENDOF
+   5 OF c@ (.) ENDOF \ XXX: print symbolically
    ENDCASE
 ;
 
 : nvupdate-one   ( def-xt -- )
-   >name name>string
-   ( ." setenv " 2dup type space ) \ Old Implementation
-   2dup type s" =" type
-   findenv nip (nvupdate-one)
-   ( cr ) \ Old Implementation
-   0 emit
+   >r nvram-partition-type-common get-nvram-partition       ( part.addr part.len FALSE|TRUE R: def-xt )
+   ABORT" No valid NVRAM." r>      ( part.addr part.len def-xt )
+   >name name>string               ( part.addr part.len var.a var.l )
+   2dup findenv nip (nvupdate-one)
+   ( part.addr part.len var.addr var.len val.addr val.len )
+   internal-add-env
+   drop
 ;
 
-: (nvupdate)
+: (nvupdate) ( -- )
+   nvram-partition-type-common get-nvram-partition ABORT" No valid NVRAM."
+   erase-nvram-partition drop
    envvars cell+
    BEGIN @ dup WHILE dup link> nvupdate-one REPEAT
    drop
 ;
 
-: nvemit  nvoff @ rb! 1 nvoff +! 0 nvoff @ rb! ;
-
-: nvupdate
-   70 get-header 2drop nvoff !
-   ['] emit behavior  ['] nvemit to emit  (nvupdate)  to emit
+: nvupdate ( -- )
+   ." nvupdate is obsolete." cr
 ;
 
+: set-default
+   parse-word envvars voc-find
+   dup 0= ABORT" not a configuration variable" link> (set-default)
+;
 
+: (set-defaults)
+   envvars cell+
+   BEGIN @ dup WHILE dup link> (set-default) REPEAT
+   drop
+;
+
+\ Preset nvram variables in RAM, but do not overwrite them in NVRAM
+(set-defaults)
+
+: set-defaults
+   (set-defaults) (nvupdate)
+;
+
+: setenv  parse-word ( skipws ) 0d parse -leading 2swap $setenv (nvupdate) ;
 
 : get-nv  ( -- )
-   70 get-header ( addr offset not-found | not-found ) \ find partition header
+   nvram-partition-type-common get-nvram-partition ( addr offset not-found | not-found ) \ find partition header
    IF
-      create-default-headers \ partition header not found: set default values
-      nvupdate
-      70 get-header IF ." NVRAM seems to be broken." cr EXIT THEN
+      internal-reset-nvram
+      (nvupdate)
+      nvram-partition-type-common get-nvram-partition IF ." NVRAM seems to be broken." cr EXIT THEN
    THEN
    \ partition header found: read data from nvram
    drop ( addr )           \ throw away offset
@@ -304,9 +283,7 @@ VARIABLE nvoff \  70 get-header 2drop nvoff !
    2drop drop              \ cleanup
 ;
 
-
 get-nv
-
 
 : check-for-nvramrc  ( -- )
    use-nvramrc?  IF
@@ -416,16 +393,23 @@ get-nv
    4dup ['] (nv-build-real-entry) (nv-build-nvramrc)
    set-alias
    s" true" s" use-nvramrc?" $setenv
-   nvupdate
+   (nvupdate)
 ;
 
 : nvalias ( "alias-name< >device-specifier<eol>" -- )
-   parse-word parse-word $nvalias
+   parse-word parse-word dup 0<> IF
+      $nvalias
+   ELSE
+      2drop 2drop
+      cr
+      "    Usage: nvalias (""alias-name< >device-specifier<eol>"" -- )" type
+      cr
+   THEN    
 ;
 
 : $nvunalias ( name-str name-len -- )
    s" " ['] (nv-build-null-entry) (nv-build-nvramrc)
-   nvupdate
+   (nvupdate)
 ;
 
 : nvunalias ( "alias-name< >" -- )

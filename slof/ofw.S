@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -15,15 +15,28 @@
 
 	.section ".slof.loader","ax"
 
-	mr	r16, r4			# ROM Base
-	mfspr	r17, HSPRG1		# Fixme, will be done in pcd
+	/* this only works if paflof is running below 4GB */
+	lis	r31, fdt_start@h	/* save address of */
+	ori	r31, r31, fdt_start@l	/* flattened device */
+	std	r3, 0(r31)		/* tree */
 
-	# fill in handler address
+	/* this only works if paflof is running below 4GB */
+	lis	r31, romfs_base@h	/* save address of */
+	ori	r31, r31, romfs_base@l	/* the romfs */
+	std	r4, 0(r31)
 
+	/* this only works if paflof is running below 4GB */
+	lis	r31, epapr_magic@h	/* if it is an epapr compliant */
+	ori	r31, r31, epapr_magic@l	/* low level firmware; then r6 */
+	std	r6, 0(r31)		/* contains the epapr magic */
+
+	/* fill in handler address */
+
+	/* this only works if paflof is running below 4GB */
 	lis	r3, _slof_text@h
 	ori	r3, r3, _slof_text@l
 	ld	r3, 0(r3)
 	std	r3, XVECT_M_HANDLER(0)
 
-	# GO!
+	/* GO! */
 	ba	0x100

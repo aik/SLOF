@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -14,7 +14,7 @@
 #ifndef MY_ENDIAN_H
 #define MY_ENDIAN_H
 
-#include "types.h"
+#include <stdint.h>
 
 extern inline uint16_t bswap_16 (uint16_t x);
 extern inline uint32_t bswap_32 (uint32_t x);

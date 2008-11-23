@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -48,6 +48,14 @@ STRUCT
 	/l field phdr>p_flags
 	/l field phdr>p_align
 END-STRUCT
+
+\ Provide word to load image to an offset of vaddr
+0 value elf-segment-offset
+
+: xlate-vaddr32 ( programm-header-addr -- addr )
+    phdr>p_vaddr l@ elf-segment-offset + 
+;
+
 
 \ ELF 64 bit header
 
@@ -121,16 +129,16 @@ false value elf-claim?
   >r
   ( file-addr  R: program-header-addr )
   \ Copy into storage
-    r@ phdr>p_offset l@ +  r@ phdr>p_vaddr l@  r@ phdr>p_filesz l@  move
+    r@ phdr>p_offset l@ +  r@ xlate-vaddr32 r@ phdr>p_filesz l@  move
 
   ( R: programm-header-addr )
   \ Clear BSS
-    r@ phdr>p_vaddr l@ r@ phdr>p_filesz l@ +
+    r@ xlate-vaddr32 r@ phdr>p_filesz l@ +
     r@ phdr>p_memsz l@ r@ phdr>p_filesz l@ - erase
 
   ( R: programm-header-addr )
   \ Flush cache
-    r@ phdr>p_vaddr l@ r> phdr>p_memsz l@ dup 0= IF 2drop ELSE flushcache THEN
+    r@ xlate-vaddr32 r> phdr>p_memsz l@ dup 0= IF 2drop ELSE flushcache THEN
 ;
 
 : load-segments ( file-addr -- )
@@ -201,7 +209,12 @@ false value elf-claim?
       nip nip			  \ cleanup
 ;
 
-: elf-check-file ( file-addr --  1 : 32, 2 : 64, else bad  )
+\ Return type of ELF image, abort if not valid
+\ 1: 32 Bit PPC image
+\ 2: 64 Bit PPC image
+\ 5: 32 Bit SPU image
+
+: elf-check-file ( file-addr --  image-type  )
   ( file-addr )
   dup ehdr>e_ident l@-be 7f454c46 <> IF
      ABORT" Not an ELF executable"
@@ -219,10 +232,13 @@ false value elf-claim?
   dup ehdr>e_type w@ 2 <> ABORT" Not an ELF executable"
 
   ( file-addr )
-  dup ehdr>e_machine w@ dup 14 <> swap 15 <> and ABORT" Not a PPC ELF executable" 
-
-  ( file-addr)
-  ehdr>e_class c@
+  dup ehdr>e_machine w@
+  CASE
+      14 OF ehdr>e_class c@ ENDOF       \ PPC 32 bit executable        
+      15 OF ehdr>e_class c@ ENDOF       \ PPC 64 bit executable        
+      17 OF ehdr>e_class c@ 4 or ENDOF  \ SPU 32 bit executable
+      dup OF drop ABORT" Not a PPC / SPU ELF executable" ENDOF 
+  ENDCASE
 ;
 
 : load-elf32 ( file-addr -- entry )
@@ -262,10 +278,18 @@ false value elf-claim?
   ( file-addr 1|2|x )
 
     CASE
-	1 OF load-elf32 true ENDOF
-	2 OF load-elf64 false ENDOF
-	dup OF true ABORT" Neither 32- nor 64-bit ELF file" ENDOF
+	1 OF 0 to elf-segment-offset load-elf32 true ENDOF
+	2 OF 0 to elf-segment-offset load-elf64 false ENDOF
+	5 OF load-elf32 true ENDOF
+	dup OF true ABORT" load-elf-file: Not valid image" ENDOF
     ENDCASE
+;
+
+\ Method to load SPU image 
+
+: elf-spu-load ( ls-start-addr file-addr -- entry )
+    swap to elf-segment-offset
+    load-elf-file drop
 ;
 
 \ Release memory claimed before

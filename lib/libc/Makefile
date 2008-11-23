@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -17,11 +17,11 @@ STRINGCMNDIR = $(LIBCCMNDIR)/string
 CTYPECMNDIR = $(LIBCCMNDIR)/ctype
 STDLIBCMNDIR = $(LIBCCMNDIR)/stdlib
 STDIOCMNDIR = $(LIBCCMNDIR)/stdio
+GETOPTCMNDIR = $(LIBCCMNDIR)/getopt
 
 include $(TOPCMNDIR)/make.rules
 
 
-CFLAGS = -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float -mno-altivec -mabi=no-altivec -Wall
 CPPFLAGS = -I$(LIBCCMNDIR)/include
 LDFLAGS= -nostdlib
 
@@ -40,8 +40,9 @@ include $(STRINGCMNDIR)/Makefile.inc
 include $(CTYPECMNDIR)/Makefile.inc
 include $(STDLIBCMNDIR)/Makefile.inc
 include $(STDIOCMNDIR)/Makefile.inc
+include $(GETOPTCMNDIR)/Makefile.inc
 
-OBJS = $(STRING_OBJS) $(CTYPE_OBJS) $(STDLIB_OBJS) $(STDIO_OBJS)
+OBJS = $(STRING_OBJS) $(CTYPE_OBJS) $(STDLIB_OBJS) $(STDIO_OBJS) $(GETOPT_OBJS)
 
 ifneq ($(NATIVEBUILD),1)
 # These parts of the libc use assembler, so they can only be compiled when

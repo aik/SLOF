@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,15 +10,15 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <netlib/netlib.h>
-#include <netlib/netbase.h>
-#include <netlib/icmp.h>
+#include <netlib/tftp.h>
+#include <netlib/dhcp.h>
+#include <netlib/ethernet.h>
+#include <netlib/ipv4.h>
+#include <rtas.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include <string.h>
-
-#include <rtas.h>
 
 int netflash(int argc, char * argv[])
 {
@@ -32,6 +32,7 @@ int netflash(int argc, char * argv[])
 	int fd_device;
 	tftp_err_t tftp_err;
 	char * ptr;
+	uint8_t own_mac[6];
 
 	printf("\n Flasher 1.4 \n");
 	memset(&fn_ip, 0, sizeof(filename_ip_t));
@@ -71,7 +72,7 @@ int netflash(int argc, char * argv[])
 
 	/* Get mac_addr from device */
 	printf("  Reading MAC address from device: ");
-	fd_device = socket(0, 0, 0, (char *) fn_ip.own_mac);
+	fd_device = socket(0, 0, 0, (char *) own_mac);
 	if (fd_device == -1) {
 		printf("\nE3000: Could not read MAC address\n");
 		return -100;
@@ -82,11 +83,12 @@ int netflash(int argc, char * argv[])
 	}
 
 	printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
-	       fn_ip.own_mac[0], fn_ip.own_mac[1], fn_ip.own_mac[2],
-	       fn_ip.own_mac[3], fn_ip.own_mac[4], fn_ip.own_mac[5]);
+	       own_mac[0], own_mac[1], own_mac[2],
+	       own_mac[3], own_mac[4], own_mac[5]);
 
-	// init network stack
-	netbase_init(fd_device, fn_ip.own_mac, fn_ip.own_ip);
+	// init ethernet layer
+	set_mac_address(own_mac);
+
 	// identify the BOOTP/DHCP server via broadcasts
 	// don't do this, when using DHCP !!!
 	//  fn_ip.server_ip = 0xFFFFFFFF;
@@ -94,16 +96,11 @@ int netflash(int argc, char * argv[])
 
 	/* Get ip address for our mac address */
 	printf("  Requesting IP address via DHCP: ");
-	arp_failed = dhcp(fd_device, 0, &fn_ip, 30);
+	arp_failed = dhcp(0, &fn_ip, 30);
 
 	if(arp_failed >= 0) {
 		// reinit network stack
-		netbase_init(fd_device, fn_ip.own_mac, fn_ip.own_ip);
-
-		if (!net_iptomac(fn_ip.server_ip, fn_ip.server_mac)) {
-			// printf("\nERROR:\t\t\tCan't obtain TFTP server MAC!\n");
-			arp_failed = -2;
-		}
+		set_ipv4_address(fn_ip.own_ip);
 	}
 
 	if (arp_failed == -1) {
@@ -133,7 +130,7 @@ int netflash(int argc, char * argv[])
 
 	strcpy((char *) fn_ip.filename,argv[3]);
 
-	rc = tftp (fd_device, &fn_ip, (unsigned char *) buffer, len, 20, &tftp_err, 0);
+	rc = tftp(&fn_ip, (unsigned char*) buffer, len, 20, &tftp_err, 0, 512, 4);
 
 	dhcp_send_release();
 

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -9,8 +9,6 @@
 \ * Contributors:
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
-
-eregs 10 8 * + @ CONSTANT romfs-base
 
 STRUCT
 	cell field romfs>file-header
@@ -77,11 +75,11 @@ CREATE bdate-str 10 allot
   dup 6 + bdate-str 3 + 2 move
   dup 8 + bdate-str b + 2 move
   a + bdate-str e + 2 move
-  2d bdate-str 2 + c! 
+  2d bdate-str 2 + c!
   2d bdate-str 5 + c!
   20 bdate-str a + c!
   3a bdate-str d + c!
-  bdate-str 10 
+  bdate-str 10
 ;
 
 

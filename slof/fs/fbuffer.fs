@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -55,7 +55,7 @@ CREATE bitmap-buffer 400 allot
 : fb8-char2bitmap ( font-height font-addr -- bitmap-buffer )
 	bitmap-buffer >r
 	char-height rot 0> IF r> char-width 2dup fb8-erase-block + >r 1- THEN
-	
+
 	r> -rot char-width to .ab
 	( fb-addr font-addr font-height )
 	fontbytes * bounds ?DO

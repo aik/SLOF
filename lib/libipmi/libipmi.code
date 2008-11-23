@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -103,3 +103,18 @@ PRIM(IPMI_X2d_OEM_X2d_BIOS2SP)
 	TOS.n = ipmi_oem_bios2sp(swid, type, addr, len);
 MIRP
 
+// : ipmi-set-sensor ( param-1 ... param-n n command sensor - errorcode )
+PRIM(IPMI_X2d_SET_X2d_SENSOR)
+	int sensor = TOS.n; POP;
+	int cmd    = TOS.n; POP;
+	int n      = TOS.n;
+	int i      = n;
+	uint8_t param[10];
+	while (i>0) {
+		i--;
+		POP; param[i]=TOS.n;
+	};
+	TOS.n = ipmi_set_sensor((cmd<<8)+sensor,n,
+		param[0],param[1],param[2],param[3],param[4],
+		param[5],param[6],param[7],param[8],param[9]);
+MIRP

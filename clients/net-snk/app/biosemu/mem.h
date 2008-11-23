@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -13,7 +13,7 @@
 #ifndef _BIOSEMU_MEM_H_
 #define _BIOSEMU_MEM_H_
 #include <x86emu/x86emu.h>
-#include <types.h>
+#include <stdint.h>
 
 // read byte from memory
 uint8_t my_rdb(uint32_t addr);

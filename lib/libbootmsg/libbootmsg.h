@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -16,5 +16,6 @@ void bootmsg_error(short p, const char *str);
 void bootmsg_warning(short p, const char *str, short lvl);
 void bootmsg_debugcp(short p, const char *str, short lvl);
 void bootmsg_setlevel(short p, short level);
-void *bootmsg_nvupdate();
+int bootmsg_checklevel(short p, short level);
+void *bootmsg_nvupdate(void);
 #endif /* _LIBBOOTMSG_H */

@@ -2312,16 +2312,15 @@ void ins(int size)
     }
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* in until CX is ZERO. */
-        u32 count = ((M.x86.mode & SYSMODE_PREFIX_DATA) ?
+        /* in until (E)CX is ZERO. */
+        u32 count = ((M.x86.mode & SYSMODE_32BIT_REP) ?
                      M.x86.R_ECX : M.x86.R_CX);
-
         while (count--) {
           single_in(size);
           M.x86.R_DI += inc;
           }
         M.x86.R_CX = 0;
-        if (M.x86.mode & SYSMODE_PREFIX_DATA) {
+        if (M.x86.mode & SYSMODE_32BIT_REP) {
             M.x86.R_ECX = 0;
         }
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);
@@ -2355,15 +2354,15 @@ void outs(int size)
     }
     if (M.x86.mode & (SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE)) {
         /* dont care whether REPE or REPNE */
-        /* out until CX is ZERO. */
-        u32 count = ((M.x86.mode & SYSMODE_PREFIX_DATA) ?
+        /* out until (E)CX is ZERO. */
+        u32 count = ((M.x86.mode & SYSMODE_32BIT_REP) ?
                      M.x86.R_ECX : M.x86.R_CX);
         while (count--) {
           single_out(size);
           M.x86.R_SI += inc;
           }
         M.x86.R_CX = 0;
-        if (M.x86.mode & SYSMODE_PREFIX_DATA) {
+        if (M.x86.mode & SYSMODE_32BIT_REP) {
             M.x86.R_ECX = 0;
         }
         M.x86.mode &= ~(SYSMODE_PREFIX_REPE | SYSMODE_PREFIX_REPNE);

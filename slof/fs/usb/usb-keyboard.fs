@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -13,6 +13,8 @@
 
 s" keyboard" device-name
 s" keyboard" device-type
+
+."   USB Keyboard" cr
 
 3 encode-int s" assigned-addresses" property
 1 encode-int s" reg" property
@@ -288,16 +290,31 @@ s" usb-kbd-device-support.fs" included
      ret                                           \ return char
 ;
 
+: key-available? ( -- true|false )
+   multi-key 0 <> IF 
+      true \ multi scan code key was pressed... so key is available
+      EXIT \ done
+   THEN
+   kbd-scan 0 = IF \ if no kbd-scan code is currently available 
+      int-get-report \ check for one using int-get-report 
+   THEN
+   kbd-scan 0 <> \ if a kbd-scan is available, report true, else false
+;
+
 : usb-kread ( -- char|false )                            \ usb key read for control transfer
     multi-key 0 <> if                                    \ if multi scan code key is pressed
 	multi-key ff and                                 \ read one byte from buffer
 	multi-key 8 rshift to multi-key                  \ move to next byte 
     else                                                 \ normal key check
+    \ check for new scan code only, if kbd-scan is not set, e.g.
+    \ by a previous call to key-available?
+   kbd-scan 0 = IF
 	\ if interrupt transfer
 	int-get-report                                   \ read report (interrupt transfer)
 	\ else control transfer
 	\ ctl-get-report                                 \ read report (control transfer)
 	\ end of interrupt/control switch
+   THEN
  	kbd-scan 0 <> if                                 \ scan code exist?
 	    begin kbd-scan ff and dup 00 = while         \ get a last scancode in report buffer
 		    kbd-scan 8 rshift to kbd-scan        \ This algorithm is wrong --> must be fixed!
@@ -315,6 +332,7 @@ s" usb-kbd-device-support.fs" included
 	    	    drop false                           \ do nothing
 	    	then
 	    then
+       kbd-scan 8 rshift to kbd-scan \ handled scan-code
  	else
 	    0 to key-old                                 \ clear privious key
 	    false                                        \ no scan code --> return false

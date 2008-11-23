@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -87,6 +87,7 @@ CONSTANT /hclen
 
 \ get-base-address CONSTANT baseaddrs
 
+baseaddrs      CONSTANT HcRevision
 baseaddrs 4  + CONSTANT hccontrol
 baseaddrs 8  + CONSTANT hccomstat
 baseaddrs 0c + CONSTANT hcintstat
@@ -98,19 +99,20 @@ baseaddrs 28 + CONSTANT hcbulkhead
 baseaddrs 2c + CONSTANT hccurbulk
 baseaddrs 30 + CONSTANT hcdnehead
 baseaddrs 34 + CONSTANT hcintrval
+baseaddrs 40 + CONSTANT HcPeriodicStart
 baseaddrs 48 + CONSTANT hcrhdescA
+baseaddrs 4c + CONSTANT hcrhdescB
+baseaddrs 50 + CONSTANT HcRhStatus
 baseaddrs 54 + CONSTANT hcrhpstat
-
-\ OHCI REGISTER SETTING FOR ELBA STEC 8GBFLASHDISK 
-6C903305 E0 config-l! \ setting EXT1 for 5 ports
-7E020001 40 config-l! \ setting PMC for enable PME
+baseaddrs 58 + CONSTANT hcrhpstat2
+baseaddrs 5c + CONSTANT hcrhpstat3
 
 usb-debug-flag IF
-    0 config-l@ ." VENID = " . cr
-   40 config-l@ ." PMC   = " . cr
-   44 config-l@ ." PMCSR = " . cr 
-   E0 config-l@ ." EXT1  = " . cr
-   E4 config-l@ ." EXT2  = " . cr
+    0 config-l@ ."    - VENDOR: " 8 .r cr
+   40 config-l@ ."    - PMC   : " 8 .r
+   44 config-l@ ."      PMCSR : " 8 .r cr
+   E0 config-l@ ."    - EXT1  : " 8 .r
+   E4 config-l@ ."      EXT2  : " 8 .r cr
 THEN
 
 \ Constants for INTSTAT register
@@ -119,11 +121,13 @@ THEN
 
 \ Constants for RH Port Status Register
 
-1      CONSTANT RHP-CCS
-2      CONSTANT RHP-PES
-10     CONSTANT RHP-PRS
-100    CONSTANT RHP-PPS
-100000 CONSTANT RHP-PRSC
+1      CONSTANT RHP-CCS    \ Current Connect Status
+2      CONSTANT RHP-PES    \ Port Enable Status
+10     CONSTANT RHP-PRS    \ Port Reset Status
+100    CONSTANT RHP-PPS    \ Port Power Status
+10000  CONSTANT RHP-CSC    \ Connect Status Changed
+100000 CONSTANT RHP-PRSC   \ Port Reset Status Changed
+
 
 \ Constants for OHCI
 
@@ -181,6 +185,8 @@ A1FE000000000100 CONSTANT GET-MAX-LUN
 0 VALUE td-freelist-head
 0 VALUE td-freelist-tail
 0 VALUE num-free-tds
+0 VALUE max-rh-ports
+0 VALUE current-stat
 
 INSTANCE VARIABLE td-list-region
 
@@ -243,6 +249,24 @@ INSTANCE VARIABLE cd-buffer
 
 \ Debug functions for displaying ED, TD and their combo list.
 
+: Show-OHCI-Register
+   ." -> OHCI-Register: " cr
+   ." - HcControl : " hccontrol       rl@-le 8 .r
+   ."   CmdStat   : " hccomstat       rl@-le 8 .r
+   ."   HcInterr. : " hcintstat       rl@-le 8 .r cr
+
+   ." - HcFmIntval: " hcintrval       rl@-le 8 .r
+   ."   Per. Start: " HcPeriodicStart rl@-le 8 .r cr
+
+   ." - PortStat-1: " hcrhpstat       rl@-le 8 .r
+   ."   PortStat-2: " hcrhpstat2      rl@-le 8 .r
+   ."   PortStat-3: " hcrhpstat3      rl@-le 8 .r cr
+
+   ."   Descr-A   : " hcrhdescA       rl@-le 8 .r
+   ."   Descr-B   : " hcrhdescB       rl@-le 8 .r
+   ."   HcRhStat  : " HcRhStatus      rl@-le 8 .r cr
+;
+
 : display-ed ( ED-ADDRESS -- )
    TO temp1
    usb-debug-flag IF
@@ -250,7 +274,7 @@ INSTANCE VARIABLE cd-buffer
       s" eattr    : " type temp1 ed>eattr l@-le u. cr
       s" tdqhp    : " type temp1 ed>tdqhp l@-le u. cr
       s" tdqtp    : " type temp1 ed>tdqtp l@-le u. cr
-      s" ned      : " type temp1 ed>ned l@-le u. cr
+      s" ned      : " type temp1 ed>ned   l@-le u. cr
    THEN
 ;
 
@@ -738,7 +762,7 @@ THEN
       dup temp2 1- + temp1 td>bfrend l!-le ( dlen addr~  )
       temp2 +                             ( dlen next-addr )
       swap temp2 - swap
-      temp1 td>ntd l@-le TO temp1         ( dlen next-addr)
+      temp1 td>ntd l@-le TO temp1         ( dlen next-addr )
       current-toggle                      ( dlen next-addr current-toggle )
       CASE
          0 OF 1 TO current-toggle ENDOF
@@ -789,30 +813,25 @@ THEN
 \ Internal method
 \ ==================================================================
 
-
-: (wait-for-done-q) ( timeout -- TD-list TRUE | FALSE )
-   BEGIN ( timeout )
-      dup 0<> 	( timeout TRUE|FALSE )
-   WHILE	( timeout )
-      (HC-CHECK-WDH) ( timeout TRUE|FALSE )
-   IF 		( timeout )
-      drop 0	( 0 )
-   ELSE		( timeout )
-      1-	( timeout )
-      1 ms 	( timeout )
-   THEN		( timeout )
-
-   \ Wait for 1 milli-second.
-   \ PENDING: There should be a better way.
-
-   REPEAT	( timeout )
+: (wait-for-done-q)           ( timeout -- TD-list TRUE | FALSE )
+   BEGIN                      ( timeout )
+      dup 0<>                 ( timeout TRUE|FALSE )
+      (HC-CHECK-WDH) NOT      ( timeout TRUE|FALSE TRUE|FALSE )
+      AND                     \ not timed out AND WDH-bit not set
+      WHILE
+      1 ms                    \ wait
+      1-                      ( timeout )
+      dup ff and 0= IF show-proceed THEN
+   REPEAT	                  ( timeout )
    drop
-   hchccadneq rl@-le dup 0<> IF ( td-list )
-      TRUE			( td-list TRUE )
-      0 hchccadneq rl!-le	( td-list TRUE )
-      (HC-ACK-WDH)		( td-list TRUE )
-   ELSE FALSE			( td-list FALSE )
-   THEN				( td-list TRUE|FALSE )
+   hchccadneq  l@-le          \ read last HcDoneHead (RAM)
+   (HC-CHECK-WDH)             \ HcDoneHead was updated ?
+   IF
+      (HC-ACK-WDH)	         \ clear register bit: WDH
+      TRUE                    ( td-list TRUE )
+   ELSE
+      FALSE
+   THEN
 ;
 
 
@@ -842,23 +861,59 @@ THEN
 \ Arrive at the right value OF FrameInterval. Currently we are hardcoding
 \ it.
 \ ==========================================================================
-
-
 : HC-reset ( -- )
-   00 hccontrol rl!-le
-   hccomstat dup rl@-le 01 or swap rl!-le
-   BEGIN
-      hccomstat rl@-le 01 and 0<>
-   WHILE
-   REPEAT
-   hchcca   hchccareg rl!-le
-   0000     hcctrhead rl!-le
-   0ffff    hcintdsbl rl!-le
-   0000     hcbulkhead rl!-le
-   0083     hccontrol rl!-le
-   23f02fff hcintrval rl!-le \ changes from 23f02edf
-;
 
+   hccomstat dup rl@-le 01 or swap rl!-le    \ issue HC reset
+   BEGIN
+      hccomstat rl@-le 01 and 0<>            \ wait for reset end
+      WHILE
+   REPEAT
+
+   23f02edf hcintrval rl!-le                 \ frame-interval register
+   hchcca   hchccareg rl!-le                 \ HC communication area
+   0000     hcctrhead rl!-le                 \ control transfer head
+   0000     hcbulkhead rl!-le                \ bulk transfer head
+   0ffff    hcintdsbl rl!-le                 \ interrupt disable reg.
+
+\ all devices are still in reset-state
+\ next command starts sending SOFs
+   83       hccontrol rl!-le                 \ set USBOPERATIONAL
+
+\ these two repeated register settings are necessary for Bimini
+\ Its OHCI controller (AM8111) behaves different to NEC's one
+   23f02edf hcintrval rl!-le                 \ frame-interval register
+   hchcca   hchccareg rl!-le                 \ HC communication area
+   
+   d# 50 ms
+
+   hcrhdescA rl@-le ff and     ( total-rh-ports )
+   to max-rh-ports
+
+\ if no hardware-reset was issued (rescan)
+\ switch off all ports first !
+   hcrhpstat TO current-stat              \ start with first port status reg
+   0                                      \ port status default
+   max-rh-ports 0                         \ checking all ports
+   DO
+      current-stat rl@-le or              \ OR-ing all stats
+      200 current-stat rl!-le             \ Clear Port Power (CPP)
+      current-stat 4 + TO current-stat    \ check next RH-Port
+   LOOP
+   100 and 0<>                            \ any of the ports had power ?
+   IF
+      d# 750 wait-proceed                 \ wait for power discharge
+   THEN
+
+\ now power on all ports of this root-hub
+   hcrhpstat TO current-stat              \ start with first port status reg
+   max-rh-ports 0
+   DO
+      102 current-stat rl!-le             \ power on and enable
+      hcrhdescA 3 + rb@ 2 * ms            \ startup delay 30 ms (2 * POTPGT)
+      current-stat 4 + TO current-stat    \ check next RH-Port
+   LOOP
+   d# 500 wait-proceed                    \ STEC device needs 300 ms
+;
 
 : error-recovery ( -- )
    initialize-td-free-list
@@ -918,6 +973,7 @@ s" usb-support.fs" INCLUDED
 
 : control-std-get-device-descriptor
 	            ( data-buffer data-len MPS fa -- TRUE|FALSE )
+
    8006000100000000 setup-packet !
    2 pick setup-packet 6 + w!-le
                      ( data-buffer data-len MPS fa )
@@ -943,7 +999,7 @@ s" usb-support.fs" INCLUDED
    0 swap temp3 setup-packet temp2 temp1 controlxfer
 ;
 
-\ Fectes num of logical units available for a device
+\ Fetches num of logical units available for a device
 : control-std-get-maxlun ( MPS fun-addr dir data-buff data-len -- TRUE | FALSE )
    GET-MAX-LUN setup-packet !  ( MPS fun-addr dir data-buff data-len )
    setup-packet 5 pick 5 pick
@@ -951,6 +1007,18 @@ s" usb-support.fs" INCLUDED
    controlxfer ( MPS fun-addr  TRUE | FALSE )
    nip nip    ( TRUE | FALSE )
 ;
+
+\ Bulk-Only Mass Storage Reset
+\ fixed to interface #0
+: control-bulk-reset ( MPS fun-addr dir data-buff data-len -- TRUE | FALSE )
+   21FF000000000000 setup-packet !  ( MPS fun-addr dir data-buff data-len )
+   setup-packet 5 pick 5 pick
+               ( MPS fun-addr dir data-buff data-len setup-packet MPS fun-addr )
+   controlxfer ( MPS fun-addr  TRUE | FALSE )
+   nip nip    ( TRUE | FALSE )
+;
+
+
 
 \ get the string descriptor of the usb device
 
@@ -1056,42 +1124,50 @@ s" usb-enumerate.fs" INCLUDED
 \ the build OF the USB devie sub-tree so is effectively the mother OF all
 \ USB device nodes that are to be detected and instantiated.
 \ ==========================================================================
+: rhport-initialize ( -- )
 
-
-VARIABLE total-rh-ports
-0 VALUE current-stat
-
-: rhport-initialize ( total-rh-ports -- )
-   total-rh-ports !
-   hcrhpstat TO current-stat
-   total-rh-ports @ 1+ 1  DO
-      hcrhdescA rl@-le 0300 and 0100 =  	( TRUE|FALSE )
-      IF
-         100 current-stat rl!-le
-         hcrhdescA 3 + rb@ 2 * ms
-      THEN
+   hcrhpstat TO current-stat              \ start with first port status reg
+   max-rh-ports 1+ 1
+   DO
+      \ any Device connected to that port ?
       current-stat rl@-le RHP-CCS and 0<> 	( TRUE|FALSE )
       IF
-         s" Device at this port!" usb-debug-print
-         RHP-PPS current-stat rl!-le   \ port power on
-         hcrhdescA 3 + rb@ 4 * ms      \ wait for POTPGT*2 ms
-         RHP-PES current-stat rl!-le   \ port enable
-         50 ms
-         RHP-PRS current-stat rl!-le   \ port reset
-         100 ms
-         \ RHP-PRSC current-stat rl!-le
+         current-stat hcrhpstat3 =        \ third port of NEC ?
+         IF
+            81 to uDOC-present            \ uDOC is present and now processed
+         THEN
+
+         s" Device connected to this port!" usb-debug-print
+         RHP-PRS current-stat rl!-le      \ issue a port reset
+         BEGIN
+            current-stat rl@-le RHP-PRS AND    \ wait for reset end
+            WHILE
+         REPEAT
+         hcrhdescA 3 + rb@ 2 * ms         \ startup delay 30 ms (POTPGT)
+         d# 100 ms
 
          current-stat rl@-le 200 and 4 lshift
-         to device-speed               \ store speed bit
+         to device-speed                  \ store speed bit
 
-         I ['] rhport-enumerate CATCH IF       \ Scan port
+         RHP-CSC RHP-PRSC or current-stat rl!-le
+
+         I ['] rhport-enumerate CATCH IF  \ Scan port
             s" USB scan failed on root hub port: " rot usb-debug-print-val
             reset-to-initial-usb-hub-address
          THEN
+
       ELSE
          s" No device detected at this port." usb-debug-print
+         current-stat hcrhpstat3 =        \ third port of NEC ? (=ModFD)
+         IF                               \ here a ModFD should be on ELBA
+            current-stat rl@-le 80000 and 0<> 	\ is over-current detected ?
+            IF
+               uDOC-present 08 or to uDOC-present  \ set flag for uDOC-check
+            THEN
+         THEN
       THEN
-      current-stat 4 + TO current-stat
+      current-stat 4 + TO current-stat    \ check next RH-Port
+      uDOC-present 0f and to uDOC-present \ remove processing flag
    LOOP
 ;
 
@@ -1103,7 +1179,6 @@ VARIABLE total-rh-ports
 : enumerate ( -- )
    HC-reset
    ['] hc-suspend add-quiesce-xt     \ Assert that HC will be supsended
-   hcrhdescA rl@-le 000000ff and     ( total-rh-ports )
    store-initial-usb-hub-address
    rhport-initialize                 \ Probe all available RH ports
    reset-to-initial-usb-hub-address

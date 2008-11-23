@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -13,9 +13,9 @@
 JS2X_TARGETS = tools_build romfs_build stage1
 
 SUBDIRS = slof rtas 
-COMMON_LIBS = libc libipmi libbootmsg libbases libelf
+COMMON_LIBS = libc libipmi libbootmsg libbases libelf libnvram
 
-all:		$(JS2X_TARGETS) subdirs clients_build bcm57xx boot_rom_js2x.bin boot_rom_bimini.bin
+all:		$(JS2X_TARGETS) subdirs clients_build bcm57xx boot_rom_js2x.bin
 
 .PHONY : subdirs $(SUBDIRS) clean distclean
 
@@ -46,25 +46,13 @@ boot_rom_js2x.bin: 	$(JS2X_TARGETS) subdirs clients_build bcm57xx ../build_info.
 		cd .. && if [ -f boot_rom.bin.gz ]; then rm -f boot_rom.bin.gz; gzip -9 boot_rom.bin; fi
 		rm -f ../.boot_rom.ffs
 
-boot_rom_bimini.bin: 	$(JS2X_TARGETS) subdirs clients_build bcm57xx ../build_info.img
-		@echo " ====== Building $@ ======"
-		cat $(ROMFSBRDDIR)/boot_rom_bimini.ffs > ../.boot_rom.ffs
-		cat $(SLOFBRDDIR)/OF.ffs >> ../.boot_rom.ffs
-		@echo build_info.img  build_info.img 0 0 >> ../.boot_rom.ffs
-		cd .. && ./romfs/tools/build_romfs .boot_rom.ffs boot_rom_bimini.bin
-		cd .. && if [ -f boot_rom_bimini.bin.gz ]; then rm -f boot_romi_bimini.bin.gz; gzip -9 boot_rom_bimini.bin; fi
-		rm -f ../.boot_rom.ffs
-
 bcm57xx:
 		make -C ../other-licence/bcm
 
 
 clean_here:
-		rm -f package-firmware
 		rm -f ../slof/OF.ffs
-		rm -f ../boot_rom.bin ../js2*.img ../ram.bin
-		rm -f ../bimini.img ../bimini.ram.bin
-		rm -rf ../boot_rom_bimini.bin
+		rm -f ../boot_rom.bin
 
 clean:		clean_here clean_gen
 		make -C ../other-licence/bcm clean
@@ -91,11 +79,11 @@ takeover: all
 		@rm -rf ../driver-$(RELEASE)
 		@mkdir -p ../driver-$(RELEASE)
 
-.tar_gz:	.driver_dirs takeover
+.tar_gz:	.driver_dirs takeover external_flasher
 		@mv ../boot_rom.bin \
 			../driver-$(RELEASE)/$(RELEASE)-js2x.bin
-		@mv ../boot_rom_bimini.bin \
-			../driver-$(RELEASE)/$(RELEASE)-bimini.bin
+		@mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \
+			../driver-$(RELEASE)/$(RELEASE)-$(FLASH_SIZE_MB)MB-BigEndian.bin
 		@mv $(TOPCMNDIR)/clients/takeover/takeover.elf \
 			../driver-$(RELEASE)/$(RELEASE)-takeover.bin
 		@cp ../VERSION ../driver-$(RELEASE)

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,9 +10,18 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-false VALUE sms-loaded
+false VALUE (sms-loaded?)
+
+false value (sms-available?)
+
+s" sms.fs" romfs-lookup IF true to (sms-available?) drop THEN
+
+(sms-available?) [IF]
 
 #include "packages/sms.fs"
+
+\ Initialize SMS NVRAM handling.
+#include "sms-nvram.fs"
 
 \ Dynamically load sms code from the romfs file
 \ Assumption is that skeleton sms package already exists
@@ -25,17 +34,17 @@ false VALUE sms-loaded
 : $sms-node s" /packages/sms" ;
 
 : (sms-init-package) ( -- true|false )
-   sms-loaded ?dup IF EXIT THEN
+   (sms-loaded?) ?dup IF EXIT THEN
    $sms-node ['] find-device catch IF 2drop false EXIT THEN
    s" sms.fs" [COMPILE] included
    device-end
-   true dup to sms-loaded
+   true dup to (sms-loaded?)
 ;
 
 \ External wrapper for sms package method
-: sms-start ( -- )
+: (sms-evaluate) ( addr len -- )
    (sms-init-package) not IF
-      cr ." SMS is not available." cr exit
+      cr ." SMS is not available." cr 2drop exit
    THEN
 
    s" Entering SMS ..." type
@@ -43,8 +52,19 @@ false VALUE sms-loaded
    reset-dual-emit
 
    \ if we only had execute-device-method...
-   $sms-node find-device
-   s" sms-start" evaluate
+   2>r $sms-node find-device
+   2r> evaluate
    device-end
+   vpd-boot-import
 ;
+
+: sms-start ( -- ) s" sms-start" (sms-evaluate) ;
+: sms-fru-replacement ( -- ) s" sms-fru-replacement" (sms-evaluate) ;
+
+[ELSE]
+
+: sms-start ( -- ) cr ." SMS is not available." cr ;
+: sms-fru-replacement ( -- ) cr ." SMS FRU replacement is not available." cr ;
+
+[THEN]
 

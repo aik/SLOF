@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -17,20 +17,17 @@ ENTRY(_start_OF)
 
 SECTIONS
 {
-        . = 0xE100000;
-        _slof_start = .;
-	. = 0x0E10C000;
+	. = 0x0E100100;
 	_start_OF = .;
 	.slof.loader : { *(.slof.loader) }
-	. = 0x0E110000; /* + SIZEOF_HEADERS; */
+	. = ALIGN(0x100);
 	_slof_text = .;
-/*	.rela : { *(.rela.*) } */
 	.text : { *(.entry_text) *(.text) } = 0x60000000
 	_slof_text_end = .;
 	. = ALIGN(8);
 	_slof_text_size = (_slof_text_end - _slof_text);
 
-	. = ALIGN(0x1000);
+	. = ALIGN(0x100);
 	.opd : 
 	{ 
 		_slof_data = .;
@@ -58,5 +55,5 @@ SECTIONS
 	_slof_bss_size = (_slof_bss_end - _slof_bss);
 	
 	. = ALIGN(0x1000);
-	_slof_here_start = .;
+	the_mem = .;
 }

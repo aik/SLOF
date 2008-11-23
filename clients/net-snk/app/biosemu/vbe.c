@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <types.h>
+#include <stdint.h>
 #include <cpu.h>
 
 #include "debug.h"
@@ -23,10 +23,10 @@
 #include <x86emu/regs.h>
 #include <x86emu/prim_ops.h>	// for push_word
 
+#include "biosemu.h"
 #include "io.h"
 #include "mem.h"
 #include "interrupt.h"
-
 #include "device.h"
 
 static X86EMU_memFuncs my_mem_funcs = {
@@ -99,7 +99,7 @@ typedef struct {
 static inline uint8_t
 vbe_prepare()
 {
-	vbe_info_buffer = biosmem + 0x10000;	// segment:offset 1000:0000
+	vbe_info_buffer = biosmem + (VBE_SEGMENT << 4);	// segment:offset off VBE Data Area
 	//clear buffer
 	memset(vbe_info_buffer, 0, 512);
 	//set VbeSignature to "VBE2" to indicate VBE 2.0+ request
@@ -107,9 +107,9 @@ vbe_prepare()
 	vbe_info_buffer[0] = 'B';
 	vbe_info_buffer[0] = 'E';
 	vbe_info_buffer[0] = '2';
-	// ES:DI store pointer to buffer in virtual mem (@ 0x10000) see vbe_info_buffer above...
+	// ES:DI store pointer to buffer in virtual mem see vbe_info_buffer above...
 	M.x86.R_EDI = 0x0;
-	M.x86.R_ES = 0x1000;
+	M.x86.R_ES = VBE_SEGMENT;
 
 	return 0;		// successfull init
 }
@@ -123,10 +123,9 @@ vbe_info(vbe_info_t * info)
 	M.x86.R_EAX = 0x4f00;
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -194,10 +193,9 @@ vbe_get_mode_info(vbe_mode_info_t * mode_info)
 	M.x86.R_CX = mode_info->video_mode;
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -268,10 +266,9 @@ vbe_set_mode(vbe_mode_info_t * mode_info)
 			 M.x86.R_BX);
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -305,10 +302,9 @@ vbe_set_palette_format(uint8_t format)
 			 format);
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -349,10 +345,9 @@ vbe_set_color(uint16_t color_number, uint32_t color_value)
 			 color_number, color_value);
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -386,10 +381,9 @@ vbe_get_color(uint16_t color_number, uint32_t * color_value)
 	M.x86.R_DI = 0x0;
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -428,10 +422,9 @@ vbe_get_ddc_info(vbe_ddc_info_t * ddc_info)
 	M.x86.R_DI = 0x0;
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -464,10 +457,9 @@ vbe_get_ddc_info(vbe_ddc_info_t * ddc_info)
 	M.x86.R_DI = 0x0;
 
 	// enable trace
-#ifdef DEBUG_TRACE_X86EMU
-	X86EMU_trace_on();
-#endif
-
+	CHECK_DBG(DEBUG_TRACE_X86EMU) {
+		X86EMU_trace_on();
+	}
 	// run VESA Interrupt
 	runInt10();
 
@@ -493,11 +485,11 @@ vbe_get_ddc_info(vbe_ddc_info_t * ddc_info)
 }
 
 uint32_t
-vbe_get_info(uint8_t argc, uint8_t ** argv)
+vbe_get_info(uint8_t argc, char ** argv)
 {
 	uint8_t rval;
 	uint32_t i;
-	if (argc < 3) {
+	if (argc < 4) {
 		printf
 		    ("Usage %s <vmem_base> <device_path> <address of screen_info_t>\n",
 		     argv[0]);
@@ -507,23 +499,29 @@ vbe_get_info(uint8_t argc, uint8_t ** argv)
 		}
 		return -1;
 	}
-	// argv[1] is address of virtual BIOS mem... it should be 1MB large...
-	biosmem = (uint8_t *) strtoul((char *) argv[1], 0, 16);
-	biosmem_size = 0x100000;
-	// argv[2] is the device to open and use...
-	if (dev_init((char *) argv[2]) != 0) {
-		printf("Error initializing device!\n");
-		return -1;
-	}
 	// get a copy of input struct...
 	screen_info_input_t input =
-	    *((screen_info_input_t *) strtoul((char *) argv[3], 0, 16));
-	// output is pointer to the address passed as argv[3]
+	    *((screen_info_input_t *) strtoul((char *) argv[4], 0, 16));
+	// output is pointer to the address passed as argv[4]
 	screen_info_t *output =
-	    (screen_info_t *) strtoul((char *) argv[3], 0, 16);
+	    (screen_info_t *) strtoul((char *) argv[4], 0, 16);
 	// zero output
 	memset(output, 0, sizeof(screen_info_t));
 
+	// argv[1] is address of virtual BIOS mem...
+	// argv[2] is the size
+	biosmem = (uint8_t *) strtoul(argv[1], 0, 16);
+	biosmem_size = strtoul(argv[2], 0, 16);;
+	if (biosmem_size < MIN_REQUIRED_VMEM_SIZE) {
+		printf("Error: Not enough virtual memory: %x, required: %x!\n",
+		       biosmem_size, MIN_REQUIRED_VMEM_SIZE);
+		return -1;
+	}
+	// argv[3] is the device to open and use...
+	if (dev_init((char *) argv[3]) != 0) {
+		printf("Error initializing device!\n");
+		return -1;
+	}
 	//setup interrupt handler
 	X86EMU_intrFuncs intrFuncs[256];
 	for (i = 0; i < 256; i++)
@@ -557,7 +555,7 @@ vbe_get_info(uint8_t argc, uint8_t ** argv)
 			 (info.capabilities & 0x4) ==
 			 0 ? "normal" : "use blank bit in Function 09h");
 
-	// argv[3] may be a pointer with enough space to return screen_info_t
+	// argv[4] may be a pointer with enough space to return screen_info_t
 	// as input, it must contain a screen_info_input_t with the following content:
 	// byte[0:3] = "DDC\0" (zero-terminated signature header)
 	// byte[4:5] = reserved space for the return struct... just in case we ever change
@@ -566,224 +564,212 @@ vbe_get_info(uint8_t argc, uint8_t ** argv)
 	// byte[6] = monitor port number for DDC requests ("only" one byte... so lets hope we never have more than 255 monitors...
 	// byte[7:8] = max. screen width (OF may want to limit this)
 	// byte[9] = required color depth in bpp
-	if (argc >= 4) {
-		if (strncmp((char *) input.signature, "DDC", 4) != 0) {
-			printf
-			    ("%s: Invalid input signature! expected: %s, is: %s\n",
-			     __FUNCTION__, "DDC", input.signature);
-			return -1;
-		}
-		if (input.size_reserved != sizeof(screen_info_t)) {
-			printf
-			    ("%s: Size of return struct is wrong, required: %d, available: %d\n",
-			     __FUNCTION__, (int) sizeof(screen_info_t),
-			     input.size_reserved);
-			return -1;
-		}
+	if (strncmp((char *) input.signature, "DDC", 4) != 0) {
+		printf
+		    ("%s: Invalid input signature! expected: %s, is: %s\n",
+		     __FUNCTION__, "DDC", input.signature);
+		return -1;
+	}
+	if (input.size_reserved != sizeof(screen_info_t)) {
+		printf
+		    ("%s: Size of return struct is wrong, required: %d, available: %d\n",
+		     __FUNCTION__, (int) sizeof(screen_info_t),
+		     input.size_reserved);
+		return -1;
+	}
 
-		vbe_ddc_info_t ddc_info;
-		ddc_info.port_number = input.monitor_number;
-		vbe_get_ddc_info(&ddc_info);
+	vbe_ddc_info_t ddc_info;
+	ddc_info.port_number = input.monitor_number;
+	vbe_get_ddc_info(&ddc_info);
 
 #if 0
-		DEBUG_PRINTF_VBE("DDC: edid_tranfer_time: %d\n",
-				 ddc_info.edid_transfer_time);
-		DEBUG_PRINTF_VBE("DDC: ddc_level: %x\n", ddc_info.ddc_level);
-		DEBUG_PRINTF_VBE("DDC: EDID: \n");
-#ifdef DEBUG_VBE
+	DEBUG_PRINTF_VBE("DDC: edid_tranfer_time: %d\n",
+			 ddc_info.edid_transfer_time);
+	DEBUG_PRINTF_VBE("DDC: ddc_level: %x\n", ddc_info.ddc_level);
+	DEBUG_PRINTF_VBE("DDC: EDID: \n");
+	CHECK_DBG(DEBUG_VBE) {
 		dump(ddc_info.edid_block_zero,
 		     sizeof(ddc_info.edid_block_zero));
+	}
 #endif
-#endif
-		if (*((uint64_t *) ddc_info.edid_block_zero) !=
-		    (uint64_t) 0x00FFFFFFFFFFFF00) {
-			// invalid EDID signature... probably no monitor
+	if (*((uint64_t *) ddc_info.edid_block_zero) !=
+	    (uint64_t) 0x00FFFFFFFFFFFF00) {
+		// invalid EDID signature... probably no monitor
 
-			output->display_type = 0x0;
-			return 0;
-		} else if ((ddc_info.edid_block_zero[20] & 0x80) != 0) {
-			// digital display
-			output->display_type = 2;
-		} else {
-			// analog
-			output->display_type = 1;
-		}
-		DEBUG_PRINTF_VBE("DDC: found display type %d\n",
-				 output->display_type);
-		memcpy(output->edid_block_zero, ddc_info.edid_block_zero,
-		       sizeof(ddc_info.edid_block_zero));
-		i = 0;
-		vbe_mode_info_t mode_info;
-		vbe_mode_info_t best_mode_info;
-		// initialize best_mode to 0
-		memset(&best_mode_info, 0, sizeof(best_mode_info));
-		while ((mode_info.video_mode =
-			info.video_mode_list[i]) != 0xFFFF) {
-			//DEBUG_PRINTF_VBE("%x: Mode: %04x\n", i, mode_info.video_mode);
-			vbe_get_mode_info(&mode_info);
+		output->display_type = 0x0;
+		return 0;
+	} else if ((ddc_info.edid_block_zero[20] & 0x80) != 0) {
+		// digital display
+		output->display_type = 2;
+	} else {
+		// analog
+		output->display_type = 1;
+	}
+	DEBUG_PRINTF_VBE("DDC: found display type %d\n", output->display_type);
+	memcpy(output->edid_block_zero, ddc_info.edid_block_zero,
+	       sizeof(ddc_info.edid_block_zero));
+	i = 0;
+	vbe_mode_info_t mode_info;
+	vbe_mode_info_t best_mode_info;
+	// initialize best_mode to 0
+	memset(&best_mode_info, 0, sizeof(best_mode_info));
+	while ((mode_info.video_mode = info.video_mode_list[i]) != 0xFFFF) {
+		//DEBUG_PRINTF_VBE("%x: Mode: %04x\n", i, mode_info.video_mode);
+		vbe_get_mode_info(&mode_info);
 #if 0
-			DEBUG_PRINTF_VBE("Video Mode 0x%04x available, %s\n",
-					 mode_info.video_mode,
-					 (mode_info.attributes & 0x1) ==
-					 0 ? "not supported" : "supported");
-			DEBUG_PRINTF_VBE("\tTTY: %s\n",
-					 (mode_info.attributes & 0x4) ==
-					 0 ? "no" : "yes");
-			DEBUG_PRINTF_VBE("\tMode: %s %s\n",
-					 (mode_info.attributes & 0x8) ==
-					 0 ? "monochrome" : "color",
-					 (mode_info.attributes & 0x10) ==
-					 0 ? "text" : "graphics");
-			DEBUG_PRINTF_VBE("\tVGA: %s\n",
-					 (mode_info.attributes & 0x20) ==
-					 0 ? "compatible" : "not compatible");
-			DEBUG_PRINTF_VBE("\tWindowed Mode: %s\n",
-					 (mode_info.attributes & 0x40) ==
-					 0 ? "yes" : "no");
-			DEBUG_PRINTF_VBE("\tFramebuffer: %s\n",
-					 (mode_info.attributes & 0x80) ==
-					 0 ? "no" : "yes");
-			DEBUG_PRINTF_VBE("\tResolution: %dx%d\n",
-					 mode_info.x_resolution,
-					 mode_info.y_resolution);
-			DEBUG_PRINTF_VBE("\tChar Size: %dx%d\n",
-					 mode_info.x_charsize,
-					 mode_info.y_charsize);
-			DEBUG_PRINTF_VBE("\tColor Depth: %dbpp\n",
-					 mode_info.bits_per_pixel);
-			DEBUG_PRINTF_VBE("\tMemory Model: 0x%x\n",
-					 mode_info.memory_model);
-			DEBUG_PRINTF_VBE("\tFramebuffer Offset: %08x\n",
-					 mode_info.framebuffer_address);
+		DEBUG_PRINTF_VBE("Video Mode 0x%04x available, %s\n",
+				 mode_info.video_mode,
+				 (mode_info.attributes & 0x1) ==
+				 0 ? "not supported" : "supported");
+		DEBUG_PRINTF_VBE("\tTTY: %s\n",
+				 (mode_info.attributes & 0x4) ==
+				 0 ? "no" : "yes");
+		DEBUG_PRINTF_VBE("\tMode: %s %s\n",
+				 (mode_info.attributes & 0x8) ==
+				 0 ? "monochrome" : "color",
+				 (mode_info.attributes & 0x10) ==
+				 0 ? "text" : "graphics");
+		DEBUG_PRINTF_VBE("\tVGA: %s\n",
+				 (mode_info.attributes & 0x20) ==
+				 0 ? "compatible" : "not compatible");
+		DEBUG_PRINTF_VBE("\tWindowed Mode: %s\n",
+				 (mode_info.attributes & 0x40) ==
+				 0 ? "yes" : "no");
+		DEBUG_PRINTF_VBE("\tFramebuffer: %s\n",
+				 (mode_info.attributes & 0x80) ==
+				 0 ? "no" : "yes");
+		DEBUG_PRINTF_VBE("\tResolution: %dx%d\n",
+				 mode_info.x_resolution,
+				 mode_info.y_resolution);
+		DEBUG_PRINTF_VBE("\tChar Size: %dx%d\n",
+				 mode_info.x_charsize, mode_info.y_charsize);
+		DEBUG_PRINTF_VBE("\tColor Depth: %dbpp\n",
+				 mode_info.bits_per_pixel);
+		DEBUG_PRINTF_VBE("\tMemory Model: 0x%x\n",
+				 mode_info.memory_model);
+		DEBUG_PRINTF_VBE("\tFramebuffer Offset: %08x\n",
+				 mode_info.framebuffer_address);
 #endif
-			if ((mode_info.bits_per_pixel == input.color_depth)
-			    && (mode_info.x_resolution <=
-				input.max_screen_width)
-			    && ((mode_info.attributes & 0x80) != 0)	// framebuffer mode
-			    && ((mode_info.attributes & 0x10) != 0)	// graphics
-			    && ((mode_info.attributes & 0x8) != 0)	// color
-			    && (mode_info.x_resolution > best_mode_info.x_resolution))	// better than previous best_mode
-			{
-				// yiiiihaah... we found a new best mode
-				memcpy(&best_mode_info, &mode_info,
-				       sizeof(mode_info));
-			}
-			i++;
+		if ((mode_info.bits_per_pixel == input.color_depth)
+		    && (mode_info.x_resolution <= input.max_screen_width)
+		    && ((mode_info.attributes & 0x80) != 0)	// framebuffer mode
+		    && ((mode_info.attributes & 0x10) != 0)	// graphics
+		    && ((mode_info.attributes & 0x8) != 0)	// color
+		    && (mode_info.x_resolution > best_mode_info.x_resolution))	// better than previous best_mode
+		{
+			// yiiiihaah... we found a new best mode
+			memcpy(&best_mode_info, &mode_info, sizeof(mode_info));
 		}
+		i++;
+	}
 
-		if (best_mode_info.video_mode != 0) {
-			DEBUG_PRINTF_VBE
-			    ("Best Video Mode found: 0x%x, %dx%d, %dbpp, framebuffer_address: 0x%x\n",
-			     best_mode_info.video_mode,
-			     best_mode_info.x_resolution,
-			     best_mode_info.y_resolution,
-			     best_mode_info.bits_per_pixel,
-			     best_mode_info.framebuffer_address);
+	if (best_mode_info.video_mode != 0) {
+		DEBUG_PRINTF_VBE
+		    ("Best Video Mode found: 0x%x, %dx%d, %dbpp, framebuffer_address: 0x%x\n",
+		     best_mode_info.video_mode,
+		     best_mode_info.x_resolution,
+		     best_mode_info.y_resolution,
+		     best_mode_info.bits_per_pixel,
+		     best_mode_info.framebuffer_address);
 
-			//printf("Mode Info Dump:");
-			//dump(best_mode_info.mode_info_block, 64);
+		//printf("Mode Info Dump:");
+		//dump(best_mode_info.mode_info_block, 64);
 
-			// set the video mode
-			vbe_set_mode(&best_mode_info);
+		// set the video mode
+		vbe_set_mode(&best_mode_info);
 
-			if ((info.capabilities & 0x1) != 0) {
-				// switch to 8 bit palette format
-				vbe_set_palette_format(8);
-			}
-			// setup a palette:
-			// - first 216 colors are mixed colors for each component in 6 steps
-			//   (6*6*6=216)
-			// - then 10 shades of the three primary colors
-			// - then 10 shades of grey
-			// -------
-			// = 256 colors
-			//
-			// - finally black is color 0 and white color FF (because SLOF expects it
-			//   this way...)
-			// this resembles the palette that the kernel/X Server seems to expect...
+		if ((info.capabilities & 0x1) != 0) {
+			// switch to 8 bit palette format
+			vbe_set_palette_format(8);
+		}
+		// setup a palette:
+		// - first 216 colors are mixed colors for each component in 6 steps
+		//   (6*6*6=216)
+		// - then 10 shades of the three primary colors
+		// - then 10 shades of grey
+		// -------
+		// = 256 colors
+		//
+		// - finally black is color 0 and white color FF (because SLOF expects it
+		//   this way...)
+		// this resembles the palette that the kernel/X Server seems to expect...
 
-			uint8_t mixed_color_values[6] =
-			    { 0xFF, 0xDA, 0xB3, 0x87, 0x54, 0x00 };
-			uint8_t primary_color_values[10] =
-			    { 0xF3, 0xE7, 0xCD, 0xC0, 0xA5, 0x96, 0x77, 0x66,
-     0x3F, 0x27 };
-			uint8_t mc_size = sizeof(mixed_color_values);
-			uint8_t prim_size = sizeof(primary_color_values);
+		uint8_t mixed_color_values[6] =
+		    { 0xFF, 0xDA, 0xB3, 0x87, 0x54, 0x00 };
+		uint8_t primary_color_values[10] =
+		    { 0xF3, 0xE7, 0xCD, 0xC0, 0xA5, 0x96, 0x77, 0x66, 0x3F,
+			0x27
+		};
+		uint8_t mc_size = sizeof(mixed_color_values);
+		uint8_t prim_size = sizeof(primary_color_values);
 
-			uint8_t curr_color_index;
-			uint32_t curr_color;
+		uint8_t curr_color_index;
+		uint32_t curr_color;
 
-			uint8_t r, g, b;
-			// 216 mixed colors
-			for (r = 0; r < mc_size; r++) {
-				for (g = 0; g < mc_size; g++) {
-					for (b = 0; b < mc_size; b++) {
-						curr_color_index =
-						    (r * mc_size * mc_size) +
-						    (g * mc_size) + b;
-						curr_color = 0;
-						curr_color |= ((uint32_t) mixed_color_values[r]) << 16;	//red value
-						curr_color |= ((uint32_t) mixed_color_values[g]) << 8;	//green value
-						curr_color |= (uint32_t) mixed_color_values[b];	//blue value
-						vbe_set_color(curr_color_index,
-							      curr_color);
-					}
+		uint8_t r, g, b;
+		// 216 mixed colors
+		for (r = 0; r < mc_size; r++) {
+			for (g = 0; g < mc_size; g++) {
+				for (b = 0; b < mc_size; b++) {
+					curr_color_index =
+					    (r * mc_size * mc_size) +
+					    (g * mc_size) + b;
+					curr_color = 0;
+					curr_color |= ((uint32_t) mixed_color_values[r]) << 16;	//red value
+					curr_color |= ((uint32_t) mixed_color_values[g]) << 8;	//green value
+					curr_color |= (uint32_t) mixed_color_values[b];	//blue value
+					vbe_set_color(curr_color_index,
+						      curr_color);
 				}
 			}
-
-			// 10 shades of each primary color
-			// red
-			for (r = 0; r < prim_size; r++) {
-				curr_color_index =
-				    mc_size * mc_size * mc_size + r;
-				curr_color =
-				    ((uint32_t) primary_color_values[r]) << 16;
-				vbe_set_color(curr_color_index, curr_color);
-			}
-			//green
-			for (g = 0; g < prim_size; g++) {
-				curr_color_index =
-				    mc_size * mc_size * mc_size + prim_size + g;
-				curr_color =
-				    ((uint32_t) primary_color_values[g]) << 8;
-				vbe_set_color(curr_color_index, curr_color);
-			}
-			//blue
-			for (b = 0; b < prim_size; b++) {
-				curr_color_index =
-				    mc_size * mc_size * mc_size +
-				    prim_size * 2 + b;
-				curr_color = (uint32_t) primary_color_values[b];
-				vbe_set_color(curr_color_index, curr_color);
-			}
-			// 10 shades of grey
-			for (i = 0; i < prim_size; i++) {
-				curr_color_index =
-				    mc_size * mc_size * mc_size +
-				    prim_size * 3 + i;
-				curr_color = 0;
-				curr_color |= ((uint32_t) primary_color_values[i]) << 16;	//red
-				curr_color |= ((uint32_t) primary_color_values[i]) << 8;	//green
-				curr_color |= ((uint32_t) primary_color_values[i]);	//blue
-				vbe_set_color(curr_color_index, curr_color);
-			}
-
-			// SLOF is using color 0x0 (black) and 0xFF (white) to draw to the screen...
-			vbe_set_color(0x00, 0x00000000);
-			vbe_set_color(0xFF, 0x00FFFFFF);
-
-			output->screen_width = best_mode_info.x_resolution;
-			output->screen_height = best_mode_info.y_resolution;
-			output->screen_linebytes = best_mode_info.linebytes;
-			output->color_depth = best_mode_info.bits_per_pixel;
-			output->framebuffer_address =
-			    best_mode_info.framebuffer_address;
-		} else {
-			printf("%s: No suitable video mode found!\n",
-			       __FUNCTION__);
-			//unset display_type...
-			output->display_type = 0;
 		}
+
+		// 10 shades of each primary color
+		// red
+		for (r = 0; r < prim_size; r++) {
+			curr_color_index = mc_size * mc_size * mc_size + r;
+			curr_color = ((uint32_t) primary_color_values[r]) << 16;
+			vbe_set_color(curr_color_index, curr_color);
+		}
+		//green
+		for (g = 0; g < prim_size; g++) {
+			curr_color_index =
+			    mc_size * mc_size * mc_size + prim_size + g;
+			curr_color = ((uint32_t) primary_color_values[g]) << 8;
+			vbe_set_color(curr_color_index, curr_color);
+		}
+		//blue
+		for (b = 0; b < prim_size; b++) {
+			curr_color_index =
+			    mc_size * mc_size * mc_size + prim_size * 2 + b;
+			curr_color = (uint32_t) primary_color_values[b];
+			vbe_set_color(curr_color_index, curr_color);
+		}
+		// 10 shades of grey
+		for (i = 0; i < prim_size; i++) {
+			curr_color_index =
+			    mc_size * mc_size * mc_size + prim_size * 3 + i;
+			curr_color = 0;
+			curr_color |= ((uint32_t) primary_color_values[i]) << 16;	//red
+			curr_color |= ((uint32_t) primary_color_values[i]) << 8;	//green
+			curr_color |= ((uint32_t) primary_color_values[i]);	//blue
+			vbe_set_color(curr_color_index, curr_color);
+		}
+
+		// SLOF is using color 0x0 (black) and 0xFF (white) to draw to the screen...
+		vbe_set_color(0x00, 0x00000000);
+		vbe_set_color(0xFF, 0x00FFFFFF);
+
+		output->screen_width = best_mode_info.x_resolution;
+		output->screen_height = best_mode_info.y_resolution;
+		output->screen_linebytes = best_mode_info.linebytes;
+		output->color_depth = best_mode_info.bits_per_pixel;
+		output->framebuffer_address =
+		    best_mode_info.framebuffer_address;
+	} else {
+		printf("%s: No suitable video mode found!\n", __FUNCTION__);
+		//unset display_type...
+		output->display_type = 0;
 	}
 	return 0;
 }

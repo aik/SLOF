@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -61,7 +61,13 @@
    THEN
 ;
 
+
 #include "sms/sms-load.fs"
+
+
+\ Watchdog will be rearmed during load if use-load-watchdog variable is TRUE
+TRUE VALUE use-load-watchdog?
+
 
 : start-it ( -- )
    key? IF
@@ -81,5 +87,6 @@
       (boot?)
    THEN
 
-   disable-watchdog .banner
+   disable-watchdog  FALSE to use-load-watchdog?
+   .banner
 ;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -15,6 +15,7 @@
 
 int isdigit(int c);
 int isxdigit(int c);
+int isprint(int c);
 int isspace(int c);
 
 int tolower(int c);

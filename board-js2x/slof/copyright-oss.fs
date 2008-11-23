@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,7 +10,7 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-cr .(   Copyright (c) char ) emit .(  2004, 2007 IBM Corporation All rights reserved.)
+cr .(   Copyright (c) char ) emit .(  2004, 2008 IBM Corporation All rights reserved.)
 cr .(   This program and the accompanying materials are made available)
 cr .(   under the terms of the BSD License available at)
 cr .(   http://www.opensource.org/licenses/bsd-license.php)

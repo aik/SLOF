@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -23,35 +23,36 @@ false value flash-new
 ;
 
 : flash-read-temp ( -- success? )
-    get-flashside 1 = IF flash-addr load-base over flash-image-size move true
-    ELSE
-       false
-    THEN
+   get-flashside 1 = IF flash-addr load-base over flash-image-size rmove true
+   ELSE
+      false
+   THEN
 ;
 
 : flash-read-perm ( -- success? )
-    get-flashside 0= IF flash-addr load-base over flash-image-size move true
-    ELSE
-       false
-    THEN
+   get-flashside 0= IF
+      flash-addr load-base over flash-image-size rmove true
+   ELSE
+      false
+   THEN
 ;
 
 : flash-switch-side ( side -- success? )
-        set-flashside 0<> IF
-                s" Cannot change flashside" type cr false
-        ELSE
-                true
-        THEN
+   set-flashside 0<> IF
+      s" Cannot change flashside" type cr false
+   ELSE
+      true
+   THEN
 ;
 
 : flash-ensure-temp ( -- success? )
-        get-flashside 0= IF
-            cr ." Cannot flash perm! Switching to temp side!"
-            1 flash-switch-side
-        ELSE
-            true
-        THEN
- ;
+   get-flashside 0= IF
+      cr ." Cannot flash perm! Switching to temp side!"
+      1 flash-switch-side
+   ELSE
+      true
+   THEN
+;
 
 \ update-flash -f <filename>
 \              -l
@@ -63,39 +64,47 @@ false value flash-new
    parse-word                      ( str len )   \ Parse first string
    drop dup c@                     ( str first-char )
    [char] - <> IF
-       update-flash-help r> 2drop EXIT
+      update-flash-help r> 2drop EXIT
    THEN
 
    1+ c@                           ( second-char )
    CASE
-      [char] f OF parse-word cr s" do-load" evaluate
-                  flash-ensure-temp TO flash-new
-               ENDOF
-      [char] l OF flash-ensure-temp
-               ENDOF
-      [char] d OF flash-load-base load-base 200000 move
-                  flash-ensure-temp
-               ENDOF
-      [char] c OF flash-read-temp 0= flash-new or IF
-                     ." Cannot commit temp, need to boot on temp first " cr false
-                  ELSE
-                     0 flash-switch-side 
-                  THEN
-               ENDOF
-      [char] r OF flash-read-perm 0= IF
-                     ." Cannot commit perm, need to boot on perm first " cr false
-                  ELSE
-                      1 flash-switch-side
-                  THEN
-               ENDOF
-      dup      OF false ENDOF
-  ENDCASE
+      [char] f OF
+         parse-word cr s" do-load" evaluate
+         flash-ensure-temp TO flash-new
+      ENDOF
+      [char] l OF
+         flash-ensure-temp
+      ENDOF
+      [char] d OF
+         flash-load-base load-base 200000 move
+         flash-ensure-temp
+      ENDOF
+      [char] c OF
+         flash-read-temp 0= flash-new or IF
+            ." Cannot commit temp, need to boot on temp first " cr false
+         ELSE
+            0 flash-switch-side
+         THEN
+      ENDOF
+      [char] r OF
+         flash-read-perm 0= IF
+         ." Cannot commit perm, need to boot on perm first " cr false
+         ELSE
+         1 flash-switch-side
+         THEN
+      ENDOF
+      dup      OF
+         false
+      ENDOF
+   ENDCASE
 
-                                   ( true| false )
-  0= IF
-     update-flash-help r> drop EXIT 
-  THEN
+   ( true| false )
 
-  load-base flash-write 0= IF ." Flash write failed !! " cr THEN
-  r> set-flashside drop                           \ Restore old flashside
+   0= IF
+      update-flash-help r> drop EXIT
+   THEN
+
+   load-base flash-write 0= IF ." Flash write failed !! " cr THEN
+   r> set-flashside drop                           \ Restore old flashside
 ;

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -117,12 +117,47 @@
 
 : (scsi-create) ( -- )
    s" SCSI-CREATE " usb-debug-print
+
+\ ***********************************************************************
+\ a problem was encountered on Media-Tray (REV-0):
+\ The CDROM is connected to USB via an ATA/USB-Bridge (U38: CYPRESS CY7C68300)
+\ The C-Revision of this chip has an malfunction which results in a
+\ hanging IORD Signal at the ATA-Interface and so prevents from reading.
+\ The B-Revision doesn't have this problem (populated on Media-Tray REV-5)
+\ Two additional Mass-Storage-Resets are necessary to reset the ATA-Interface.
+\ (see CYPRESS Application Notes to CY7C68300)
+\ (see USB-Spec: 'Bulk-Only-Transport')
+\ ***********************************************************************
+\ a mounted ISO image (via USB) doesn't accept this bulk-reset-command!
+\ ***********************************************************************
+
+   dd-buffer @ 8 + w@-le 4b4 =         \ VendorID = CYPRESS ?
+   IF
+      dd-buffer @ a + w@-le 6830 =     \ Device = CY7C68300 ?
+      IF
+       \ here a Cypress ATA/USB Bridge is detected
+       d# 20 ms
+       mps new-device-address 0 0 0   ( MPS fun-addr dir data-buff data-len )
+       control-bulk-reset             ( TRUE|FALSE )
+       d# 100 ms
+       mps new-device-address 0 0 0   ( TRUE|FALSE MPS fun-addr dir data-buff data-len )
+       control-bulk-reset             ( TRUE|FALSE TRUE|FALSE )
+       and invert
+       IF
+          ."   ** BULK-RESET failed **" cr
+       THEN
+       d# 20 ms
+      THEN
+   THEN
+
+   0 ch-buffer !                 \ preset a clean response
    mps new-device-address 0 ch-buffer 1 control-std-get-maxlun ( TRUE|FALSE )
    IF
 \      s" GET-MAX-LUN IS WORKING :" usb-debug-print
 \      ch-buffer  5 dump cr      \ dump the responsed message
    ELSE
       s" ERROR in GET-MAX-LUN " usb-debug-print
+      0 ch-buffer !              \ clear invalid numbers
       cd-buffer @ 5 + c@ to temp1
       temp1 new-device-address control-std-set-configuration drop
    THEN
@@ -133,6 +168,34 @@
    \ Workaround: Devices that might report a higher number are treated
    \             as having exactly one LUN. Without this workaround the
    \             USB scan hangs during the setup of non-available LUNs.
+   \
+   \ Concerns: "FUJITSU MHV2040AT" (VendorID: 0x984 / DeviceID: 0x70)
+   \
+   \ MR: This Device reports an invalid MaxLUN number within the first
+   \ three seconds after power-on or USB-Reset. The following loop repeats
+   \ the MaxLUN request up to 8 times until a valid ( <15 ) value is responded.
+   \ This can last up to four seconds as there is a delay of 500ms in every loop
+
+   0                       ( counter )
+   begin
+      dup 8 <              ( counter flag )           \ max 8 * 500 ms
+      ch-buffer c@ f >     ( counter flag flag )      \ is MuxLUN above limit ?
+      AND                  ( counter flag )
+      while
+         d# 500 ms                     \ this device is not yet ready
+         0 ch-buffer !                 \ preset a clean response
+         mps new-device-address 0 ch-buffer 1 control-std-get-maxlun ( TRUE|FALSE )
+         not
+         IF
+            s"  ** ERROR in GET-MAX-LUN ** " usb-debug-print
+            drop 10                    \ replace counter to force loop end
+         THEN
+         1+                ( counter+1 )
+      repeat
+   drop
+
+   \ here is still the workaround to handle invalid MaxLUNs as '0'
+   \
    ch-buffer c@ dup 0= swap f > or IF   
       s" + LUN: " ch-buffer c@  usb-debug-print-val
       (atapi-scsi-property-set)
@@ -208,26 +271,27 @@
             (classify-storage)
          ENDOF
          03 OF
-	     ( Interface-protocol Interface-subclass )
-	     s" USB: HID Found!" usb-debug-print 
-	     01 = IF
-		 case
-		     01 of
-			 s" USB keyboard!" usb-debug-print 
-			 (keyboard-create)
-		     endof
-		     02 of
-		     	 s" USB mouse!" usb-debug-print 
-		     	 (mouse-create)
-		     endof
-		     dup of
-			 s" USB: unsupported HID!" usb-debug-print
-		     endof
-		 endcase
-	     ELSE
-		 s" USB: unsupported HID!" usb-debug-print
-	     THEN
-	 ENDOF
+	         ( Interface-protocol Interface-subclass )
+	         s" USB: HID Found!" usb-debug-print
+	         01 =
+            IF
+		         case
+		            01 of
+			            s" USB keyboard!" usb-debug-print
+			            (keyboard-create)
+		            endof
+		            02 of
+		     	         s" USB mouse!" usb-debug-print
+		     	         (mouse-create)
+		            endof
+		            dup of
+			            s" USB: unsupported HID!" usb-debug-print
+		            endof
+		         endcase
+	         ELSE
+		         s" USB: unsupported HID!" usb-debug-print
+	         THEN
+	      ENDOF
          dup OF
             ( Interface-protocol Interface-subclass )
             s" USB: unsupported interface type." usb-debug-print
@@ -256,4 +320,5 @@
          s" USB: Unknown device found." usb-debug-print
       ENDOF
    ENDCASE
+   uDOC-present 0f and to uDOC-present \ remove uDOC processing flag
 ;

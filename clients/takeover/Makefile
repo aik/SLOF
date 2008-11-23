@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -51,8 +51,8 @@ ppc32wrap.o: ppc32wrap.S
 	$(CROSS)gcc -m32 -a32 $(CFLAGS) -c $< -o $@
 
 clean distclean:
-	make -C $(LIBCMNDIR) clean
-	make -C $(CLIENTSDIR) clean
+	make -C $(LIBCMNDIR) $@
+	make -C $(CLIENTSDIR) $@
 	$(RM) *.o *.bin *.elf
 	$(RM) takeover.elf32 takeover.elf64 takeover.tmp
 %.o: %.oco

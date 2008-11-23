@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -13,10 +13,49 @@
 #ifndef DEVICE_LIB_H
 #define DEVICE_LIB_H
 
-#include "types.h"
+#include <stdint.h>
 #include <cpu.h>
 #include "of.h"
 #include <stdio.h>
+
+// a Expansion Header Struct as defined in Plug and Play BIOS Spec 1.0a Chapter 3.2
+typedef struct {
+	char signature[4];	// signature
+	uint8_t structure_revision;
+	uint8_t length;		// in 16 byte blocks
+	uint16_t next_header_offset;	// offset to next Expansion Header as 16bit little-endian value, as offset from the start of the Expansion ROM
+	uint8_t reserved;
+	uint8_t checksum;	// the sum of all bytes of the Expansion Header must be 0
+	uint32_t device_id;	// PnP Device ID as 32bit little-endian value
+	uint16_t p_manufacturer_string;	//16bit little-endian offset from start of Expansion ROM
+	uint16_t p_product_string;	//16bit little-endian offset from start of Expansion ROM
+	uint8_t device_base_type;
+	uint8_t device_sub_type;
+	uint8_t device_if_type;
+	uint8_t device_indicators;
+	// the following vectors are all 16bit little-endian offsets from start of Expansion ROM
+	uint16_t bcv;		// Boot Connection Vector
+	uint16_t dv;		// Disconnect Vector
+	uint16_t bev;		// Bootstrap Entry Vector
+	uint16_t reserved_2;
+	uint16_t sriv;		// Static Resource Information Vector
+} __attribute__ ((__packed__)) exp_header_struct_t;
+
+// a PCI Data Struct as defined in PCI 2.3 Spec Chapter 6.3.1.2
+typedef struct {
+	uint8_t signature[4];	// signature, the String "PCIR"
+	uint16_t vendor_id;
+	uint16_t device_id;
+	uint16_t reserved;
+	uint16_t pci_ds_length;	// PCI Data Structure Length, 16bit little-endian value
+	uint8_t pci_ds_revision;
+	uint8_t class_code[3];
+	uint16_t img_length;	// length of the Exp.ROM Image, 16bit little-endian value in 512 bytes
+	uint16_t img_revision;
+	uint8_t code_type;
+	uint8_t indicator;
+	uint16_t reserved_2;
+} __attribute__ ((__packed__)) pci_data_struct_t;
 
 typedef struct {
 	uint8_t bus;
@@ -25,7 +64,7 @@ typedef struct {
 	phandle_t phandle;
 	ihandle_t ihandle;
 	// store the address of the BAR that is used to simulate
-	// legacy memory accesses
+	// legacy VGA memory accesses
 	uint64_t vmem_addr;
 	uint64_t vmem_size;
 	// used to buffer I/O Accesses, that do not access the I/O Range of the device...
@@ -33,6 +72,9 @@ typedef struct {
 	uint8_t io_buffer[64 * 1024];
 	uint16_t pci_vendor_id;
 	uint16_t pci_device_id;
+	// translated address of the "PC-Compatible" Expansion ROM Image for this device
+	uint64_t img_addr;
+	uint32_t img_size;	// size of the Expansion ROM Image (read from the PCI Data Structure)
 } device_t;
 
 typedef struct {
@@ -61,6 +103,8 @@ uint8_t taa_last_entry;
 device_t bios_device;
 
 uint8_t dev_init(char *device_name);
+// NOTE: for dev_check_exprom to work, dev_init MUST be called first!
+uint8_t dev_check_exprom();
 
 uint8_t dev_translate_address(uint64_t * addr);
 

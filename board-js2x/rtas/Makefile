@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -19,8 +19,8 @@ include $(TOPCMNDIR)/make.rules
 LDFLAGS		= -nostdlib
 CPPFLAGS	= -I. -I$(LIBCMNDIR)/libc/include -I$(LIBCMNDIR)/libipmi -I$(INCLBRDDIR) \
 		  -I$(INCLCMNDIR) -I$(RTASCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
-ASFLAGS		=  $(PLATFORM) -Wa,-mregnames $(FLAG)
-CFLAGS		+= -Wall -Wextra -O2 -msoft-float -ffreestanding $(PLATFORM) $(FLAG)
+ASFLAGS		= -Wa,-mregnames $(FLAG)
+CFLAGS		+= -Wall -Wextra -O2 -msoft-float -ffreestanding $(FLAG)
 
 # Board specific RTAS files:
 BOARD_SRC_ASM	=
@@ -56,7 +56,7 @@ rtas: $(RTASCMNDIR)/rtas.lds $(OBJS) reloc_table.o
 	$(LD) $(LDFLAGS) -o $@ -T $(RTASCMNDIR)/rtas.lds $(OBJS) reloc_table.o
 
 reloc_table.o: $(TOOLSDIR)/gen_reloc_table $(OBJS)
-	$(TOOLSDIR)/create_reloc_table.sh --ld "$(LD)" --ldflags "$(LDFLAGS)" \
+	$(TOOLSDIR)/create_reloc_table.sh --ld "$(ONLY_LD)" --ldflags "$(LDFLAGS)" \
 	  --lds "$(RTASCMNDIR)/rtas.lds" --objcopy "$(OBJCOPY)" $(OBJS)
 
 $(TOOLSDIR)/gen_reloc_table: $(TOOLSDIR)/gen_reloc_table.c

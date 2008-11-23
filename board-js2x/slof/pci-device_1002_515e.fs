@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -413,7 +413,14 @@ pllwriteoff
   h# 50 reg-rl@ H# F8FFFFFF AND h# 03000000 or h# 50 reg-rl!
   h# 50 h# 22C reg-rl!
   set-palette
-  mem-addr h# F0000 0 fill
+
+  \ at this point for some reason mem-addr does not point
+  \ to the right address and therefore the following command
+  \ which should probably clean the frame buffer just
+  \ overwrites everything starting from 0 including the
+  \ exception vectors
+
+  \ mem-addr h# F0000 0 fill
  ;
 
 : DO-INIT

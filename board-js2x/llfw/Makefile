@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -14,34 +14,25 @@ include ../../make.rules
 
 CPPFLAGS	= -I$(INCLBRDDIR) -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH) \
 		  -I$(LIBCMNDIR)/libc/include
-CFLAGS		+= -fno-builtin $(CPPFLAGS) -O2  -msoft-float $(MAMBO) $(PLATFORM)
+CFLAGS		+= -fno-builtin $(CPPFLAGS) -O2  -msoft-float $(MAMBO)
 CFLAGS		+= $(BOOT) $(IOCONF) -Wa,-mregnames $(RELEASE) $(CPUARCHDEF) -Wall
-ASFLAGS         = $(PLATFORM) $(BOOT) $(IOCONF) $(RELEASE)$(CPUARCHDEF)  -Wa,-mregnames
+ASFLAGS         = $(BOOT) $(IOCONF) $(RELEASE)$(CPUARCHDEF)  -Wa,-mregnames
 LDFLAGS1	= -nostdlib -e__start -Tstage2.lds -N -Ttext=0x100
 
 
 STG1OBJ		 = startup.o boot_abort.o romfs.o hw.o io_generic.o board_io.o 
 STG1OBJ		 += stage2_head.o stage2.o comlib.o romfs_wrap.o nvramlog.o
+STG1OBJ		 += u4mem.o
 
-all: stage1.js2x stage1.bimini stageS.bin Cboot.o
+all: stage1.bin stageS.bin Cboot.o
 
-stage1.js2x:	$(STG1OBJ) u4maui.o $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
+stage1.bin:	$(STG1OBJ) $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
 		$(LD) $(LDFLAGS1) -o stage1.elf $^
-		$(OBJCOPY) -O binary stage1.elf stage1.js2x
-
-stage1.bimini:	$(STG1OBJ) u4bimini.o $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
-		$(LD) $(LDFLAGS1) -o stage1.elf $?
-		$(OBJCOPY) -O binary stage1.elf stage1.bimini
+		$(OBJCOPY) -O binary stage1.elf $@
 
 stageS.bin:	stage_s.o
 		$(LD) -nostdlib -N -Tstage_s.lds -o stage_s.elf stage_s.o
 		$(OBJCOPY) -O binary stage_s.elf stageS.bin
-
-u4bimini.o:	u4mem.c
-		$(CC) $(CFLAGS) -DBOARD_BIMINI  -o u4bimini.o -c u4mem.c
-
-u4maui.o:	u4mem.c
-		$(CC) $(CFLAGS) -DBOARD_MAUI -o u4maui.o -c u4mem.c
 
 romfs.o:	../../llfw/romfs.S
 		$(CC) $(CFLAGS) -c ../../llfw/romfs.S
@@ -76,4 +67,4 @@ $(LIBCMNDIR)/libelf.a:
 		$(CC) $(CFLAGS) -c $^
 
 clean:
-		rm -f *.o *.bin *.elf *.js2x *.bimini
+		rm -f *.o *.bin *.elf

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -9,8 +9,6 @@
  * Contributors:
  *     IBM Corporation - initial implementation
  *****************************************************************************/
-// ============================================================================
-// ============================================================================
 
 
 //
@@ -70,7 +68,16 @@ PRIM(COMP_X2d_BUFFER) PUSH; TOS.a = the_comp_buffer; MIRP
 PRIM(HEAP_X2d_START) PUSH; TOS.a = the_heap_start; MIRP
 PRIM(HEAP_X2d_END) PUSH; TOS.a = the_heap_end; MIRP
 
+// FDT pointer
+PRIM(FDT_X2d_START) PUSH; TOS.u = fdt_start; MIRP
 
+// romfs-base
+PRIM(ROMFS_X2d_BASE) PUSH; TOS.u = romfs_base; MIRP
+
+// if the low level firmware is epapr compliant it will put the
+// epapr magic into r6 before starting paflof
+// epapr-magic is a copy of r6
+PRIM(EPAPR_X2d_MAGIC) PUSH; TOS.u = epapr_magic; MIRP
 
 // Codefields.
 code_DOCOL:
@@ -421,7 +428,7 @@ code_FILL:
 		switch (((type_u)d | (type_u)size) & (sizeof(type_u)-1)) {
 			case 0: {
 				type_u *up = (type_u *)d;
-#ifndef UNIX
+#if (__LONG_MAX__ > 2147483647L)
 				fill_v |= fill_v << 32;
 #endif
 				while ((size-=sizeof(type_u)) >= 0)
@@ -533,4 +540,10 @@ PRIM(_X3f_PICK)
         type_u b = TOS.u; POP;
         if (b) { NOS = TOS; }
         POP;
+MIRP
+
+/* zcount ( zstr -- str len ) */
+PRIM(ZCOUNT)
+	type_u len = strlen(TOS.a);
+	PUSH; TOS.u = len;
 MIRP

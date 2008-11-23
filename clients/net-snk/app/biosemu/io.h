@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -13,7 +13,7 @@
 #ifndef _BIOSEMU_IO_H_
 #define _BIOSEMU_IO_H_
 #include <x86emu/x86emu.h>
-#include <types.h>
+#include <stdint.h>
 
 uint8_t my_inb(X86EMU_pioAddr addr);
 

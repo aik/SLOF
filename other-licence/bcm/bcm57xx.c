@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -279,6 +279,27 @@ static u08_t       bcm_pcicfg_devfn;
 static bcm_status_t bcm_status;
 
 /*
+ * snk module interface
+ ******************************************************************************
+ */
+static int bcm_init   ( void );
+static int bcm_term   ( void );
+static int bcm_xmit   ( char *f_buffer_pc, int f_len_i );
+static int bcm_receive( char *f_buffer_pc, int f_len_i );
+static int bcm_ioctl  ( int request, void* data );
+
+snk_module_t snk_module_interface = {
+	.version = 1,
+	.type    = MOD_TYPE_NETWORK,
+	.running = 0,
+	.init    = bcm_init,
+	.term    = bcm_term,
+	.write   = bcm_xmit,
+	.read    = bcm_receive,
+	.ioctl   = bcm_ioctl
+};
+
+/*
  * implementation
  ******************************************************************************
  */
@@ -289,7 +310,7 @@ static bcm_status_t bcm_status;
  ******************************************************************************
  */
 int
-check_driver( pci_config_t *pcicfg );
+check_driver( pci_config_t *pci_conf );
 
 
 /*
@@ -641,9 +662,10 @@ static i32_t
 bcm_mii_read16( u32_t f_reg_u32, u16_t *f_value_pu16 )
 {
 	static const u32_t RD_VAL = ( ( ((u32_t) 0x1) << 21 ) | BIT32( 29 ) | BIT32( 27 ) );
-	i32_t              l_autopoll_i32 = 0;
-	u32_t              l_rdval_u32;
-	u32_t              i;
+	i32_t l_autopoll_i32 = 0;
+	u32_t l_rdval_u32;
+	u32_t i;
+	u16_t first_not_busy;
 
 	/*
 	 * only 0x00-0x1f are valid registers
@@ -669,11 +691,16 @@ bcm_mii_read16( u32_t f_reg_u32, u16_t *f_value_pu16 )
 
 	/*
 	 * wait for transaction to complete
+	 * ERRATA workaround: must read two "not busy" states to indicate transaction complete
 	 */
-	i           = 25;
+	i = 25;
+	first_not_busy = 0;
 	l_rdval_u32 = bcm_read_reg32( MI_COM_R );
-	while( ( --i ) && 
-	       ( ( l_rdval_u32 & BIT32( 29 ) ) != 0 ) ) {
+	while( ( --i ) &&
+	       ( (first_not_busy == 0) || ( ( l_rdval_u32 & BIT32( 29 ) ) != 0 ) ) ) {
+                /* Is this the first clear BUSY state? */
+		if ( ( l_rdval_u32 & BIT32( 29 ) ) == 0 )
+			first_not_busy++;
 		us_delay( 10 );
 		l_rdval_u32 = bcm_read_reg32( MI_COM_R );
 	}
@@ -1068,12 +1095,13 @@ bcm_nvram_write( u32_t f_addr_u32, u32_t f_value_u32, u32_t lock )
 static i32_t
 bcm_mii_phy_init( void )
 {
-	static const u32_t PHY_STAT_R = (u32_t) 0x01;
-	static const u32_t AUX_STAT_R = (u32_t) 0x19;
-	static const u32_t MODE_GMII  = BIT32( 3 );
-	static const u32_t MODE_MII   = BIT32( 2 );
-	static const u32_t MII_MSK    = ( MODE_GMII | MODE_MII );
-	static const u16_t GIGA_ETH   = ( BIT16( 10 ) | BIT16( 9 ) );
+	static const u32_t PHY_STAT_R   = (u32_t) 0x01;
+	static const u32_t AUX_STAT_R   = (u32_t) 0x19;
+	static const u32_t MODE_GMII    = BIT32( 3 );
+	static const u32_t MODE_MII     = BIT32( 2 );
+	static const u32_t NEG_POLARITY = BIT32( 10 );
+	static const u32_t MII_MSK      = ( MODE_GMII | MODE_MII );
+	static const u16_t GIGA_ETH     = ( BIT16( 10 ) | BIT16( 9 ) );
 	i32_t i;
 	u16_t v;
 
@@ -1139,6 +1167,13 @@ bcm_mii_phy_init( void )
 			i |=  MODE_MII;
 		}
 
+	}
+
+	if( IS_5704 && !IS_SERDES ) {
+#ifdef BCM_DEBUG	
+		printk( "bcm57xx: set the link ready signal for 5704C to negative polarity\n" );
+#endif
+		i |= NEG_POLARITY; // set the link ready signal for 5704C to negative polarity
 	}
 
 	bcm_write_reg32( ETH_MAC_MODE_R, i );
@@ -1677,7 +1712,7 @@ bcm_fw_halt( void )
 
 #ifdef BCM_SW_AUTONEG
 static void
-bcm_sw_autoneg( pci_config_t *pcicfg ) {
+bcm_sw_autoneg( void ) {
 	u32_t i, j, k;
 	u32_t SerDesCfg;
 	u32_t SgDigControl;
@@ -1839,7 +1874,7 @@ bcm_sw_autoneg( pci_config_t *pcicfg ) {
 #endif
 
 static int
-bcm_handle_events( pci_config_t *pcicfg ) {
+bcm_handle_events( void ) {
 #ifdef BCM_DEBUG
 #ifdef BCM_SHOW_ASF_REGS
 	// ASF REGISTER CHECK
@@ -1863,7 +1898,7 @@ bcm_handle_events( pci_config_t *pcicfg ) {
 	if( ( bcm_read_reg32( ETH_MAC_STAT_R ) &
 	    ( BIT32( 12 ) | BIT32( 3 ) | BIT32( 0 ) ) ) != 0 ) {
 		// link timer procedure
-		bcm_sw_autoneg( pcicfg );
+		bcm_sw_autoneg();
 	}
 #endif
 
@@ -1908,7 +1943,7 @@ bcm_handle_events( pci_config_t *pcicfg ) {
  * bcm_receive
  */
 static int
-bcm_receive( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
+bcm_receive( char *f_buffer_pc, int f_len_i )
 {
 	u32_t l_rxret_prod_u32  = bcm_read_reg32( RXRET_PROD_IND );
 	u32_t l_rxret_cons_u32  = bcm_read_reg32( RXRET_CONS_IND );
@@ -1925,7 +1960,7 @@ bcm_receive( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
 	 *       done by the indice reads
 	 */
 
-	bcm_handle_events( pcicfg );
+	bcm_handle_events();
 
 	/*
 	 * if producer index == consumer index then nothing was received
@@ -2048,7 +2083,7 @@ bcm_receive( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
 }
 
 static int
-bcm_xmit( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
+bcm_xmit( char *f_buffer_pc, int f_len_i )
 {
 	u32_t l_tx_cons_u32 = bcm_read_reg32( TX_CONS_IND );
 	u32_t l_tx_prod_u32 = bcm_read_reg32( TX_PROD_IND );
@@ -2079,7 +2114,7 @@ bcm_xmit( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
 #endif
 #endif
 
-	bcm_handle_events( pcicfg );
+	bcm_handle_events();
 
 	/*
 	 * make all consumed bd's available in the ring again
@@ -2163,7 +2198,7 @@ bcm_xmit( pci_config_t *pcicfg, char *f_buffer_pc, int f_len_i )
 }
 
 int
-check_driver( pci_config_t *pcicfg )
+check_driver( pci_config_t *pci_conf )
 {
 	u64_t i;
 
@@ -2172,7 +2207,7 @@ check_driver( pci_config_t *pcicfg )
 	 * by verifying vendor & device id
 	 * vendor id 0x14e4 == Broadcom
 	 */
-        if( pcicfg->vendor_id != 0x14e4 ) {
+        if( pci_conf->vendor_id != 0x14e4 ) {
 #ifdef BCM_DEBUG
 		printk( "bcm57xx: netdevice not supported, illegal vendor id\n" );
 #endif
@@ -2180,22 +2215,40 @@ check_driver( pci_config_t *pcicfg )
 	}
 
 	for( i = 0; bcm_dev[i].m_dev_u32 != 0; i++ ) {
-		if( bcm_dev[i].m_dev_u32 ==
-		    (u32_t) pcicfg->device_id ) {
+		if( bcm_dev[i].m_dev_u32 == (u32_t) pci_conf->device_id ) {
 			// success
-			bcm_device_u64 = bcm_dev[i].m_devmsk_u64;
-			return 0;
+			break;
 		}
 	}
-#ifdef BCM_DEBUG
-	printk( "bcm57xx: netdevice not supported, illegal device ID\n" );
-#endif
 
-        return -1;
+	if(bcm_dev[i].m_dev_u32 == 0) {
+#ifdef BCM_DEBUG
+		printk( "bcm57xx: netdevice not supported, illegal device ID\n" );
+#endif
+		return -1;
+	}
+
+	/*
+	 * initialize static variables
+	 */
+	bcm_device_u64 = bcm_dev[i].m_devmsk_u64;
+	bcm_rxret_ring_sz = 0;
+	bcm_baseaddr_u64  = 0;
+	bcm_memaddr_u64   = 0;
+
+	bcm_tx_start_u32    = 0;
+	bcm_tx_stop_u32     = 0;
+	bcm_tx_bufavail_u32 = 0;
+
+	bcm_pcicfg_puid  = pci_conf->puid;
+	bcm_pcicfg_bus   = pci_conf->bus;
+	bcm_pcicfg_devfn = pci_conf->devfn;
+
+	return 0;
 }
 
 static void
-bcm_wol_activate( pci_config_t *pcicfg )
+bcm_wol_activate(void)
 {
 #ifdef BCM_DEBUG
 	u16_t reg_pwr_cap;
@@ -2214,18 +2267,18 @@ bcm_wol_activate( pci_config_t *pcicfg )
 //	ms_delay( 100 );
 
 #ifdef BCM_DEBUG
-	reg_pwr_cap = snk_kernel_interface->pci_config_read( pcicfg->puid,
+	reg_pwr_cap = snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                                     2,
-	                                                     pcicfg->bus,
-	                                                     pcicfg->devfn,
+	                                                     bcm_pcicfg_bus,
+	                                                     bcm_pcicfg_devfn,
 	                                                     0x4a );
 	printk( "bcm57xx: PM Capability Register: %04X\n", reg_pwr_cap );
 #endif
 	/* get curretn power control register */
-	reg_pwr_crtl = snk_kernel_interface->pci_config_read( pcicfg->puid,
+	reg_pwr_crtl = snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                                      2,
-	                                                      pcicfg->bus,
-	                                                      pcicfg->devfn,
+	                                                      bcm_pcicfg_bus,
+	                                                      bcm_pcicfg_devfn,
 	                                                      0x4c );
 
 #ifdef BCM_DEBUG
@@ -2235,10 +2288,10 @@ bcm_wol_activate( pci_config_t *pcicfg )
 	/* switch to power state D0 */
 	reg_pwr_crtl |= 0x8000;
 	reg_pwr_crtl &= ~(0x0003);
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        0x4c,
 	                                        reg_pwr_crtl );
 	ms_delay(10);
@@ -2253,20 +2306,20 @@ bcm_wol_activate( pci_config_t *pcicfg )
 	/* switch to power state D3hot */
 /*
 	reg_pwr_crtl |= 0x0103;
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        0x4c,
 	                                        reg_pwr_crtl );
 	ms_delay(10);
 */
 
 #ifdef BCM_DEBUG
-	reg_pwr_crtl = snk_kernel_interface->pci_config_read( pcicfg->puid,
+	reg_pwr_crtl = snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                                      2,
-	                                                      pcicfg->bus,
-	                                                      pcicfg->devfn,
+	                                                      bcm_pcicfg_bus,
+	                                                      bcm_pcicfg_devfn,
 	                                                      0x4c );
 
 	printk( "bcm57xx: PM Control/Status Register: %04X\n", reg_pwr_crtl );
@@ -2278,36 +2331,17 @@ bcm_wol_activate( pci_config_t *pcicfg )
 }
 
 static int
-bcm_init( pci_config_t *pcicfg, char *mac_addr )
+bcm_init( void )
 {
 	static const u32_t  lc_Maxwait_u32 = (u32_t) 1000;
 	u32_t               l_baseaddrL_u32;
 	u32_t               l_baseaddrH_u32;
 	u32_t               i;
+	char               *mac_addr = snk_module_interface.mac_addr;
 
-	/*
-	 * initialize static variables
-	 */
-	bcm_device_u64    = 0;
-	bcm_rxret_ring_sz = 0;
-	bcm_baseaddr_u64  = 0;
-	bcm_memaddr_u64   = 0;
-
-	bcm_tx_start_u32    = 0;
-	bcm_tx_stop_u32     = 0;
-	bcm_tx_bufavail_u32 = 0;
-
-	/*
-	 * check driver
-	 */
-	if( check_driver( pcicfg ) < 0 ) {
-		return -1;
+	if(snk_module_interface.running != 0) {
+		return 0;
 	}
-
-	bcm_pcicfg_puid  = pcicfg->puid;
-	bcm_pcicfg_bus   = pcicfg->bus;
-	bcm_pcicfg_devfn = pcicfg->devfn;
-
 #ifdef BCM_DEBUG
 	printk( "bcm57xx: detected device " );
 	if( IS_5703 ) {
@@ -2329,17 +2363,17 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	 * setup register & memory base addresses of NIC
 	 */
 	l_baseaddrL_u32 = ( (u32_t) ~0xf &
-	      (u32_t) snk_kernel_interface->pci_config_read( pcicfg->puid,
+	      (u32_t) snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                                     4,
-	                                                     pcicfg->bus,
-	                                                     pcicfg->devfn,
+	                                                     bcm_pcicfg_bus,
+	                                                     bcm_pcicfg_devfn,
 	                                                     PCI_BAR1_R ) );
 
 	l_baseaddrH_u32 = 
-	      (u32_t) snk_kernel_interface->pci_config_read( pcicfg->puid,
+	      (u32_t) snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                                     4,
-	                                                     pcicfg->bus,
-	                                                     pcicfg->devfn,
+	                                                     bcm_pcicfg_bus,
+	                                                     bcm_pcicfg_devfn,
 	                                                     PCI_BAR2_R );
 	bcm_baseaddr_u64   = (u64_t) l_baseaddrH_u32;
 	bcm_baseaddr_u64 <<= 32;
@@ -2348,9 +2382,9 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	bcm_memaddr_u64    = bcm_baseaddr_u64 + BCM_MEMORY_OFFS;
 
 #ifdef BCM_DEBUG
-	printk( "bcm57xx: PCI-Puid  = 0x%X\n", pcicfg->puid );
-	printk( "bcm57xx: PCI-Bus   = 0x%X\n", pcicfg->bus );
-	printk( "bcm57xx: PCI-DevFn = 0x%X\n", pcicfg->devfn );
+	printk( "bcm57xx: PCI-Puid  = 0x%X\n", bcm_pcicfg_puid );
+	printk( "bcm57xx: PCI-Bus   = 0x%X\n", bcm_pcicfg_bus );
+	printk( "bcm57xx: PCI-DevFn = 0x%X\n", bcm_pcicfg_devfn );
 	printk( "bcm57xx: device's register base high address = 0x%08X\n", l_baseaddrH_u32 );
 	printk( "bcm57xx: device's register base low address  = 0x%08X\n", l_baseaddrL_u32 );
 	printk( "bcm57xx: device's register address           = 0x%lx\n", bcm_baseaddr_u64 );
@@ -2364,19 +2398,19 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 
 	// step 1: enable bus master & memory space in command reg
 	i = ( BIT32( 10 ) | BIT32( 2 ) | BIT32( 1 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_COM_R,
 	                                        ( int ) i );
 	// step 2: disable & mask interrupts & enable pci byte/word swapping & enable indirect addressing mode
 	i = ( BIT32( 8 ) | BIT32( 7 ) | BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
 
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 
@@ -2399,10 +2433,10 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	// step 5: prepare the chip for writing TG3_MAGIC_NUMBER
 	bcm_setb_reg32( MEMARB_MODE_R, BIT32( 1 ) );
 	i = ( BIT32( 8 ) | BIT32( 7 ) | BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 	bcm_write_reg32( MODE_CTRL_R, BIT32( 23 ) | BIT32( 20 ) |
@@ -2427,19 +2461,19 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	// step 9: disable & mask interrupts & enable indirect addressing mode &
 	//              enable pci byte/word swapping initialize the misc host control register
 	i = ( BIT32( 8 ) | BIT32( 7 ) | BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 
 	// step 10: set but master et cetera
 	i = ( BIT32( 10 ) | BIT32( 2 ) | BIT32( 1 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_COM_R,
 	                                        ( int ) i );
 
@@ -2452,10 +2486,10 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	// step 13: omitted, only for BCM5700
 	// step 14: s. step 10
 	i = ( BIT32( 8 ) | BIT32( 7 ) | BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 	// step 15: set byte swapping (incl. step 27/28/29/30)
@@ -2469,9 +2503,9 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	i = 1000;
 	while( ( --i ) &&
 	       ( bcm_read_mem32( BCM_FW_MBX ) != ~BCM_MAGIC_NUMBER ) ) {
-//#ifdef BCM_DEBUG
+#ifdef BCM_DEBUG
 		printk( "." );
-//#endif
+#endif
 		ms_delay( 1 );
 	}
 
@@ -2863,12 +2897,14 @@ bcm_init( pci_config_t *pcicfg, char *mac_addr )
 	// enable heartbeat timer
 
 	bcm_write_reg32( ASF_HEARTBEAT_TIMER_R, 0x5 );
+
+	snk_module_interface.running = 1;
 	// off we go..
 	return 0;
 }
 
 static int
-bcm_reset( pci_config_t *pcicfg )
+bcm_reset( void )
 {
 	u32_t i;
 
@@ -2892,10 +2928,10 @@ bcm_reset( pci_config_t *pcicfg )
 	 */
 
 	i = ( BIT32( 10 ) | BIT32( 2 ) | BIT32( 1 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_COM_R,
 	                                        ( int ) i );
 
@@ -2903,10 +2939,10 @@ bcm_reset( pci_config_t *pcicfg )
 	//              enable pci byte/word swapping initialize the misc host control register
 	i = ( BIT32( 7 ) | BIT32( 5 ) | BIT32( 4 ) |
 	      BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 
@@ -2936,11 +2972,15 @@ bcm_reset( pci_config_t *pcicfg )
 	return 0;
 }
 
-static int 
-bcm_term( pci_config_t *pcicfg )
+static int
+bcm_term( void )
 {
 	u32_t i;
 	u16_t v;
+
+	if(snk_module_interface.running == 0) {
+		return 0;
+	}
 
 #ifdef BCM_DEBUG
 	printk( "bcm57xx: driver shutdown.." );
@@ -3067,7 +3107,7 @@ bcm_term( pci_config_t *pcicfg )
 	/*
 	 * controller reset
 	 */
-	if( bcm_reset( pcicfg ) != 0 ) {
+	if( bcm_reset() != 0 ) {
 		return -1;
 	}
 
@@ -3085,7 +3125,7 @@ bcm_term( pci_config_t *pcicfg )
 	/*
 	 * activate Wake-on-LAN
 	 */
-	bcm_wol_activate( pcicfg );
+	bcm_wol_activate();
 
 	/*
 	 * PCI shutdown
@@ -3098,14 +3138,15 @@ bcm_term( pci_config_t *pcicfg )
 
 //	bcm_clrb_reg32( PCI_COM_R, BIT32( 10 ) | BIT32( 2 ) | BIT32( 1 ) );
 
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_COM_R,
 	                                        BIT32(8) | BIT32(6) );
 
 	// no more networking...
+	snk_module_interface.running = 0;
 	return 0;
 }
 
@@ -3261,7 +3302,7 @@ bcm_setmac(char mac_addr1[6], char mac_addr2[6])
 }
 
 static int
-bcm_ioctl( pci_config_t *pcicfg, int request, void* data )
+bcm_ioctl( int request, void* data )
 {
 	u32_t                l_baseaddrL_u32;
 	u32_t                l_baseaddrH_u32;
@@ -3273,17 +3314,6 @@ bcm_ioctl( pci_config_t *pcicfg, int request, void* data )
 	if(request != SIOCETHTOOL) {
 		return -1;
 	}
-
-	/*
-	 * check driver
-	 */
-	if( check_driver( pcicfg ) < 0 ) {
-		return -1;
-	}
-
-	bcm_pcicfg_puid = pcicfg->puid;
-	bcm_pcicfg_bus = pcicfg->bus;
-	bcm_pcicfg_devfn = pcicfg->devfn;
 
 #ifdef BCM_DEBUG
 	printk( "bcm57xx: detected device " );
@@ -3304,17 +3334,17 @@ bcm_ioctl( pci_config_t *pcicfg, int request, void* data )
 	 * setup register & memory base addresses of NIC
 	 */
 	l_baseaddrL_u32 = ( (u32_t) ~0xf &
-	(u32_t) snk_kernel_interface->pci_config_read( pcicfg->puid,
+	(u32_t) snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                               4,
-	                                               pcicfg->bus,
-	                                               pcicfg->devfn,
+	                                               bcm_pcicfg_bus,
+	                                               bcm_pcicfg_devfn,
 	                                               PCI_BAR1_R ) );
 
 	l_baseaddrH_u32 = 
-	(u32_t) snk_kernel_interface->pci_config_read( pcicfg->puid,
+	(u32_t) snk_kernel_interface->pci_config_read( bcm_pcicfg_puid,
 	                                               4,
-	                                               pcicfg->bus,
-	                                               pcicfg->devfn,
+	                                               bcm_pcicfg_bus,
+	                                               bcm_pcicfg_devfn,
 	                                               PCI_BAR2_R );
 
 	bcm_baseaddr_u64   = (u64_t) l_baseaddrH_u32;
@@ -3331,19 +3361,19 @@ bcm_ioctl( pci_config_t *pcicfg, int request, void* data )
 
 	// step 1: enable bus master & memory space in command reg
 	i = ( BIT32( 10 ) | BIT32( 2 ) | BIT32( 1 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        2,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_COM_R,
 	                                        ( int ) i );
 
 	// step 2: disable & mask interrupts & enable pci byte/word swapping & enable indirect addressing mode
 	i = ( BIT32( 7 ) | BIT32( 3 ) | BIT32( 2 ) | BIT32( 1 ) | BIT32( 0 ) );
-	snk_kernel_interface->pci_config_write( pcicfg->puid,
+	snk_kernel_interface->pci_config_write( bcm_pcicfg_puid,
 	                                        4,
-	                                        pcicfg->bus,
-	                                        pcicfg->devfn,
+	                                        bcm_pcicfg_bus,
+	                                        bcm_pcicfg_devfn,
 	                                        PCI_MISC_HCTRL_R,
 	                                        ( int ) i );
 
@@ -3391,20 +3421,8 @@ bcm_ioctl( pci_config_t *pcicfg, int request, void* data )
 		break;
 	}
 	
-	bcm_term(pcicfg);
+	snk_module_interface.running = 1;
+	bcm_term();
 	return ret_val;
 }
-
-/*
- * snk module interface
- ******************************************************************************
- */
-snk_module_t snk_module_interface = {
-	.version     = 1,
-	.net_init    = bcm_init,
-	.net_term    = bcm_term,
-	.net_xmit    = bcm_xmit,
-	.net_receive = bcm_receive,
-	.net_ioctl   = bcm_ioctl
-};
 

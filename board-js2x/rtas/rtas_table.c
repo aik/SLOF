@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -39,8 +39,6 @@ const rtas_funcdescr_t rtas_func_tab[] = {
 	{"rtas-fetch-slaves", rtas_fetch_slaves, RTAS_TBLFLG_INTERNAL},
 	{"rtas-stop-bootwatchdog", rtas_stop_bootwatchdog, RTAS_TBLFLG_INTERNAL},
 	{"rtas-set-bootwatchdog", rtas_set_bootwatchdog, RTAS_TBLFLG_INTERNAL},
-	{"freeze-time-base", NULL, RTAS_TBLFLG_INTERNAL},
-	{"thaw-time-base", NULL, RTAS_TBLFLG_INTERNAL},
 	{"rtas-get-blade-descr", rtas_get_blade_descr, RTAS_TBLFLG_INTERNAL},
 };
 

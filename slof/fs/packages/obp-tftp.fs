@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -38,6 +38,9 @@ INSTANCE VARIABLE ciregs-buffer
     \ Allocate 1720 bytes to store the BOOTP-REPLY packet
     6B8 alloc-mem dup >r (u.) $cat s"  " $cat
     huge-tftp-load @ IF s"  1 " ELSE s"  0 " THEN $cat
+    \ Add desired TFTP-Blocksize as additional argument
+    s" 1432 " $cat
+    \ Add OBP-TFTP Bootstring argument, e.g. "10.128.0.1,bootrom.bin,10.128.40.1"
     my-args $cat
 
     \ Call SNK netboot loadr

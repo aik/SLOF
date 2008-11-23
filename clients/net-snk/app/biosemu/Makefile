@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2007 IBM Corporation
+# * Copyright (c) 2004, 2008 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS += -I$(ROOTDIR)/other-licence/x86emu -I$(ROOTDIR)/other-licence/x86emu/include -save-temps
+CFLAGS += -I$(ROOTDIR)/other-licence/x86emu -I$(ROOTDIR)/other-licence/x86emu/include
 
 OBJS    = biosemu.o debug.o device.o mem.o io.o interrupt.o vbe.o
 LIBX86EMU = $(ROOTDIR)/other-licence/x86emu/libx86emu.a 

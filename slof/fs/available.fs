@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2007 IBM Corporation
+\ * Copyright (c) 2004, 2008 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -53,7 +53,7 @@ VARIABLE chosen-memory-ih 0 chosen-memory-ih !
 \ \\\\\\\\\\\\\\ Exported Interface:
 \ +
 \ IEEE 1275 implementation:
-\ 	claim
+\	claim
 \ Claim the region with given start address and size (if align parameter is 0);
 \ alternatively claim any region of given alignment
 \ +
@@ -63,7 +63,7 @@ VARIABLE chosen-memory-ih 0 chosen-memory-ih !
 
 \ +
 \ IEEE 1275 implementation:
-\ 	release
+\	release
 \ Free the region with given start address and size
 \ +
 : release ( addr len -- ) release update-available-property ;

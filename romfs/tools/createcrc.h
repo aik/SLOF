@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -14,5 +14,6 @@
 
 int buildDataStream(unsigned char *pucbuf, int size);
 int createHeaderImgage(char *pcFilename);
-void writeDataStream(int ofd);
+int writeDataStream(int ofd, int notime);
+
 #endif

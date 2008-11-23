@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2007 IBM Corporation
+ * Copyright (c) 2004, 2008 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -43,17 +43,9 @@ static const uint32_t SUBVER = 1;
 /*
  * macros to detect the current board layout
  */
-#ifdef BOARD_BIMINI
-#define IS_MAUI			0 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 0 )
-#define IS_BIMINI		1 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 1 )
-#define IS_KAUAI		0 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 2 )
-#endif
-
-#ifdef BOARD_MAUI
-#define IS_MAUI			1 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 0 )
-#define IS_BIMINI		0 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 1 )
-#define IS_KAUAI		0 //( ( load8_ci( 0xf4000682 ) >> 4 ) == 2 )
-#endif
+#define IS_MAUI		( ( load8_ci( 0xf4000682 ) >> 4 ) == 0 )
+#define IS_BIMINI		( ( load8_ci( 0xf4000682 ) >> 4 ) == 1 )
+#define IS_KAUAI		( ( load8_ci( 0xf4000682 ) >> 4 ) == 2 )
 
 /*
  * local constants
@@ -320,7 +312,7 @@ typedef struct
 
 	/*
 	 * the following timing values are all in 1/100ns
-	 */				
+	 */
 	uint32_t m_tCK_pu32[NUM_CL];
 	uint32_t m_tRAS_u32;
 	uint32_t m_tRTP_u32;
@@ -436,7 +428,7 @@ static uint64_t  m_memsize_u64;	// memsize in bytes
 static void
 progbar( void )
 {
-	static uint8_t  bar[] = 
+	static uint8_t  bar[] =
 			{ '|', '/', '-', '\\', 0 };
 	static uint32_t idx = 0;
 
@@ -448,7 +440,7 @@ progbar( void )
 
 }
 
-static void 
+static void
 or32_ci( uint64_t r, uint32_t m )
 {
 	uint32_t v;
@@ -470,7 +462,7 @@ and32_ci( uint64_t r, uint32_t m )
 
 static void
 dly( uint64_t volatile f_wait_u64 ) \
-{						
+{
 	while( f_wait_u64 ) {
 		f_wait_u64--;
 	}
@@ -539,7 +531,7 @@ i2c_read( uint32_t f_addr_u32, uint32_t f_suba_u32, uint8_t *f_buf_pu08, uint32_
 	if( ( load32_ci( I2C_STAT_R ) & IBIT(30) ) == 0 ) {
 		i2c_term();
 		return RET_ERR;
-	} else { 
+	} else {
 		// send ack
 		store32_ci( I2C_CTRL_R, IBIT(31) );
 		// clear int
@@ -617,10 +609,10 @@ static uint32_t
 ddr2_get_dimm_size( uint8_t *f_spd_pu08 )
 {
 	static const int SIZE_IDX   = (int) 31;
-	uint8_t          l_smsk_u08; 
+	uint8_t          l_smsk_u08;
 	uint32_t         i;
 
-	l_smsk_u08 = ( f_spd_pu08[SIZE_IDX] << 3 ) | 
+	l_smsk_u08 = ( f_spd_pu08[SIZE_IDX] << 3 ) |
 		     ( f_spd_pu08[SIZE_IDX] >> 5 );
 
 	for( i = 0; ( ( l_smsk_u08 & ( (uint8_t) 0x1 << i ) ) == 0 ) ; i++ );
@@ -692,7 +684,7 @@ ddr2_get_dimm_speed( dimm_t *f_dimm, uint8_t *f_spd_pu08 )
 	uint32_t	      idx = 0;
 	uint32_t	      i;
 
-	for( i = NUM_CL - f_dimm->m_clcnt_u32; i < NUM_CL; i++ ) { 
+	for( i = NUM_CL - f_dimm->m_clcnt_u32; i < NUM_CL; i++ ) {
 		l_tmp_u08     = f_spd_pu08[SPEED_IDX[i]];
 		l_dspeed_u32  = (uint32_t) ( l_tmp_u08 >> 4 ) * 100;
 		l_tmp_u08    &= (uint8_t) 0xf;
@@ -752,7 +744,7 @@ ddr2_get_dimm_timings( dimm_t *f_dimm, uint8_t *f_spd_pu08 )
 	f_dimm->m_tRFC_u32 += NS[l_tmp_u32];
 
 	l_tmp_u32           = (uint32_t) f_spd_pu08[tREF_IDX];
-	l_tmp_u32          &= (uint32_t) 0x7f;	
+	l_tmp_u32          &= (uint32_t) 0x7f;
 
 	if( l_tmp_u32 == 0 ) {
 		l_tmp_u32 = (uint32_t) 2;
@@ -1027,7 +1019,7 @@ ddr2_setupDIMMcfg( void )
 		#endif
 		return RET_ERR;
 	}
-	
+
 	/*
 	 * check valid DIMM organisation (must be x4)
 	 */
@@ -1105,7 +1097,7 @@ ddr2_setupDIMMcfg( void )
 		}
 
 	}
-	
+
 	/*
 	 * return on error
 	 */
@@ -1130,7 +1122,7 @@ ddr2_setupDIMMcfg( void )
 
 	/*
 	 * setup timing parameters
-	 */	
+	 */
 
 	/*
 	 * find smallest common CL value
@@ -1150,8 +1142,8 @@ ddr2_setupDIMMcfg( void )
 		m_gendimm.m_speed_pu32[i] = (uint32_t) ~0;
 
 		for( j = 0; j < m_dcnt_u32; j++ ) {
-			l_tmp0_u32 = 
-			ddr2_cl2speed( m_dptr[j], 
+			l_tmp0_u32 =
+			ddr2_cl2speed( m_dptr[j],
 				       m_gendimm.m_clval_pu32[i],
 				       &l_tmp1_u32 );
 
@@ -1204,7 +1196,7 @@ ddr2_setupDIMMcfg( void )
 	m_gendimm.m_bankcnt_u32 = 0;
 
 	for( i = 0; i < m_dcnt_u32; i++ ) {
-		
+
 		if( m_gendimm.m_bankcnt_u32 < m_dptr[i]->m_bankcnt_u32 ) {
 			m_gendimm.m_bankcnt_u32 = m_dptr[i]->m_bankcnt_u32;
 		}
@@ -1494,7 +1486,7 @@ u4_group2banks( uint32_t *bidx )
 	 * known conditions at this point:
 	 * -4 slots are populated
 	 */
-	
+
 	/*
 	 * check wether DIMM banks may be grouped
 	 */
@@ -1644,7 +1636,7 @@ u4_calcDIMMcnfg( void )
 		m_dgrptr[i]->m_end_u32   = ( l_end_u32   >> 7 );
 		m_dgrptr[i]->m_add2g_u32 = l_add2g_u32;
 		m_dgrptr[i]->m_sub2g_u32 = l_sub2g_u32;
-	
+
 		/*
 		 * continue with next group
 		 */
@@ -1680,7 +1672,7 @@ u4_calcDIMMmemmode( void )
 		l_modeoffs_u32  = MAX_ORG / l_dptr->m_orgval_u32;
 		l_modeoffs_u32 /= (uint32_t) 2;
 		l_sizebase_u32  = ( MIN_BASE << l_modeoffs_u32 );
-	
+
 		j = 0;
 		while( ( l_sizebase_u32 != l_dptr->m_size_u32 ) &&
 		       ( j               < MAX_MODE           ) ) {
@@ -1784,7 +1776,7 @@ u4_setup_core_clock( void )
 	s  = m_gendimm.m_speed_pu32[m_dclidx_u32];
 	s -= MCLK;
 	s /= CDIV;
-	
+
 	/*
 	 * insert new core clock value
 	 */
@@ -1838,7 +1830,7 @@ u4_setup_core_clock( void )
 		#endif
 		return RET_ERR;
 	}
-	
+
 	#ifdef U4_INFO
 	printf( "\b\b\bOK\r\n" );
 	#endif
@@ -1850,10 +1842,10 @@ static void
 u4_auto_calib_init( void )
 {
 	static const uint32_t SEQ[] = {
-		0xb1000000, 0xd1000000, 0xd1000000, 0xd1000000, 
-		0xd1000000, 0xd1000000, 0xd1000000, 0xd1000000, 
-		0xd1000000, 0xd1000000, 0xd1000000, 0xd1000000, 
-		0xd1000000, 0xd1000000, 0xd1000400, 0x00000000, 
+		0xb1000000, 0xd1000000, 0xd1000000, 0xd1000000,
+		0xd1000000, 0xd1000000, 0xd1000000, 0xd1000000,
+		0xd1000000, 0xd1000000, 0xd1000000, 0xd1000000,
+		0xd1000000, 0xd1000000, 0xd1000400, 0x00000000,
 	};
 
 	uint64_t i;
@@ -1869,7 +1861,7 @@ u4_auto_calib_init( void )
 static uint32_t
 u4_RSL_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 {
-	static const uint32_t MemProgCntl_V = (uint32_t) 0x80000500; 
+	static const uint32_t MemProgCntl_V = (uint32_t) 0x80000500;
 	static const uint32_t CalConf0_V    = (uint32_t) 0x0000aa10;
 	uint32_t l_MemProgCntl_u32;
 	uint32_t l_CalConf0_u32;
@@ -1888,32 +1880,32 @@ u4_RSL_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 	} else if( f_BLane_u32  <  8 ) {
 		f_BLane_u32 -= 4;
 		MeasStat_R   = MeasStatusC1_R;
-		CalC_R       = CalC1_R;				
+		CalC_R       = CalC1_R;
 		VerC_R       = RstLdEnVerniersC1_R;
 	} else if( f_BLane_u32  < 12 ) {
 		f_BLane_u32 -= 8;
 		MeasStat_R   = MeasStatusC2_R;
-		CalC_R       = CalC2_R;				
+		CalC_R       = CalC2_R;
 		VerC_R       = RstLdEnVerniersC2_R;
 	} else if( f_BLane_u32 == 16 ) {
 		f_BLane_u32  = 4;
 		MeasStat_R   = MeasStatusC1_R;
-		CalC_R       = CalC1_R;				
+		CalC_R       = CalC1_R;
 		VerC_R       = RstLdEnVerniersC1_R;
 	} else if( f_BLane_u32 == 17 ) {
 		f_BLane_u32  = 4;
 		MeasStat_R   = MeasStatusC3_R;
-		CalC_R       = CalC3_R;				
+		CalC_R       = CalC3_R;
 		VerC_R       = RstLdEnVerniersC3_R;
 	} else {
 		f_BLane_u32 -= 12;
 		MeasStat_R   = MeasStatusC3_R;
-		CalC_R       = CalC3_R;				
+		CalC_R       = CalC3_R;
 		VerC_R       = RstLdEnVerniersC3_R;
 	}
-	
+
 	shft = (uint32_t) 28 - ( f_BLane_u32 * 4 );
-	
+
 	/*
 	 * start auto calibration logic & wait for completion
 	 */
@@ -1930,7 +1922,7 @@ u4_RSL_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 		store32_ci( VerC_R, ( v << 24 ) | ( v << 16 ) );
 
 		l_MemProgCntl_u32  = MemProgCntl_V;
-		l_MemProgCntl_u32 |= 
+		l_MemProgCntl_u32 |=
 			( (uint32_t) 0x00800000 >> f_Rank_u32 );
 		store32_ci( MemProgCntl_R, l_MemProgCntl_u32 );
 
@@ -1938,7 +1930,7 @@ u4_RSL_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 			l_MemProgCntl_u32 = load32_ci( MemProgCntl_R );
 		} while( ( l_MemProgCntl_u32 & IBIT(1) ) == 0 );
 
-		l_CalC_u32 = ( ( load32_ci( CalC_R ) >> shft ) & 
+		l_CalC_u32 = ( ( load32_ci( CalC_R ) >> shft ) &
 			         (uint32_t) 0xf );
 
 		if( l_CalC_u32 != (uint32_t) 0xa ) {
@@ -1959,7 +1951,7 @@ u4_RSL_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 static uint32_t
 u4_RMDF_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 {
-	static const uint32_t MemProgCntl_V = (uint32_t) 0x80000f00; 
+	static const uint32_t MemProgCntl_V = (uint32_t) 0x80000f00;
 	static const uint32_t CalConf0_V    = (uint32_t) 0x0000ac10;
 	uint32_t l_MemProgCntl_u32;
 	uint32_t l_CalConf0_u32;
@@ -1978,32 +1970,32 @@ u4_RMDF_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 	} else if( f_BLane_u32  <  8 ) {
 		f_BLane_u32 -= 4;
 		MeasStat_R   = MeasStatusC1_R;
-		CalC_R       = CalC1_R;				
+		CalC_R       = CalC1_R;
 		VerC_R       = RstLdEnVerniersC1_R;
 	} else if( f_BLane_u32  < 12 ) {
 		f_BLane_u32 -= 8;
 		MeasStat_R   = MeasStatusC2_R;
-		CalC_R       = CalC2_R;				
+		CalC_R       = CalC2_R;
 		VerC_R       = RstLdEnVerniersC2_R;
 	} else if( f_BLane_u32 == 16 ) {
 		f_BLane_u32  = 4;
 		MeasStat_R   = MeasStatusC1_R;
-		CalC_R       = CalC1_R;				
+		CalC_R       = CalC1_R;
 		VerC_R       = RstLdEnVerniersC1_R;
 	} else if( f_BLane_u32 == 17 ) {
 		f_BLane_u32  = 4;
 		MeasStat_R   = MeasStatusC3_R;
-		CalC_R       = CalC3_R;				
+		CalC_R       = CalC3_R;
 		VerC_R       = RstLdEnVerniersC3_R;
 	} else {
 		f_BLane_u32 -= 12;
 		MeasStat_R   = MeasStatusC3_R;
-		CalC_R       = CalC3_R;				
+		CalC_R       = CalC3_R;
 		VerC_R       = RstLdEnVerniersC3_R;
 	}
-	
+
 	shft = (uint32_t) 28 - ( f_BLane_u32 * 4 );
-	
+
 	/*
 	 * start auto calibration logic & wait for completion
 	 */
@@ -2021,7 +2013,7 @@ u4_RMDF_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 		store32_ci( VerC_R, ( v << 24 ) | ( v << 16 ) );
 
 		l_MemProgCntl_u32  = MemProgCntl_V;
-		l_MemProgCntl_u32 |= 
+		l_MemProgCntl_u32 |=
 			( (uint32_t) 0x00800000 >> f_Rank_u32 );
 		store32_ci( MemProgCntl_R, l_MemProgCntl_u32 );
 
@@ -2029,7 +2021,7 @@ u4_RMDF_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 			l_MemProgCntl_u32 = load32_ci( MemProgCntl_R );
 		} while( ( l_MemProgCntl_u32 & IBIT(1) ) == 0 );
 
-		l_CalC_u32 = ( ( load32_ci( CalC_R ) >> shft ) & 
+		l_CalC_u32 = ( ( load32_ci( CalC_R ) >> shft ) &
 			         (uint32_t) 0xf );
 
 		if( l_CalC_u32 != (uint32_t) 0xa ) {
@@ -2047,7 +2039,7 @@ u4_RMDF_BLane( uint32_t f_Rank_u32, uint32_t f_BLane_u32 )
 }
 
 static int32_t
-u4_RMDF_Rank( uint32_t  f_Rank_u32, 
+u4_RMDF_Rank( uint32_t  f_Rank_u32,
 	      uint32_t *f_Buf_pu32 )
 {
 	int32_t  l_Err_pi32 = 0;
@@ -2180,7 +2172,7 @@ u4_auto_calib_MemBus( auto_calib_t *f_ac_pt )
 
 	f_ac_pt->m_MemBusCnfg_u32  = load32_ci( MemBusCnfg_R );
 	f_ac_pt->m_MemBusCnfg2_u32 = load32_ci( MemBusCnfg2_R );
-	
+
 	/*
 	 * calculate the average vernier setting for the
 	 * bytelanes which share one vernier
@@ -2212,7 +2204,7 @@ u4_auto_calib_MemBus( auto_calib_t *f_ac_pt )
 			}
 
 		}
-	
+
 		/*
 		 * average the values
 		 */
@@ -2256,7 +2248,7 @@ u4_auto_calib( auto_calib_t *f_ac_pt )
 
 	u4_auto_calib_init();
 	l_Ret_i32 = u4_auto_calib_MemBus( f_ac_pt );
-	
+
 	/*
 	 * restore manipulated registers
 	 */
@@ -2337,7 +2329,7 @@ u4_Scrub( uint32_t f_scrub_u32, uint32_t f_pattern_u32, eccerror_t *f_eccerr_pt 
 	 * setup scrub parameters
 	 */
 	store32_ci( MSCR_R, 0 );			// stop scrub
-	store32_ci( MSRSR_R, 0x0 );			// set start 
+	store32_ci( MSRSR_R, 0x0 );			// set start
 	store32_ci( MSRER_R, u4_CalcScrubEnd() );	// set end
 	store32_ci( MSPR_R, f_pattern_u32 );		// set pattern
 
@@ -2381,7 +2373,7 @@ u4_InitialScrub( void )
 
 	if( l_err_i32[0] >= -1 /*CE*/ ) {
 		l_err_i32[1] = u4_Scrub( IMMEDIATE_SCRUB, 0x0, &l_eccerr_st[1] );
-	} 
+	}
 
 	if( l_err_i32[0] < l_err_i32[1] ) {
 		return l_eccerr_st[0];
@@ -2420,7 +2412,7 @@ u4_MemInitSequence( uint32_t tRP, uint32_t tWR, uint32_t tRFC, uint32_t CL,
 		l_MemInit_u32 = INI_SEQ[i];
 
 		switch( i ) {
-			case 0: 
+			case 0:
 			case 5: {
 				l_MemInit_u32 |= ( ( RND( tRP ) - TD )  << 20 );
 				break;
@@ -2436,7 +2428,7 @@ u4_MemInitSequence( uint32_t tRP, uint32_t tWR, uint32_t tRFC, uint32_t CL,
 			case 8: {
 				l_MemInit_u32 |= ( ( RND( tWR ) - 1 )  <<  9 );
 				l_MemInit_u32 |= ( CL                  <<  4 );
-			
+
 				store32_ci( MRSRegCntl_R, l_MemInit_u32 &
 							  (uint32_t) 0xffff );
 				break;
@@ -2462,7 +2454,7 @@ u4_MemInitSequence( uint32_t tRP, uint32_t tWR, uint32_t tRFC, uint32_t CL,
 	 * Kick off memory init sequence & wait for completion
 	 */
 	store32_ci( MemProgCntl_R, IBIT(0) );
- 
+
 	do {
 		i = load32_ci( MemProgCntl_R );
 	} while( ( i & IBIT(1) ) == 0 );
@@ -2902,7 +2894,7 @@ u4_start( eccerror_t *f_ecc_pt )
 	uint32_t	      tRFC    = m_gendimm.m_tRFC_u32;
 	uint32_t	      tREF    = m_gendimm.m_tREF_u32;
 
-	reg_statics_t *rst;
+	reg_statics_t *rst = 0;
 
 	uint32_t       l_RAS0_u32;
 	uint32_t       l_RAS1_u32;
@@ -2942,7 +2934,7 @@ u4_start( eccerror_t *f_ecc_pt )
 			#endif
 			return RET_ERR;
 		}
-		
+
 	}
 
 	/*
@@ -2957,7 +2949,7 @@ u4_start( eccerror_t *f_ecc_pt )
 	}
 
 	/*
-	 * Switch off Fast Path by default for all DIMMs 
+	 * Switch off Fast Path by default for all DIMMs
 	 * running with more than 400Mhz
 	 */
 	if( SPEED == 400 ) {
@@ -2994,7 +2986,7 @@ u4_start( eccerror_t *f_ecc_pt )
 	l_RAS0_u32 |= ( ( WL + BL/2 + RND( tWR )                - TD ) << 17 );
 	// TiPtA = RND(tRP) -> RAS0[15:19]
 	l_RAS0_u32 |= ( ( RND( tRP )                            - TD ) << 12 );
-	// TiPAtA = RND(tRP) or 
+	// TiPAtA = RND(tRP) or
 	//          RND(tRP) + 1 for 8 bank devices -> RAS0[20:24]
 	if( m_gendimm.m_bankcnt_u32 <= 4 ) {
 		l_RAS0_u32 |= ( ( RND( tRP )                    - TD ) <<  7 );
@@ -3011,7 +3003,7 @@ u4_start( eccerror_t *f_ecc_pt )
 	l_RAS1_u32 |= ( ( CL + AL + BL/2 - 1 + RND( tWR + tRP ) - TD ) << 22 );
 	// TiAtARk = tRRD -> RAS1[10:14]
 	l_RAS1_u32 |= ( ( RND( tRRD )                           - TD ) << 17 );
-	// TiAtABk = tRC -> RAS1[15:19] 
+	// TiAtABk = tRC -> RAS1[15:19]
 	l_RAS1_u32 |= ( ( RND( tRC )                            - TD ) << 12 );
 	// TiAtRW = tRCD -> RAS1[20:24]
 	l_RAS1_u32 |= ( ( RND( tRCD )                           - TD ) <<  7 );
@@ -3094,7 +3086,7 @@ u4_start( eccerror_t *f_ecc_pt )
 				l_UsrCnfg_u32 |=
 				( m_dgrptr[i]->m_csmode_u32 << ( 30 - 2 * t0 ) );
 			}
-					
+
 		}
 
 	}
@@ -3229,7 +3221,7 @@ u4_start( eccerror_t *f_ecc_pt )
 
 	store32_ci( MemModeCntl_R, IBIT(0) | IBIT(8) );
 	dly( 50000000 );
- 
+
 	#ifdef U4_INFO
 	printf( "\b\b\bOK\r\n" );
 
@@ -3337,14 +3329,14 @@ u4_start( eccerror_t *f_ecc_pt )
 			#endif
 			return RET_ACERR_UE;
 		}
-		
+
 	}
 
 	/*
 	 * start continuous background scrub
 	 */
 	#ifdef U4_INFO
-	printf( "  [background scrub:          ]" );	
+	printf( "  [background scrub:          ]" );
 	#endif
 
 	u4_Scrub( BACKGROUND_SCRUB, 0, NULL );
@@ -3379,7 +3371,7 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 	static const uint64_t PATTERN[] = {
 		0x9090909090909090, 0x0020002000200020,
 		0x0c0c0c0c0c0c0c0c, 0x8080808080808080,
-		0x1004010004001041, 0x0000000000000000		
+		0x1004010004001041, 0x0000000000000000
 	};
 
      	uint64_t mend      = (uint64_t) 0x200000000;//m_memsize_u64;
@@ -3425,8 +3417,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3449,13 +3441,13 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
 
 			}
- 
+
 			check  = PATTERN[pidx];
 			tlast  = 0;
 			tstate = TCHK;
@@ -3485,8 +3477,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3497,7 +3489,7 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 						*( (uint64_t *) addr ) >>= 1;
 
 						if( one ) {
-							*( (uint64_t *) addr ) |= 
+							*( (uint64_t *) addr ) |=
 								(uint64_t) 0x8000000000000000;
 						}
 
@@ -3514,19 +3506,19 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
 
 			}
- 
+
 			tlast  = 1;
 			tstate = TCHK;
 		}	break;
 
 		case 2: {
-			
+
 			if( rotr < 6 ) {
 				rotr++;
 				tstate = 1;
@@ -3554,8 +3546,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3578,13 +3570,13 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
 
 			}
- 
+
 			tlast  = 3;
 			tstate = TCHK;
 		}	break;
@@ -3612,8 +3604,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3624,7 +3616,7 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 						*( (uint64_t *) addr ) <<= 1;
 
 						if( one ) {
-							*( (uint64_t *) addr ) |= 
+							*( (uint64_t *) addr ) |=
 								(uint64_t) 0x1;
 						}
 
@@ -3641,19 +3633,19 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
 
 			}
- 
+
 			tlast  = 4;
 			tstate = TCHK;
 		}	break;
 
 		case 5: {
-			
+
 			if( rotl < 6 ) {
 				rotl++;
 				tstate = 4;
@@ -3680,8 +3672,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3704,13 +3696,13 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
 
 			}
- 
+
 			tlast  = TEND - 1;
 			tstate = TCHK;
 		}	break;
@@ -3732,8 +3724,8 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 				for( block = 0; block < numblocks; block++ ) {
 
 					for( i = 0; i < _line; i += 8 ) {
-						addr =  _start + 
-							( block * _bsize ) + 
+						addr =  _start +
+							( block * _bsize ) +
 							( line * _line )   +
 							i;
 
@@ -3765,7 +3757,7 @@ u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
 							}
 
 						}
-						
+
 					}
 
 				}
@@ -3982,7 +3974,7 @@ u4_scrubStart(uint8_t argCnt, char *pArgs[], uint64_t flags )
 	 * setup scrub parameters
 	 */
 	store32_ci( MSCR_R, 0 );			// stop scrub
-	store32_ci( MSRSR_R, 0x0 );			// set start 
+	store32_ci( MSRSR_R, 0x0 );			// set start
 	store32_ci( MSRER_R, 0x1c );			// set end
 	store32_ci( MSPR_R, 0x0 );			// set pattern
 
@@ -4019,7 +4011,7 @@ u4_memwr(uint8_t argCnt, char *pArgs[], uint64_t flags )
 		if( ( i & 0xf ) == 0 ) {
 			v = ~v;
 		}
- 
+
 		store32_ci( i, v );
 	}
 
