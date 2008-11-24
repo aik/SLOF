@@ -37,9 +37,6 @@ stageS.bin:	stage_s.o
 romfs.o:	../../llfw/romfs.S
 		$(CC) $(CFLAGS) -c ../../llfw/romfs.S
 
-ipmi_kcs.o:	../rtas/ipmi_kcs.c
-		$(CC) $(CFLAGS) -c ../rtas/ipmi_kcs.c
-
 boot_abort.o:	../../llfw/boot_abort.S
 		$(CC) $(CFLAGS) -c ../../llfw/boot_abort.S
 
@@ -56,12 +53,6 @@ romfs_wrap.o:	../../llfw/romfs_wrap.c
 Cboot.o: Cboot.S
 		$(CC) $(CFLAGS) -c $^
 		$(OBJCOPY) -O binary Cboot.o Cboot.bin
-
-$(LIBCMNDIR)/libc.a:
-	$(MAKE) -C $(LIBCMNDIR) libc
-
-$(LIBCMNDIR)/libelf.a:
-	$(MAKE) -C $(LIBCMNDIR) libelf
 
 %.o: %.S
 		$(CC) $(CFLAGS) -c $^

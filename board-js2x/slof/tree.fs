@@ -198,8 +198,17 @@ device-end
 
 \ See 3.5.
 s" /openprom" find-device
-   s" SLOF," slof-build-id $cat encode-string s" model" property
+   s" SLOF," slof-build-id here swap rmove here slof-build-id nip $cat encode-string s" model" property
    0 0 s" relative-addressing" property
+   flashside? 1 = IF s" T" ELSE s" P" THEN
+   encode-string s" ibm,fw-bank" property
+   takeover? not  IF
+      0 set-flashside drop
+      read-version-and-date  s" ibm,fw-perm-bank" property
+      1 set-flashside drop
+      read-version-and-date  s" ibm,fw-temp-bank" property
+      flashside? set-flashside drop
+   THEN
 device-end
 
 s" /aliases" find-device

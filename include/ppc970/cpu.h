@@ -36,7 +36,8 @@
 			sync; \
 			slbia; \
 			mtspr	HID4, r; \
-			isync;
+			isync; \
+			eieio;
 
 #define CLRCI(r)	sync; \
 			mfspr	r, HID4; \
@@ -48,7 +49,8 @@
 			sync; \
 			slbia; \
 			mtspr	HID4, r; \
-			isync;
+			isync; \
+			eieio;
 
 /* This macro uses r0 */
 #define FLUSH_CACHE(r, n)	add	n, n, r; \

@@ -89,9 +89,6 @@ to kbd-addr
   drop
   s" KBDS: Set config returned" usb-debug-print 
 
-  0 kbd-addr control-cls-set-protocol drop   \ set protocol=boot mode  
-  s" KBDS: Set protocol returned" usb-debug-print
-
   0 kbd-addr control-cls-set-idle drop       \ set idle  
   s" KBDS: Set idle returned" usb-debug-print
 

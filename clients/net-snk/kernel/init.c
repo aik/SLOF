@@ -118,8 +118,8 @@ _start_kernel(unsigned long p0, unsigned long p1)
 	}
 
 	/* this is step is e.g. resposible to initialize file descriptor 0 and 1 for STDIO */
-	rc = glue_init(&snk_kernel_interface, &timebase, (size_t)&__client_start,
-	               (size_t)&__client_end - (size_t)&__client_start);
+	rc = glue_init(&snk_kernel_interface, &timebase, (size_t)(unsigned long)&__client_start,
+	               (size_t)(unsigned long)&__client_end - (size_t)(unsigned long)&__client_start);
 	if(rc < 0)
 		return -1;
 

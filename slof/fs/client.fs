@@ -41,6 +41,8 @@ VARIABLE  client-callback \ Address of client's callback function
   \ We pass the arguments for the client in R6 and R7, the client interface
   \ entry point address is passed in R5.
   >r  ciregs >r7 !  ciregs >r6 !  client-entry-point @ ciregs >r5 !
+  \ Initialise client-stack-pointer
+  cistack ciregs >r1 !
   \ jump-client maps to call_client in slof/entry.S
   \ When jump-client returns, R3 holds the address of a NUL-terminated string
   \ that holds the client interface word the client wants to call, R4 holds

@@ -275,7 +275,7 @@ my_rdl(uint32_t addr)
 			    (((uint8_t) my_rdb(addr + 2)) << 16) |
 			    (((uint8_t) my_rdb(addr + 3)) << 24);
 		} else {
-			if ((translated_addr & (uint64_t) 0x2) == 0) {
+			if ((translated_addr & (uint64_t) 0x3) == 0) {
 				// 32 bit aligned access...
 				set_ci();
 				rval = in32le((void *) translated_addr);

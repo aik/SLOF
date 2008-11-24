@@ -44,8 +44,12 @@ my-space a1000000 or encode-int+ \ non-relocatable, aliased I/O space
 
 s" reg" property \ store "reg" property
 
-\ remember this vga device's phandle
-get-node to vga-device-node?
+\ check wether we have already found a vga-device (vga-device-node? != 0) and if
+\ this device has Expansion ROM
+vga-device-node? 0= 30 config-l@ 0<> AND IF
+   \ remember this vga device's phandle
+   get-node to vga-device-node?
+THEN
 
 cr
 

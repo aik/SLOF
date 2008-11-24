@@ -794,8 +794,7 @@ ddr2_cl2speed( dimm_t *f_dimm, uint32_t f_cl_u32, uint32_t *f_tCK_pu32 )
 {
 	uint32_t i;
 
-	for( i = 0; ( f_dimm->m_clval_pu32[i] != f_cl_u32 ) &&
-		    ( i < NUM_CL ); i++ );
+	for(i = 0; (i < NUM_CL) && (f_dimm->m_clval_pu32[i] != f_cl_u32); i++);
 
 	if( i == NUM_CL ) {
 		return (uint32_t) ~0;

@@ -14,6 +14,8 @@
 
 hex
 
+' ll-cr to cr
+
 \ as early as possible we want to know if it is js20, js21 or bimini
 \ u3 = js20; u4 = js21/bimini
 \ the difference if bimini or js21 will be done later depending if
@@ -121,6 +123,9 @@ cistack ciregs >r1 ! \ kernel wants a stack :-)
 
 140 cp
 #include "flash.fs"
+
+\ 1 temp; 0 perm; let's default to temp
+1 VALUE flashside?
 
 \ claim the memory used by copy of the flash
 flash-header  IF
@@ -287,7 +292,16 @@ create vpd-bootlist 4 allot
    s"  Flashside  = " type rtas-get-flashside 0=  IF
       ." 0 (permanent)"
    ELSE
-      ." 1 (temporary)" THEN cr cr
+      ." 1 (temporary)" THEN cr
+   s"  Version    = " type 
+   takeover?  IF
+      romfs-base 38 + a type
+   ELSE
+      slof-build-id here swap rmove 
+      here slof-build-id nip type cr
+      s"  Build Date = " type bdate2human type
+   THEN
+   cr cr
 ;
 
 800 cp
@@ -335,7 +349,7 @@ check-for-nvramrc
 100000 value biosemu-vmem-size
 0 value screen-info
 
-vga-device-node? 0<> IF
+vga-device-node? 0<> use-biosemu? AND IF
    s" VGA Device found: " type vga-device-node? node>path type s"  initializing..." type cr
    \ claim virtual memory for biosemu of 1MB
    biosemu-vmem-size 4 claim to biosemu-vmem
@@ -352,7 +366,12 @@ vga-device-node? 0<> IF
    20 char-cat \ add a space ( pathstr len paramstr len )
    biosemu-vmem-size $cathex \ add VMEM Size ( pathstr len paramstr len )
    20 char-cat \ add a space ( pathstr len paramstr len )
-   2swap $cat ( paramstr+path len ) bios-exec
+   2swap $cat ( paramstr+path len )
+   biosemu-debug 0<> IF
+      20 char-cat biosemu-debug $cathex \ add biosemu-debug as param
+      ( paramstr+path+biosemu-debug len )
+   THEN
+   bios-exec
    \ s" Time after biosemu:" type .date cr
    s" VGA initialization: detecting displays..." type cr
    \ try to get info for two monitors
@@ -401,21 +420,36 @@ vga-device-node? 0<> IF
    s" VGA initialization done." type cr
 THEN \ vga-device-node?
 
+: enable-framebuffer-output  ( -- )
 \ enable output on framebuffer
-s" screen" find-alias ?dup IF
-   \ we need to open/close the screen device once before "ticking" display-emit to emit
-   open-dev close-node
-   s" display-emit" $find IF to emit ELSE 2drop THEN
-THEN
+   s" screen" find-alias ?dup  IF
+      \ we need to open/close the screen device once
+      \ before "ticking" display-emit to emit
+      open-dev close-node
+      s" display-emit" $find  IF 
+         to emit 
+      ELSE
+         2drop
+      THEN
+   THEN
+;
+
+enable-framebuffer-output
+
 8b0 cp
 
 \ do not let the usb scan overwrite the atapi cdrom alias
 pci-cdrom-num TO cdrom-alias-num
 usb-scan
 
-s" net" s" net1" find-alias ?dup IF set-alias ELSE 2drop THEN
-s" disk" s" disk0" find-alias ?dup IF set-alias ELSE 2drop THEN
-s" cdrom" s" cdrom0" find-alias ?dup IF set-alias ELSE 2drop THEN
+: create-aliases  ( -- )
+   s" net" s" net1" find-alias ?dup  IF  set-alias ELSE 2drop  THEN
+   s" disk" s" disk0" find-alias ?dup  IF  set-alias  ELSE  2drop  THEN
+   s" cdrom" s" cdrom0" find-alias ?dup  IF  set-alias  ELSE  2drop  THEN
+;
+
+create-aliases
+
 8ff cp
 
 .system-information
@@ -433,23 +467,21 @@ directserial
 \ on bimini we want to automatically enable screen and keyboard, if they are detected...
 bimini? IF
    key? IF
-      cr ." input available on current console input device, not switching input / output." cr
+      cr ."    input available on current console input device, not switching input / output." cr
    ELSE
       \ this enables the framebuffer as primary output device
       s" screen" find-alias  IF  drop
          s" screen" output
          \ at this point serial output is theoretically disabled
-         ." screen detected and set as default output device" cr
+         ."    screen detected and set as default output device" cr
       THEN
       \ enable USB keyboard
       s" keyboard" find-alias  IF  drop
          s" keyboard" input
          \ at this point serial input is disabled
-         \ if key-available? method is found, defer it to key?
-         
-         ." keyboard detected and set as default output device" cr
-         ."  Press and hold 's' to enter Open Firmware." cr
-         1000 ms \ wait, in case user wants to press 's' 
+         ."    keyboard detected and set as default input device" cr cr cr
+         s"   Press 's' to enter Open Firmware." type cr
+         500 ms
       THEN
    THEN
 THEN

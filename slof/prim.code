@@ -59,7 +59,12 @@ PRIM(EREGS) PUSH; TOS.a = the_exception_frame; MIRP
 PRIM(CIREGS) PUSH; TOS.a = the_client_frame; MIRP
 
 // Client stack
-PRIM(CISTACK) PUSH; TOS.a = the_client_stack; MIRP
+//	(According to the PowerPC ABI the stack-pointer points to the
+//	 lowest **USED** value.
+//	 I.e. it is decremented before a new element is stored on the
+//	 stack.)
+PRIM(CISTACK) PUSH; TOS.a = the_client_stack
+                            + (sizeof(the_client_stack) / CELLSIZE); MIRP
 
 // compile-in-interpret buffer
 PRIM(COMP_X2d_BUFFER) PUSH; TOS.a = the_comp_buffer; MIRP
@@ -284,6 +289,55 @@ PRIM(XOR) NOS.u ^= TOS.u; POP; MIRP
 	PRIM(X_X40) GET_XONG; MIRP
 	PRIM(X_X21) PUT_XONG; MIRP
 
+
+#define UGET_TYPE1(t) { \
+		type_c *restrict a = (type_c *restrict)(TOS.a); \
+		t b; \
+		type_c *restrict c = (type_c *restrict)&b;
+
+#define UGET_TYPE2(t) \
+		*c++ = *a++; \
+		*c++ = *a++;
+
+#define UGET_TYPE3(t) \
+		TOS.u = b; \
+}
+
+#define UPUT_TYPE1(t) { \
+		type_c *restrict a = (type_c *restrict)(TOS.a); \
+		t b = NOS.u; \
+		type_c *restrict c = (type_c *restrict)&b; \
+		POP; \
+		POP;
+
+#define UPUT_TYPE2(t) \
+		*a++ = *c++; \
+		*a++ = *c++;
+
+#define UPUT_TYPE3(t) }
+
+#define UGET_WORD1 UGET_TYPE1(type_w)
+#define UPUT_WORD1 UPUT_TYPE1(type_w)
+#define UGET_WORD2 UGET_TYPE2(type_w)
+#define UPUT_WORD2 UPUT_TYPE2(type_w)
+#define UGET_WORD3 UGET_TYPE3(type_w)
+#define UPUT_WORD3 UPUT_TYPE3(type_w)
+#define UGET_LONG1 UGET_TYPE1(type_l)
+#define UPUT_LONG1 UPUT_TYPE1(type_l)
+#define UGET_LONG2 UGET_TYPE2(type_l)
+#define UPUT_LONG2 UPUT_TYPE2(type_l)
+#define UGET_LONG3 UGET_TYPE3(type_l)
+#define UPUT_LONG3 UPUT_TYPE3(type_l)
+
+#define UGET_WORD UGET_WORD1 UGET_WORD2 UGET_WORD3
+#define UPUT_WORD UPUT_WORD1 UPUT_WORD2 UPUT_WORD3
+#define UGET_LONG UGET_LONG1 UGET_LONG2 UGET_LONG2 UGET_LONG3
+#define UPUT_LONG UPUT_LONG1 UPUT_LONG2 UPUT_LONG2 UPUT_LONG3
+
+	PRIM(UNALIGNED_X2d_W_X40) UGET_WORD; MIRP
+	PRIM(UNALIGNED_X2d_W_X21) UPUT_WORD; MIRP
+	PRIM(UNALIGNED_X2d_L_X40) UGET_LONG; MIRP
+	PRIM(UNALIGNED_X2d_L_X21) UPUT_LONG; MIRP
 
 
 // 6
@@ -516,7 +570,6 @@ PRIM(STRING_X3d_CI)
 	unsigned char *p2 = TOS.a; POP;
 	type_u l1 = TOS.u; POP;
 	unsigned char *p1 = TOS.a;
-	extern int toupper(int c);
 
 	if (l1 == l2) {
 		TOS.n = -1;		/* Default to TRUE */
@@ -546,4 +599,36 @@ MIRP
 PRIM(ZCOUNT)
 	type_u len = strlen(TOS.a);
 	PUSH; TOS.u = len;
+MIRP
+
+PRIM(CLEAN_X2d_HASH)
+	memset(hash_table, 0, sizeof(hash_table));
+MIRP
+
+PRIM(HASH_X2d_TABLE)
+	PUSH;
+	TOS.a = hash_table;
+MIRP
+
+/* hash ( str len -- hash )
+ * this word is used in find-hash.fs to create
+ * a hash to accelerate word lookup */
+PRIM(HASH)
+	type_u len = TOS.u; POP;
+	unsigned char *str = TOS.a;
+	type_u tmp = len;
+	type_u hash = 0;
+	while(len--) {
+		hash <<= 1;
+		hash ^= tolower(*str);
+		hash ^= tmp;
+		str++;
+	}
+	/* we only want hash values which size is smaller
+	 * than HASHSIZE */
+	hash &= HASHSIZE - 1;
+	/* access the hash table in steps of CELLSIZE */
+	hash *= CELLSIZE;
+	/* return a pointer for this hash in the hash table */
+	TOS.a = hash_table + hash;
 MIRP

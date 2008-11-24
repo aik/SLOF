@@ -85,14 +85,19 @@ INCLUDE freq.fs
    \ yeah, hardcoded!
    f2000000 to puid
    
-   \ the PCI scan would assign b8302000 to that device
+   \ the PCI scan would assign pci-next-mmio to that device
    \ let's just take that address
-   b8302000 70210 rtas-config-l!
+   pci-next-mmio @ 100000 #aligned 
+   \ pci-bus-number 10 lshift 210 or could be something like 70210
+   \ 7: pci-bus-number
+   \ 2: device function
+   \ 10: offset 10 (bar 0)
+   pci-bus-number 10 lshift 210 or rtas-config-l!
 
    \ enable memory space
-   70204 dup rtas-config-l@ 2 or swap rtas-config-l!
+   pci-bus-number 10 lshift 204 or dup rtas-config-l@ 2 or swap rtas-config-l!
 
-   b8302000  ( base )
+   pci-next-mmio @ 100000 #aligned ( base )
 
    \ Sequence prescribed for resetting the EHCI contoller
 
@@ -102,7 +107,7 @@ INCLUDE freq.fs
 
    dup 30 + rl@ 1 and 1 =  IF
       dup 30 + rl@ 1 or
-      dup 30 + rl!
+      over 30 + rl!
       2 ms
    THEN
 
@@ -123,7 +128,7 @@ INCLUDE freq.fs
    \ now it is really disabled
 
    \ disable memory space access again
-   2100000 70204 rtas-config-l!
+   2100000 pci-bus-number 10 lshift 204 or rtas-config-l!
 
    80 847 config-b! \ Disable EHCI, as it is terminally broken.
 ;

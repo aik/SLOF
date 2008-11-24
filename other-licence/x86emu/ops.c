@@ -1061,7 +1061,11 @@ void x86emuOp_push_byte_IMM(u8 X86EMU_UNUSED(op1))
     imm = (s8)fetch_byte_imm();
     DECODE_PRINTF2("PUSH\t%d\n", imm);
     TRACE_AND_STEP();
-    push_word(imm);
+    if (M.x86.mode & SYSMODE_PREFIX_DATA) {
+        push_long(imm);
+    } else {
+        push_word(imm);
+    }
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -1256,8 +1260,10 @@ void x86emuOp_jump_near_cond(u8 op1)
     target = (u16)(M.x86.R_IP + (s16)offset);
     DECODE_PRINTF2("%x\n", target);
     TRACE_AND_STEP();
-    if (cond)
+    if (cond) {
         M.x86.R_IP = target;
+	JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, " NEAR COND ");
+    }
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -3294,9 +3300,9 @@ void x86emuOp_ret_near_IMM(u8 X86EMU_UNUSED(op1))
     DECODE_PRINTF("RET\t");
     imm = fetch_word_imm();
     DECODE_PRINTF2("%x\n", imm);
-	RETURN_TRACE("RET",M.x86.saved_cs,M.x86.saved_ip);
 	TRACE_AND_STEP();
     M.x86.R_IP = pop_word();
+	RETURN_TRACE(M.x86.saved_cs,M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, "NEAR");
     M.x86.R_SP += imm;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
@@ -3310,9 +3316,9 @@ void x86emuOp_ret_near(u8 X86EMU_UNUSED(op1))
 {
     START_OF_INSTR();
     DECODE_PRINTF("RET\n");
-	RETURN_TRACE("RET",M.x86.saved_cs,M.x86.saved_ip);
 	TRACE_AND_STEP();
     M.x86.R_IP = pop_word();
+	RETURN_TRACE(M.x86.saved_cs,M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, "NEAR");
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -3527,10 +3533,10 @@ void x86emuOp_ret_far_IMM(u8 X86EMU_UNUSED(op1))
     DECODE_PRINTF("RETF\t");
     imm = fetch_word_imm();
     DECODE_PRINTF2("%x\n", imm);
-	RETURN_TRACE("RETF",M.x86.saved_cs,M.x86.saved_ip);
 	TRACE_AND_STEP();
     M.x86.R_IP = pop_word();
     M.x86.R_CS = pop_word();
+	RETURN_TRACE(M.x86.saved_cs,M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, "FAR");
     M.x86.R_SP += imm;
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
@@ -3544,10 +3550,10 @@ void x86emuOp_ret_far(u8 X86EMU_UNUSED(op1))
 {
     START_OF_INSTR();
     DECODE_PRINTF("RETF\n");
-	RETURN_TRACE("RETF",M.x86.saved_cs,M.x86.saved_ip);
 	TRACE_AND_STEP();
     M.x86.R_IP = pop_word();
     M.x86.R_CS = pop_word();
+	RETURN_TRACE(M.x86.saved_cs,M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, "FAR");
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }
@@ -4150,8 +4156,10 @@ void x86emuOp_jcxz(u8 X86EMU_UNUSED(op1))
     target = (u16)(M.x86.R_IP + offset);
     DECODE_PRINTF2("%x\n", target);
     TRACE_AND_STEP();
-    if (M.x86.R_CX == 0)
+    if (M.x86.R_CX == 0) {
         M.x86.R_IP = target;
+	JMP_TRACE(M.x86.saved_cs, M.x86.saved_ip, M.x86.R_CS, M.x86.R_IP, " CXZ ");
+    }
     DECODE_CLEAR_SEGOVR();
     END_OF_INSTR();
 }

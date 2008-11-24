@@ -21,6 +21,9 @@
 
 ' (get-flashside) to get-flashside
 
+\ remember the current flashside
+get-flashside to flashside? 
+
 \ for update-flash
 : (set-flashside)  ( flashside -- status )
    dup rtas-set-flashside =  IF  0  ELSE  -1  THEN

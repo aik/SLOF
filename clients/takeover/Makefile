@@ -31,9 +31,9 @@ all: takeover.elf
 
 takeover.elf: ppc32wrap.o takeover.elf32
 	@echo " ====== Building $@ ======"
-	$(CROSS)gcc -m32 -N -Wl,-melf32ppclinux -static -nostdlib \
-		-Wl,-Ttext,0x400000 -Wl,-Tdata,0x400100 \
-		$(CFLAGS) $^ -o $@
+	$(LD) -N -melf32ppclinux -static -nostdlib \
+		-Ttext=0x400000 -Tdata=0x400100 \
+		$(LDFLAGS) $^ -o $@
 
 takeover.elf64: entry.o main.o takeover.o $(SNKDIR)/libc/time/timer.o of.elf
 	make -C $(LIBCMNDIR) libc

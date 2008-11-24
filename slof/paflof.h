@@ -14,10 +14,14 @@
 //
 
 
+extern long engine(int, long, long);
+
 #define TIBSIZE 256
 
 #define POCKETSIZE 256
 #define NUMPOCKETS 16
+
+#define HASHSIZE 0x1000
 
 // engine mode bits
 #define ENGINE_MODE_PARAM_1	0x0001

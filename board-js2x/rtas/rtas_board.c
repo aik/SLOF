@@ -52,7 +52,7 @@ rtas_fetch_slaves(rtas_args_t * pArgs)
 	while (mask) {
 		if (mask & 0x1) {
 			rtas_slave_interface.id = idx | 0x100;
-			*(int *) 0x3fc0 = (int) &rtas_slave_interface;	// r3
+			*(int *) 0x3fc0 = (int)(unsigned long) &rtas_slave_interface;	// r3
 			*(int *) 0x3f80 = *(uint64_t *) rtas_slave_loop;	// addr
 			*(int *) 0x3fa0 = idx | 0x100;	// pid
 			while (rtas_slave_interface.id);

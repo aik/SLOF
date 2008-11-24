@@ -169,9 +169,9 @@ main(int argc, char *argv[])
 				       cpu, reg);
 				slaveQuitt = -1;
 				if (takeoverFlag)
-					startCpu(cpu, (int) slaveLoop, index);
+					startCpu(cpu, (int)(unsigned long)slaveLoop, index);
 				else
-					startCpu(cpu, (int) slaveLoopNoTakeover,
+					startCpu(cpu, (int)(unsigned long)slaveLoopNoTakeover,
 						 index);
 				slaveMask |= 0x1 << index;
 				delay = 100;

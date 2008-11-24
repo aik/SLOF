@@ -184,7 +184,7 @@ my_inl(X86EMU_pioAddr addr)
 				addr);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
 		uint32_t rval;
-		if ((translated_addr & (uint64_t) 0x2) == 0) {
+		if ((translated_addr & (uint64_t) 0x3) == 0) {
 			// 32 bit aligned access...
 			uint32_t tempval = read_io((void *) translated_addr, 4);
 			//little endian conversion

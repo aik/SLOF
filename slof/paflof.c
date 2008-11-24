@@ -21,16 +21,17 @@
 #include "paflof.h"
 #include <string.h>
 #include <stdint.h>
+#include <ctype.h>
 #include ISTR(TARG,h)
 
 #define LAST_ELEMENT(x) x[sizeof x / sizeof x[0] - 1]
 
-#include ISTR(TARG,c)
-
 unsigned long fdt_start;
 unsigned long romfs_base;
 unsigned long epapr_magic;
+unsigned char hash_table[HASHSIZE*CELLSIZE];
 
+#include ISTR(TARG,c)
 
 // the actual engine
 long engine(int mode, long param_1, long param_2)

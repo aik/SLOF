@@ -53,10 +53,10 @@ biosemu(char argc, char **argv)
 	uint8_t *biosmem;
 	uint32_t biosmem_size;
 #ifdef DEBUG
-	debug_flags = DEBUG_PRINT_INT10 | DEBUG_PNP;// | DEBUG_PMM;// | DEBUG_INTR | DEBUG_CHECK_VMEM_ACCESS | DEBUG_MEM | DEBUG_IO;// | DEBUG_TRACE_X86EMU | DEBUG_JMP;
+	//debug_flags = DEBUG_PRINT_INT10 | DEBUG_PNP;// | DEBUG_PMM;// | DEBUG_INTR | DEBUG_CHECK_VMEM_ACCESS | DEBUG_MEM | DEBUG_IO;// | DEBUG_TRACE_X86EMU | DEBUG_JMP;
 #endif
-	if (argc < 3) {
-		printf("Usage %s <vmem_base> <device_path>\n", argv[0]);
+	if (argc < 4) {
+		printf("Usage %s <vmem_base> <vmem_size> <device_path> [<debug_flags>]\n", argv[0]);
 		for (i = 0; i < argc; i++) {
 			printf("argv[%d]: %s\n", i, argv[i]);
 		}
@@ -80,6 +80,11 @@ biosemu(char argc, char **argv)
 		printf("Error: Device Expansion ROM invalid!\n");
 		return -1;
 	}
+   // argv[4] if set, is additional debug_flags
+   if (argc >= 5) {
+      debug_flags |= strtoul(argv[4], 0, 16);
+      printf("debug_flags: %x\n", debug_flags);
+   }
 	rom_image = (uint8_t *) bios_device.img_addr;
 	DEBUG_PRINTF("executing rom_image from %p\n", rom_image);
 	DEBUG_PRINTF("biosmem at %p\n", biosmem);

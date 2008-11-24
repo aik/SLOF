@@ -10,12 +10,12 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-JS2X_TARGETS = tools_build romfs_build stage1
+JS2X_TARGETS = tools_build romfs_build clients_build bcm57xx stage1
 
 SUBDIRS = slof rtas 
-COMMON_LIBS = libc libipmi libbootmsg libbases libelf libnvram
+COMMON_LIBS = libc libipmi libbootmsg libbases libnvram libelf
 
-all:		$(JS2X_TARGETS) subdirs clients_build bcm57xx boot_rom_js2x.bin
+all: $(JS2X_TARGETS) subdirs boot_rom.bin
 
 .PHONY : subdirs $(SUBDIRS) clean distclean
 
@@ -26,49 +26,36 @@ include $(TOPCMNDIR)/Makefile.gen
 
 subdirs: $(SUBDIRS)
 
-$(SUBDIRS): libraries
-		 @echo " ====== Building $@ ======"
-		 $(MAKE) -C $@ $(MAKEARG)
-
-
-libraries:
-		 $(MAKE) -C $(LIBCMNDIR) $(COMMON_LIBS)
-
-stage1:	
-		make -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
-
-boot_rom_js2x.bin: 	$(JS2X_TARGETS) subdirs clients_build bcm57xx ../build_info.img
+$(SUBDIRS): common-libs
 		@echo " ====== Building $@ ======"
-		cat $(ROMFSBRDDIR)/boot_rom.ffs > ../.boot_rom.ffs
-		cat $(SLOFBRDDIR)/OF.ffs >> ../.boot_rom.ffs
-		@echo build_info.img  build_info.img 0 0 >> ../.boot_rom.ffs
-		cd .. && ./romfs/tools/build_romfs .boot_rom.ffs boot_rom.bin
-		cd .. && if [ -f boot_rom.bin.gz ]; then rm -f boot_rom.bin.gz; gzip -9 boot_rom.bin; fi
-		rm -f ../.boot_rom.ffs
+		$(MAKE) -C $@ $(MAKEARG)
+
+stage1:	common-libs
+		@echo " ====== Building llfw ======"
+		make -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
 
 bcm57xx:
 		make -C ../other-licence/bcm
-
 
 clean_here:
 		rm -f ../slof/OF.ffs
 		rm -f ../boot_rom.bin
 
 clean:		clean_here clean_gen
-		make -C ../other-licence/bcm clean
 		@for dir in $(SUBDIRS); do \
 			$(MAKE) -C $$dir clean || exit 1; \
 		done
 		rm -f ../boot_rom.bin ../js2*.img 
+		make -C ../other-licence/bcm clean
 		@make -C llfw clean
 		@make -C $(TOPCMNDIR)/clients/takeover clean
 
 distclean:	clean_here distclean_gen
-		make -C ../other-licence/bcm clean
 		@for dir in $(SUBDIRS); do \
 			$(MAKE) -C $$dir distclean || exit 1; \
 		done
 		rm -f ../boot_rom.bin ../js2*.img 
+		make -C ../other-licence/bcm clean
 		make -C llfw clean
 		make -C $(TOPCMNDIR)/clients/takeover distclean
 

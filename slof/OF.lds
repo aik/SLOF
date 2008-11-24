@@ -38,7 +38,13 @@ SECTIONS
 	{
 		*(.got .toc)
 	}
-	.data : { *(.rodata .rodata.*) *(.data .data.*) }
+
+	.data : { 
+		*(.rodata .rodata.*)
+		*(.data .data.*)
+		*(.note.gnu.build-id)
+	}
+
 	.comment : { *(.comment) }
 	.branch_lt : { *(.branch_lt) }
 

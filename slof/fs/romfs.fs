@@ -32,10 +32,6 @@ romfs-lookup-cb /romfs-lookup-control-block erase
     0= IF romfs-lookup-cb dup romfs>data @ swap romfs>data-size @ ELSE
     false THEN ;
 
-: check-for-board-romfs ( -- true | false )
-   s" header" romfs-lookup drop @
-   6d61676963313233 <> IF false ELSE true THEN ;
-
 : ibm,romfs-lookup ( fn-str fn-len -- data-high data-low size | 0 0 false )
   romfs-lookup dup
   0= if drop 0 0 false else
@@ -63,13 +59,19 @@ CONSTANT /romfs-cb
     ( fn-str fn-len ) ( R: rom-cb-file-addr )
     2drop r@ romfs>data-off @ r@ + r> romfs>size @ ;
 
+\ returns address of romfs-header file
 : flash-header ( -- address | false )
-    check-for-board-romfs 0= IF false ELSE
-    s" header" romfs-lookup 0= IF 0 THEN THEN ;
+    get-flash-base 28 +         \ prepare flash header file address
+    dup rx@                     \ fetch "magic123"
+    6d61676963313233 <> IF      \ IF flash is not valid
+       drop                     \ | forget address
+       false                    \ | return false
+    THEN                        \ FI
+;
 
 CREATE bdate-str 10 allot
 : bdate2human ( -- addr len )
-  flash-header 40 + @ (.)
+  flash-header 40 + rx@ (.)
   drop dup 0 + bdate-str 6 + 4 move
   dup 4 + bdate-str 0 + 2 move
   dup 6 + bdate-str 3 + 2 move

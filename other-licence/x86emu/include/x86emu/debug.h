@@ -171,11 +171,11 @@
 		x86emu_dump_regs();                                     \
 	if (DEBUG_TRACECALL())                                     	\
 		printk("%04x:%04x: CALL %s%04x:%04x\n", u , v, s, w, x);
-# define RETURN_TRACE(n,u,v)                                    \
+# define RETURN_TRACE(u,v,w,x,s)                                    \
 	if (DEBUG_TRACECALLREGS())									\
 		x86emu_dump_regs();                                     \
 	if (DEBUG_TRACECALL())                                     	\
-		printk("%04x:%04x: %s\n",u,v,n);
+		printk("%04x:%04x: RET %s %04x:%04x\n",u,v,s,w,x);
 # define  JMP_TRACE(u,v,w,x,s)                                 \
    if (DEBUG_TRACEJMPREGS()) \
       x86emu_dump_regs(); \
@@ -183,7 +183,7 @@
       printk("%04x:%04x: JMP %s%04x:%04x\n", u , v, s, w, x);
 #else
 # define CALL_TRACE(u,v,w,x,s)
-# define RETURN_TRACE(n,u,v)
+# define RETURN_TRACE(u,v,w,x,s)
 # define  JMP_TRACE(u,v,w,x,s)
 #endif
 

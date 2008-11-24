@@ -10,6 +10,9 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+\ Hash for faster lookup
+#include <find-hash.fs>
+
 : >name ( xt -- nfa ) \ note: still has the "immediate" field!
    BEGIN char- dup c@ UNTIL ( @lastchar )
    dup dup aligned - cell+ char- ( @lastchar lenmodcell )
@@ -24,6 +27,8 @@
 VARIABLE mask -1 mask !
 
 VARIABLE huge-tftp-load 1 huge-tftp-load !
+\ Default implementation for sms-get-tftp-blocksize that return 1432 (decimal)
+: sms-get-tftp-blocksize 598 ;
 
 : default-hw-exception s" Exception #" type . ;
 
@@ -104,6 +109,7 @@ CREATE $catpad 100 allot
 : (is-user-word) ( name-str name-len xt -- ) -rot $CREATE , DOES> @ execute ;
 
 : zplace ( str len buf -- )  2dup + 0 swap c! swap move ;
+: rzplace ( str len buf -- )  2dup + 0 swap rb! swap rmove ;
 
 : strdup ( str len -- dupstr len ) here over allot swap 2dup 2>r move 2r> ;
 
@@ -244,9 +250,6 @@ CREATE "pad 100 allot
       pocket dup (") over -          \ Interpretation, put string
    THEN                              \ in temp buffer
 ; immediate
-
-\ Hash for faster lookup
-#include <find-hash.fs>
 
 \ Remove command old-name and all subsequent definitions
 

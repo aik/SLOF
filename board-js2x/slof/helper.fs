@@ -15,3 +15,14 @@
 ;
 
 : slof-revision s" 001" ;
+
+: read-version-and-date
+   flash-header 0= IF
+   s"  " encode-string
+   ELSE
+   flash-header 10 + 10
+   here swap rmove
+   here 10
+   s" , " $cat
+   bdate2human $cat encode-string THEN
+;

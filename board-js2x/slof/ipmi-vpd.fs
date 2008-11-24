@@ -91,7 +91,7 @@
    vpd-cb zcount slof-revision string=ci 0=
    IF  slof-revision vpd-cb zplace drop 1  THEN
    vpd-cb 4 + zcount slof-build-id string=ci 0=
-   IF  slof-build-id vpd-cb 4 + zplace drop 1  THEN
+   IF  slof-build-id vpd-cb 4 + rzplace drop 1  THEN
    1 =  IF  406 24 vpd-cb rtas-write-vpd drop  THEN
 ;
 

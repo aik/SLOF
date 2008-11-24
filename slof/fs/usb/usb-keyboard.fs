@@ -89,12 +89,6 @@ s" usb-kbd-device-support.fs" included
     then
 ;
 
-: open ( -- true )
-  true
-;
-
-: close ;
-
 : set-led ( led -- ) 
   dup to led-state  
   kbd-addr control-cls-set-report drop
@@ -361,3 +355,17 @@ milliseconds to expire-ms                                \ Timer initialize
 
 s" keyboard" get-node node>path set-alias
 
+: open ( -- true )
+   7 set-led
+   100 ms
+   3 set-led
+   100 ms
+   1 set-led
+   100 ms
+   \ read once from keyboard before actually using it
+   usb-kread drop
+   0 set-led
+   true
+;
+
+: close ;
