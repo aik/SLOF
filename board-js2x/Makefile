@@ -66,15 +66,12 @@ takeover: all
 		@rm -rf ../driver-$(RELEASE)
 		@mkdir -p ../driver-$(RELEASE)
 
-.tar_gz:	.driver_dirs takeover external_flasher
+.tar_gz:	.driver_dirs takeover
 		@mv ../boot_rom.bin \
 			../driver-$(RELEASE)/$(RELEASE)-js2x.bin
-		@mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \
-			../driver-$(RELEASE)/$(RELEASE)-$(FLASH_SIZE_MB)MB-BigEndian.bin
 		@mv $(TOPCMNDIR)/clients/takeover/takeover.elf \
 			../driver-$(RELEASE)/$(RELEASE)-takeover.bin
 		@cp ../VERSION ../driver-$(RELEASE)
-		@cp changes.txt ../driver-$(RELEASE)
 		@cd ../driver-$(RELEASE) && md5sum * > md5sum.txt
 		@chmod 644 ../driver-$(RELEASE)/*
 		@mv ../driver-$(RELEASE) ../driver-$(RELEASE)-`date +%Y-%h%d`
