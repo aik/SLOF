@@ -1,0 +1,66 @@
+# *****************************************************************************
+# * Copyright (c) 2004, 2008 IBM Corporation
+# * All rights reserved.
+# * This program and the accompanying materials
+# * are made available under the terms of the BSD License
+# * which accompanies this distribution, and is available at
+# * http://www.opensource.org/licenses/bsd-license.php
+# *
+# * Contributors:
+# *     IBM Corporation - initial implementation
+# ****************************************************************************/
+
+TOP=$(shell pwd)
+export TOP
+include $(TOP)/make.rules
+    
+OBJS	=  kernel/kernel.o oflib/oflib.o libc/libc-glue.o app/app.o
+.PHONY : subdirs clean depend mrproper
+
+client : .depend subdirs $(OBJS) $(LIBCMNDIR)/libc.a
+	$(LD) $(LDFLAGS) -o $@ -Tclient.lds $(OBJS) $(LIBCMNDIR)/libc.a
+	$(OBJDUMP) -DSsx $@ > $@.dis
+	cp $@ $@.unstripped
+	$(STRIP) $@
+
+sec-client : subdirs $(OBJS) $(LIBCMNDIR)/libc.a
+	$(LD) $(LDFLAGS) -o $@ -Tsec-client.lds $(OBJS) $(LIBCMNDIR)/libc.a
+
+fpga-client : 
+	$(MAKE) -C . fpga-client-int SNK_LJTAG_PROCESS=1
+
+fpga-client-int : subdirs $(OBJS) $(LIBCMNDIR)/libc.a
+	$(LD) $(LDFLAGS) -o fpga-client -Tsec-client.lds $(OBJS) $(LIBCMNDIR)/libc.a
+	$(STRIP) fpga-client
+
+subdirs : 
+	@for dir in $(dir $(OBJS)); do \
+	  $(MAKE) -C $$dir || exit 1; \
+	done
+
+$(LIBCMNDIR)/libc.a:
+	$(MAKE) -C $(LIBCMNDIR) libc
+
+clean: 
+	@for dir in $(dir $(OBJS)); do \
+	  $(MAKE) -C $$dir clean; \
+	done
+	rm -f $(OBJS) client diag netboot sec-client net-diag \
+		*.dis client.unstripped fpga-client
+
+mrproper : clean
+	$(MAKE) -C app mrproper
+	$(MAKE) -C libc mrproper
+	$(MAKE) -C kernel mrproper
+	$(MAKE) -C oflib mrproper
+	find -name .*.bak | xargs rm -rf
+	$(RM) .depend
+
+distclean: mrproper
+
+depend .depend:
+	$(MAKE) -C app depend
+	$(MAKE) -C libc depend
+	$(MAKE) -C kernel depend
+	$(MAKE) -C oflib depend
+	touch .depend
