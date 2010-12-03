@@ -124,7 +124,7 @@ createHeaderImage(int notime)
 	memcpy(uHeader.stHeader.date, &da, 8);
 
 	/* write Magic value into data stream */
-	strcpy(uHeader.stHeader.magic, FLASHFS_MAGIC);
+	strncpy(uHeader.stHeader.magic, FLASHFS_MAGIC, 8);
 	/* write platform name into data stream */
 	strcpy(uHeader.stHeader.platform_name, FLASHFS_PLATFORM_MAGIC);
 	/* write platform revision into data stream */

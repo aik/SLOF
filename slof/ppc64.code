@@ -25,6 +25,7 @@ PRIM(RX_X40) GET_XONG1; SET_CI; GET_XONG2; CLR_CI; GET_XONG3; MIRP
 PRIM(RX_X21) PUT_XONG1; SET_CI; PUT_XONG2; CLR_CI; MIRP
 
 // 970-specific CPU registers.
+// Don't use on P7 !
 PRIM(HID0_X21)
 	unsigned long hid0 = TOS.u;
 	asm volatile("sync ; mtspr 1008,%0 ; mfspr %0,1008 ; mfspr %0,1008 ; mfspr %0,1008 ; mfspr %0,1008 ; mfspr %0,1008 ; mfspr %0,1008" : "+r"(hid0));

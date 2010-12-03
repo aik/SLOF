@@ -264,6 +264,7 @@ VARIABLE nvoff \ offset in envvar partition
 : get-nv  ( -- )
    nvram-partition-type-common get-nvram-partition ( addr offset not-found | not-found ) \ find partition header
    IF
+      ." No NVRAM common partition, re-initializing..." cr
       internal-reset-nvram
       (nvupdate)
       nvram-partition-type-common get-nvram-partition IF ." NVRAM seems to be broken." cr EXIT THEN

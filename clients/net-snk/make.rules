@@ -21,7 +21,7 @@ LIBCMNDIR	?= $(ROOTDIR)/lib
 CFLAGS		= -g -I. -I$(TOP)/include -I$(LIBCMNDIR)/libc/include \
 		  -I$(LIBCMNDIR)/libbootmsg -I$(INCLCMNDIR)/$(CPUARCH) \
 		  -O2 -fno-builtin -ffreestanding -msoft-float -mno-altivec \
-		  -Wall $(FLAG) -nostdinc
+		  -Wall $(FLAG) -nostdinc -fno-stack-protector
 ifeq ($(SNK_LJTAG_PROCESS), 1)
 CFLAGS 		+= -I$(TOP)/../../board-malta/include
 CFLAGS 		+= -I$(TOP)/../../include/cbea

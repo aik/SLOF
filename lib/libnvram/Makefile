@@ -15,7 +15,8 @@ SRCS = nvram.c envvar.c
 TOPCMNDIR ?= ../..
 
 ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
-CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR)  -I$(INCLCMNDIR)/$(CPUARCH) -I. -I../../include
+CPPFLAGS = -I../libc/include $(CPUARCHDEF) $(FLAG) \
+	   -I$(INCLBRDDIR) -I$(INCLCMNDIR)/$(CPUARCH) -I. -I../../include
 LDFLAGS = -nostdlib
 
 TARGET = ../libnvram.a

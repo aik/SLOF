@@ -57,6 +57,7 @@
 \ this word will check what the current chosen input device is:
 \ - if it is a serial device, it will use serial-key? to check for available input
 \ - if it is a keyboard, it will check if the "key-available?" method is implemented (i.e. for usb-keyboard) and use that
+\ - if it's an hv console, use hvterm-key?
 \ otherwise it will always return false
 : term-io-key?  ( -- true|false )
    s" stdin" get-chosen IF
@@ -70,7 +71,9 @@
       ELSE
          1 - \ remove 1 from length to ignore null-termination char
          \ device_type found, check wether it is serial or keyboard
-         2dup s" serial" str= IF 2drop serial-key? r> drop EXIT THEN \ call serial-key, cleanup return-stack, exit
+         2dup s" serial" str= IF
+	    2drop serial-key? r> drop EXIT
+	 THEN \ call serial-key, cleanup return-stack, exit
          2dup s" keyboard" str= IF 
             2drop ( )
             \ keyboard found, check for key-available? method, execute it or return false 

@@ -56,19 +56,21 @@ call_c(cell arg0, cell arg1, cell arg2, cell entry)
 		     : "=r" (r3)
 		     : "r" (r3), "r" (r4), "r" (r5), "r" (r6)
 		     : "ctr", "r6", "r7", "r8", "r9", "r10", "r11",
-		     "r12", "r13", "r31");
+		       "r12", "r13", "r31", "lr", "cc");
 
 	return r3;
 }
+
 
 long
 writeLogByte_wrapper(long x, long y)
 {
 	unsigned long result;
 
-	set_ci();
+	SET_CI;
 	result = writeLogByte(x, y);
-	clr_ci();
+	CLR_CI;
+
 	return result;
 }
 

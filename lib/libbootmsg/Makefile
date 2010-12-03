@@ -33,12 +33,16 @@ ifeq ($(CPUARCH),p5)
 SRCS =
 SRCSS = bootmsg_lvl.S
 else
+ifeq ($(CPUARCH),ppcp7)
+SRCS =
+SRCSS = bootmsg_lvl.S
+else
 SRCS = bootmsg.c
 SRCSS = 
 endif
 endif
 endif
-
+endif
 
 OBJS = $(SRCS:%.c=%.o) $(SRCSS:%.S=%.o)
 

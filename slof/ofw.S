@@ -33,6 +33,8 @@
 	/* fill in handler address */
 
 	/* this only works if paflof is running below 4GB */
+	mfmsr	r0
+	mtsrr1	r0
 	lis	r3, _slof_text@h
 	ori	r3, r3, _slof_text@l
 	ld	r3, 0(r3)

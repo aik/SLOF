@@ -20,10 +20,12 @@ _start:
 	/* check if Master / Slave *****************/
 	/* Master will go to XVECT_M_HANDLER       */
 	/* Slave  will go to XVECT_S_HANDLER       */
+#ifdef SECONDARY_CPUS_STOPPED
 	ld	r3,XVECT_S_HANDLER(0)
 	mfspr	r0, PIR
 	cmpwi	r0, 0
 	bne	0f
+#endif
 	ld	r3,XVECT_M_HANDLER(0)
 0:
 	mtctr	r3
@@ -45,14 +47,14 @@ _start:
 	/* it traps, and with what register values etc.                  */
 	// b	$
 
-	mtsprg	0, r0
+	mtsprg	0,r0
 	mfctr	r0
 	mtsprg  2,r0
 	mflr	r0
 	mtsprg  3,r0
 	ld	r0, XVECT_M_HANDLER(0)
 	mtctr	r0
-	li	r0, \i
+	li	r0,\i
 	bctr
 	.endr
 

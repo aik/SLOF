@@ -14,6 +14,9 @@
 #include <southbridge.h>
 #include <calculatecrc.h>
 
+
+#if !defined(DISABLE_NVRAM)
+
 // detect overflow: if(a<b)  return a else return 0
 #define NVRAM_LOG_DATA_OVERFLOW( a, b) \
 	cmpd    7, a, b; \
@@ -338,3 +341,11 @@ ASM_ENTRY(.calPartitionHeaderChecksum)
 
 	mr r4, r6
 	blr
+
+#else	/* defined(DISABLE_NVRAM) */
+
+ASM_ENTRY(.writeNVRAMbyte)
+	ENTRY(writeLogByte)
+	blr
+
+#endif

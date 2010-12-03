@@ -16,8 +16,13 @@
 #define PAGE_SIZE 4096
 #define HEAP_SIZE 0x800000
 
+#ifdef CPU_PPC970
 #define SET_CI set_ci()
 #define CLR_CI clr_ci()
+#else
+#define SET_CI
+#define CLR_CI
+#endif
 
 // The big Forth source file that contains everything but the core engine.
 // We include it as a hunk of data into the C part of SLOF; at startup

@@ -123,11 +123,17 @@ CONSTANT scsi-length-sense-data
 \ ----------------------------------------
 \ Forth Word:   scsi-get-sense-data  ( addr -- ascq asc sense-key )
 \ ----------------------------------------
-: scsi-get-sense-data                  ( addr -- ascq asc sense-key )
+: scsi-get-sense-data                  ( addr -- ascq asc sense-key )   
    >r                                  ( R: -- addr )
-   r@ sense-data>ASCQ c@               ( ascq )
-   r@ sense-data>ASC c@                ( ascq asc )
-   r> sense-data>sense-key c@ 0f and   ( ascq asc sense-key ) ( R: addr -- )
+   r@ sense-data>response-code c@ 7f and 72 >= IF
+     r@ 3 + c@                           ( ascq )
+     r@ 2 + c@                           ( ascq asc ) 
+     r> 1 + c@ 0f and                    ( ascq asc sense-key )
+   ELSE
+     r@ sense-data>ASCQ c@               ( ascq )
+     r@ sense-data>ASC c@                ( ascq asc )
+     r> sense-data>sense-key c@ 0f and   ( ascq asc sense-key ) ( R: addr -- )
+   THEN
 ;
 
 \ --------------------------------------------------------------------------
@@ -582,6 +588,28 @@ CONSTANT scsi-length-seek
    scsi-length-seek to scsi-param-size \ update CDB length
 ;
 
+\ ****************************************************************************
+\ CDROM media event stuff
+\ ****************************************************************************
+
+STRUCT
+    /w FIELD media-event-data-len
+    /c FIELD media-event-nea-class
+    /c FIELD media-event-supp-class
+    /l FIELD media-event-data
+CONSTANT scsi-length-media-event
+
+: scsi-build-get-media-event                     ( cdb -- )
+   dup c erase				         ( cdb )
+   4a over c!				         ( cdb )
+   01 over 1 + c!
+   10 over 4 + c!
+   08 over 8 + c!
+   drop
+;
+
+
+
 \ ***************************************************************************
 \ SCSI-Utility: .sense-code
 \ ***************************************************************************
@@ -712,7 +740,7 @@ CONSTANT scsi-length-seek
 \ ***************************************************************************
 \ utility that helps to ensure that parameters are set to valid values
 : scsi-supp-init  ( -- )
-   false  to scsi-param-debug          \ no debug strings
+   false   to scsi-param-debug         \ no debug strings
    h# 0   to scsi-param-size
    h# 0   to scsi-param-control        \ common CDB control byte
    d# 0   to scsi-param-errors         \ local errors (param limits)

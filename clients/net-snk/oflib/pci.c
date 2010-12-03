@@ -16,6 +16,7 @@
 #include <string.h>
 #include <kernel.h>
 #include <cpu.h>
+#include <cache.h>
 
 int
 pci_calc_bar_size(long long puid, int bus, int devfn, int bar)
@@ -49,19 +50,13 @@ read_io(void *addr, size_t sz)
 
 	switch (sz) {
 	case 1:
-		set_ci();
-		ret = (unsigned int) *((unsigned char *) addr);
-		clr_ci();
+		ret = ci_read_8(addr);
 		break;
 	case 2:
-		set_ci();
-		ret = (unsigned int) *((unsigned short *) addr);
-		clr_ci();
+		ret = ci_read_16(addr);
 		break;
 	case 4:
-		set_ci();
-		ret = *((unsigned int *) addr);
-		clr_ci();
+		ret = ci_read_32(addr);
 		break;
 	default:
 		ret = 0;
@@ -75,19 +70,13 @@ write_io(void *addr, unsigned int value, size_t sz)
 {
 	switch (sz) {
 	case 1:
-		set_ci();
-		*((unsigned char *) addr) = (unsigned char) value;
-		clr_ci();
+		ci_write_8(addr, value);
 		break;
 	case 2:
-		set_ci();
-		*((unsigned short *) addr) = (unsigned short) value;
-		clr_ci();
+		ci_write_16(addr, value);
 		break;
 	case 4:
-		set_ci();
-		*((unsigned int *) addr) = value;
-		clr_ci();
+		ci_write_32(addr, value);
 		break;
 	default:
 		return -1;

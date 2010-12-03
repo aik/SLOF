@@ -23,9 +23,17 @@
 #include <southbridge.h>
 #include <nvramlog.h>
 
+#ifndef NVRAM_LENGTH
+#define NVRAM_LENGTH	0x10000
+#endif
+
 void asm_cout(long Character,long UART,long NVRAM);
 
-static volatile uint8_t *nvram=(volatile uint8_t *)SB_NVRAM_adr;
+#if defined(DISABLE_NVRAM)
+static volatile uint8_t nvram[NVRAM_LENGTH]; /* FAKE */
+#else
+static volatile uint8_t *nvram = (volatile uint8_t *)SB_NVRAM_adr;
+#endif
 
 /* This is extremely ugly, but still better than implementing 
  * another sbrk() around it.
@@ -490,13 +498,13 @@ void reset_nvram(void)
 	erase_nvram(0, NVRAM_LENGTH);
 
 	DEBUG("Creating CPU log partitions\n");
-	*(uint32_t *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE0_NAME_PREFIX);
-	*(uint64_t *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE0_NAME);
+	*(uint32_t *)(char *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE0_NAME_PREFIX);
+	*(uint64_t *)(char *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE0_NAME);
 	cpulog0=create_nvram_partition(LLFW_LOG_BE0_SIGNATURE, header, 
 			(LLFW_LOG_BE0_LENGTH*16)-PARTITION_HEADER_SIZE);
 
-	*(uint32_t *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE1_NAME_PREFIX);
-	*(uint64_t *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE1_NAME);
+	*(uint32_t *)(char *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE1_NAME_PREFIX);
+	*(uint64_t *)(char *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE1_NAME);
 	cpulog1=create_nvram_partition(LLFW_LOG_BE1_SIGNATURE, header, 
 			(LLFW_LOG_BE1_LENGTH*16)-PARTITION_HEADER_SIZE);
 
@@ -512,7 +520,8 @@ void reset_nvram(void)
 
 void nvram_debug(void)
 {
+#if !defined(DISABLE_NVRAM)
 	printf("\nNVRAM_BASE: %lx\n", (unsigned long)SB_NVRAM_adr);
 	printf("NVRAM_LEN: %x\n", NVRAM_LENGTH);
+#endif
 }
-

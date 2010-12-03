@@ -19,7 +19,8 @@ include $(TOP)/make.rules
 
 
 CFLAGS = -g -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -O2 \
-         -fno-builtin -ffreestanding -msoft-float -Wall
+         -fno-builtin -ffreestanding -msoft-float -Wall \
+	 -fno-stack-protector
 LDFLAGS= -nostdlib
 
 

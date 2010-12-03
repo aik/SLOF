@@ -28,6 +28,7 @@ typedef struct {
 	int type;
 } bar_t;
 
+
 typedef struct {
 	unsigned long long puid;
 	unsigned int bus;
@@ -39,6 +40,11 @@ typedef struct {
 	bar_t bars[6];
 	unsigned int interrupt_line;
 } pci_config_t;
+
+typedef struct {
+	unsigned int reg;
+	char	     compat[64];
+} vio_config_t;
 
 #define MOD_TYPE_NETWORK 0
 #define MOD_TYPE_OTHER   1
@@ -112,7 +118,10 @@ typedef struct {
 	io_write_t io_write;
 	romfs_lookup_t k_romfs_lookup;
 	translate_addr_t translate_addr;
-	pci_config_t pci_conf;
+	union {
+		pci_config_t pci_conf;
+		vio_config_t vio_conf;
+	};
 	k_open_t k_open;
 	k_close_t k_close;
 	k_read_t k_read;

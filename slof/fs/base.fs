@@ -482,9 +482,9 @@ defer cursor-off ( -- )
 
 : nop-reboot ( -- ) ." reboot not available" abort ;
 : nop-halt ( -- ) ." halt not available" abort ;
-: nop-disable-watchdog ( -- ) ." disable-watchdog not available" cr ;
-: nop-reset-watchdog ( -- )  ." reset-watchdog not available" cr ;
-: nop-set-watchdog ( +n -- ) drop ." set-watchdog not available" cr ;
+: nop-disable-watchdog ( -- )  ;
+: nop-reset-watchdog ( -- )  ;
+: nop-set-watchdog ( +n -- ) drop ;
 : nop-set-led ( type instance state -- status ) drop drop drop ;
 : nop-get-flashside ( -- side ) ." Cannot get flashside" cr ABORT ;
 : nop-set-flashside ( side -- status ) ." Cannot set flashside" cr ABORT ;

@@ -28,7 +28,8 @@ INCLBRDDIR ?= $(TOPBRDDIR)/include
 
 CPPFLAGS += -I. -I$(INCLCMNDIR) -I$(INCLBRDDIR) -I$(INCLCMNDIR)/$(CPUARCH)
 CFLAGS  = -DTARG=$(TARG) -static -Wall -W -std=gnu99 \
-	  -O2 -fomit-frame-pointer -msoft-float $(FLAG) $(CPUARCHDEF)
+	  -O2 -fomit-frame-pointer -msoft-float $(FLAG) $(CPUARCHDEF) \
+	  -fno-stack-protector
 ASFLAGS = -Wa,-mpower4 -Wa,-mregnames $(FLAG) $(CPUARCHDEF)
 
 LDFLAGS += -static -nostdlib 
@@ -89,7 +90,7 @@ paflof: $(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o paflof.o $(SLOFCMNDIR)/entry.o 
 	@cp $@ $@.unstripped
 	$(STRIP) -s $@
 
-paflof.o:
+paflof.o: board.code dict.xt
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(SLOFCMNDIR)/paflof.c
 
 $(SLOFCMNDIR)/xvect.bin: $(SLOFCMNDIR)/lowmem.o

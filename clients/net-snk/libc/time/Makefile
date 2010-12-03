@@ -20,7 +20,7 @@ include $(TOP)/make.rules
 
 
 CFLAGS = -g -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -O2 -msoft-float \
-	 -Wall -fno-builtin -ffreestanding -nostdinc
+	 -Wall -fno-builtin -ffreestanding -nostdinc -fno-stack-protector
 LDFLAGS= -nostdlib
 
 
