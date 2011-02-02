@@ -10,41 +10,17 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-CROSS		?= powerpc64-linux-
-
-HOSTCC		?= gcc
-HOSTCFLAGS	= -g -Wall -W -O2 -I. -I../include
-
 ROOTDIR		?= $(TOP)/../..
+
+include $(ROOTDIR)/make.rules
+
 INCLCMNDIR	?= $(ROOTDIR)/include
 LIBCMNDIR	?= $(ROOTDIR)/lib
 CFLAGS		= -g -I. -I$(TOP)/include -I$(LIBCMNDIR)/libc/include \
 		  -I$(LIBCMNDIR)/libbootmsg -I$(INCLCMNDIR)/$(CPUARCH) \
 		  -O2 -fno-builtin -ffreestanding -msoft-float -mno-altivec \
 		  -Wall $(FLAG) -nostdinc -fno-stack-protector
-ifeq ($(SNK_LJTAG_PROCESS), 1)
-CFLAGS 		+= -I$(TOP)/../../board-malta/include
-CFLAGS 		+= -I$(TOP)/../../include/cbea
-endif
+
 LDFLAGS		= -nostdlib
 ASFLAGS		= -I. -I$(TOP)/include -Wa,-mregnames -I$(INCLCMNDIR)/$(CPUARCH)
 DD		= dd
-
-ifdef NEW_BUILD
-MAKEFLAGS	= --silent
-CC      	= echo -e "\t[CC]\t$(DIRECTORY)$@"; $(CROSS)gcc -m64
-AS		= echo -e "\t[AS]\t$(DIRECTORY)$@"; $(CROSS)as -m64
-LD		= echo -e "\t[LD]\t$(DIRECTORY)$@"; $(CROSS)ld -melf64ppc
-CLEAN		= echo -e "\t[CLEAN]\t$(DIRECTORY)$$dir"
-else
-CC		= $(CROSS)gcc -m64
-AS		= $(CROSS)as -m64
-LD		= $(CROSS)ld -melf64ppc
-CLEAN		= echo -n
-endif
-
-OBJCOPY 	= $(CROSS)objcopy
-OBJDUMP		= $(CROSS)objdump
-STRIP		= $(CROSS)strip
-AR              = $(CROSS)ar
-RANLIB          = $(CROSS)ranlib

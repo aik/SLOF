@@ -14,32 +14,52 @@
 # BUILD ENV SETTINGS
 #############################################################################
 
+# CROSS is the prefix of your cross-compiler.
+# You can override this variable in your environment (export CROSS=...).
 CROSS		?= powerpc64-linux-
+
 CELLSIZE	?= 64
 
 HOSTCC		?= gcc
 HOSTCFLAGS	= -g -Wall -W -O2 -I. -I../include
 DD		= dd
-ONLY_LD         = $(CROSS)ld -melf$(CELLSIZE)ppc
 
-ifdef NEW_BUILD
-MAKEFLAGS       = --silent
-CC              = echo -e "\t[CC]\t$(DIRECTORY)$@"; $(CROSS)gcc -m$(CELLSIZE)
-AS              = echo -e "\t[AS]\t$(DIRECTORY)$@"; $(CROSS)as -m$(CELLSIZE)
-LD              = echo -e "\t[LD]\t$(DIRECTORY)$@"; $(ONLY_LD)
-CLEAN           = echo -e "\t[CLEAN]\t$(DIRECTORY)$$dir"
-else
-CC		= $(CROSS)gcc -m$(CELLSIZE)
-AS		= $(CROSS)as -m$(CELLSIZE)
-LD		= $(ONLY_LD)
-CLEAN           = echo -n
+ONLY_CC 	= $(CROSS)gcc -m$(CELLSIZE)
+ONLY_AS 	= $(CROSS)as -m$(CELLSIZE)
+ONLY_LD 	= $(CROSS)ld -melf$(CELLSIZE)ppc
+
+# Verbose level:
+#   V=0 means completely silent
+#   V=1 means brief output
+#   V=2 means full output
+V		?= 1
+
+ifeq ($(V),0)
+Q		:= @
+MAKEFLAGS	+= --silent
+MAKE		+= -s
 endif
 
-OBJCOPY         ?= $(CROSS)objcopy
-OBJDUMP         ?= $(CROSS)objdump
-STRIP           ?= $(CROSS)strip
+ifeq ($(V),1)
+MAKEFLAGS	+= --silent
+MAKE		+= -s
+CC		= printf "\t[CC]\t%s\n" `basename "$@"`; $(ONLY_CC)
+AS		= printf "\t[AS]\t%s\n" `basename "$@"`; $(ONLY_AS)
+LD		= printf "\t[LD]\t%s\n" `basename "$@"`; $(ONLY_LD)
+CLEAN		= printf "\t[CLEAN]\t%s\n" "$(DIRECTORY)$$dir"
+else
+CC		= $(ONLY_CC)
+AS		= $(ONLY_AS)
+LD		= $(ONLY_LD)
+CLEAN		= echo -n
+endif
+
+OBJCOPY 	?= $(CROSS)objcopy
+OBJDUMP 	?= $(CROSS)objdump
+STRIP		?= $(CROSS)strip
 AR		?= $(CROSS)ar
 RANLIB		?= $(CROSS)ranlib
+CPP		?= $(CROSS)cpp
 
 CFLAGS ?= -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
 	  -mno-altivec -mabi=no-altivec -Wall -fno-stack-protector
