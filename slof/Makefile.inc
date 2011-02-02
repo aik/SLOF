@@ -56,11 +56,14 @@ FPPINCLUDES ?= -I$(SLOFBRDDIR) -I$(SLOFCMNDIR)/fs
 # - Use sed to remove all lines that only contain a comment
 # - Use sed to remove all empty lines from the file
 %.fsi: %.fs
+ifeq ($(V),1)
+	printf "\t[FPP]\t%s\n" `basename "$@"`
+endif
 	rm -f $@
 	cpp $(FPPFLAGS) $(FPPINCLUDES) $< > $@.tmp
-	sed -e 's/^[ \t]*//' < $@.tmp \
-	  | sed -e '/^\\[ \t]/d' \
-	  | sed -e '/^([ \t][^)]*[ \t])[ \t]*$$/d' \
+	sed -e 's/^[	 ]*//' < $@.tmp \
+	  | sed -e '/^\\[	 ]/d' \
+	  | sed -e '/^([	 ][^)]*[	 ])[	 ]*$$/d' \
 	  | sed -e '/^$$/d' > $@
 	rm -f $@.tmp
 
@@ -128,8 +131,8 @@ $(SLOFBRDDIR)/default-font.bin: default-font.o
 create_OF_ffs:
 	rm -f OF.ffs
 	@for i in $(OF_FFS_FILES) ; do \
-		pushd . >/dev/null ; cd `dirname $$i` ; \
-		DIRNAME=`pwd` ; popd >/dev/null; \
+		CURRENTDIR=`pwd` ; cd `dirname $$i` ; \
+		DIRNAME=`pwd` ; cd $$CURRENTDIR ; \
 		echo `basename $$i | sed  -e s/\.fsi/\.fs/` \
 		     $$DIRNAME/`basename $$i` 0 0 >> OF.ffs ; \
 	 done
