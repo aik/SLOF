@@ -110,8 +110,13 @@ INSTANCE VARIABLE index
 \ This method coverts the iso file name to user readble form
 
 : file-name  ( str len --  str' len' )
-   2dup  [char] ; findchar  IF    ( str len )
-      dup -rot - >r + r>  erase   ( str' len' )
+   2dup  [char] ; findchar  IF
+      ( str len offset )
+      nip                 \ Omit the trailing ";1" revision of ISO9660 file name
+      2dup + 1-           ( str newlen endptr )
+      c@ [CHAR] . = IF
+         1-               ( str len' )    \ Remove trailing dot
+      THEN
    THEN
 ;
 
@@ -142,7 +147,7 @@ INSTANCE VARIABLE index
 : path-table-search ( str len -- TRUE | FALSE )
    path-table path-tbl-size +  path-table ptable @ +  DO ( str len )
       2dup  I 6 + w@-be index @ =                        ( str len str len )
-      -rot  I 8 +  I c@  str= and  IF                    ( str len )
+      -rot  I 8 +  I c@  string=ci and  IF               ( str len )
          s" Directory Matched!!  "   iso-debug-print     ( str len )
          self @   index !                                ( str len )
          I 2 + l@-be   dir-addr ! I  dup                 ( str len rec-addr )
@@ -168,10 +173,10 @@ INSTANCE VARIABLE index
       dir-addr @ r@  read-data               ( str len )
    THEN
    r> data-buff @  + data-buff @  DO         ( str len )
-      I 19 + c@  2 and invert  IF            ( str len )
+      I 19 + c@  2 and 0=  IF                ( str len )
          2dup                                ( str len  str len )
          I 21 + I 20 + c@                    ( str len  str len  str' len' )
-         file-name  str=  IF                 ( str len )
+         file-name  string=ci  IF            ( str len )
             s" File found!"  iso-debug-print ( str len )
             I 6 + l@-be 800 *                ( str len file-loc )
             file-loc !                       ( str len )
