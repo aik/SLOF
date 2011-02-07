@@ -23,7 +23,7 @@ CREATE go-args 2 cells allot go-args 2 cells erase
    ELSE s" boot-file" evaluate THEN THEN
 ;
 
-: $bootdev
+: $bootdev ( -- device-name len )
    bootdevice 2@ dup IF s"  " $cat THEN
    s" diagnostic-mode?" evaluate IF
       s" diag-device" evaluate
@@ -34,7 +34,7 @@ CREATE go-args 2 cells allot go-args 2 cells erase
    strdup
    ?dup 0= IF
       disable-watchdog
-      drop ABORT" No boot device!"
+      drop true ABORT" No boot device!"
    THEN
 ;
 
@@ -68,7 +68,7 @@ defer go ( -- )
       go-args 2@ go-entry start-elf client-data
       claim-list elf-release 0 to claim-list
    THEN
-   -6d boot-exception-handler ABORT" "
+   -6d boot-exception-handler ABORT
 ;
 : go-64 ( -- )
    state-valid @ IF
@@ -76,7 +76,7 @@ defer go ( -- )
       go-args 2@ go-entry start-elf64 client-data
       claim-list elf-release 0 to claim-list
    THEN
-   -6d boot-exception-handler ABORT" "
+   -6d boot-exception-handler ABORT
 ;
 
 : load-elf-init ( arg len file-addr -- success )
@@ -213,7 +213,7 @@ read-bootlist
    load 0= IF -65 boot-exception-handler EXIT THEN
    disable-watchdog (go-and-catch)
    BEGIN load-next WHILE
-      (go-and-catch)
+      disable-watchdog (go-and-catch)
    REPEAT
 
    \ When we return from boot print the banner again.
