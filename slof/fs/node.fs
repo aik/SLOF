@@ -226,7 +226,12 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
 defer find-node
 : set-alias ( alias-name len device-name len -- )
     encode-string
-    2swap s" /aliases" find-node dup IF set-property ELSE drop THEN ;
+    2swap s" /aliases" find-node ?dup IF
+       set-property
+    ELSE
+       4drop
+    THEN
+;
 
 : find-alias ( alias-name len -- false | dev-path len )
     s" /aliases" find-node dup IF
