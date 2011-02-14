@@ -59,22 +59,25 @@ VARIABLE mem-pre-released 0 mem-pre-released !
 
 : (?available-segment>) ( start1 end1 start2 end2 -- true/false ) -rot 2drop > ;
 
+\ start1 to end1 is the area that should be claimed
+\ start2 to end2 is the available segment
+\ return true if it can not be claimed, false if it can be claimed
 : (?available-segment-#) ( start1 end1 start2 end2 -- true/false )
-	4dup                   ( s1 e1 s2 e2 s1 e1 s2 e2 )
-	3 pick 3 pick between >r
-	-rot between r> and IF 4drop TRUE EXIT THEN
-	2dup 5 roll -rot       ( e1 s2 e2 s1 s2 e2 )
-	between >r between r> xor
+	2dup 5 roll -rot                ( e1 s2 e2 s1 s2 e2 )
+	between >r between r> and not
 ;
 
 : (find-available) ( addr addr+size-1 a-ptr a-size -- a-ptr' found )
 	?dup 0= IF -rot 2drop false EXIT THEN	\ Not Found
 
 	2dup 2/ dup >r /available * +
-	( addr addr+size-1 a-ptr a-size a-ptr' -- R: a-size' )
+	( addr addr+size-1 a-ptr a-size a-ptr'  R: a-size' )
 	dup available>size@ 0= IF 2drop r> RECURSE EXIT THEN
 
-	dup >r available@ over + 1- 2>r 2swap
+	( addr addr+size-1 a-ptr a-size a-ptr'  R: a-size' )
+	dup >r available@
+	( addr addr+size-1 a-ptr a-size addr' size'  R: a-size' a-ptr' )
+	over + 1- 2>r 2swap
 	( a-ptr a-size addr addr+size-1 )
 	( R: a-size' a-ptr' addr' addr'+size'-1 )
 
