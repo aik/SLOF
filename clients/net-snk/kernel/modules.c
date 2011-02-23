@@ -39,7 +39,6 @@ static const mod_descriptor_t modules[] = {
 	{ "net_mcmal" , (void*) 0xF800000, MOD_TYPE_NETWORK },
 	{ "net_spider", (void*) 0xF800000, MOD_TYPE_NETWORK },
 	{ "net_veth",   (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "mod_paflof", (void*) 0x6200000, MOD_TYPE_OTHER   },
 	{ 0           , (void*) 0         }
 };
 

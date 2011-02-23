@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2008 IBM Corporation
+# * Copyright (c) 2004, 2011 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -19,22 +19,14 @@ include $(TOP)/make.rules
 CFLAGS +=$(ADDCFLAGS)
 
 OBJS = main.o
-ifeq ($(SNK_LJTAG_PROCESS), 1)
-OBJDIRS = ljtag/ljtag.o
-CFLAGS += -DSNK_LJTAG_PROCESS
-else
 OBJDIRS = netlib/netlib.o netapps/netboot.o 
 OBJDIRS += netapps/netflash.o
 OBJDIRS += netapps/ping.o
 OBJDIRS += netapps/args.o
+
 ifeq ($(SNK_BIOSEMU_APPS), 1)
 OBJDIRS += biosemu/biosemu_app.o
 CFLAGS += -DSNK_BIOSEMU_APPS
-endif
-ifeq ($(SNK_GENMODULE_APPS), 1)
-OBJDIRS += forth/forth.o snkshell/snkshell.o
-CFLAGS += -DSNK_GENMODULE_APPS
-endif
 endif
 
 SUBDIRS = $(dir $(OBJDIRS))

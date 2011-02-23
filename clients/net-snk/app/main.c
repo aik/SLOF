@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -21,16 +21,8 @@ extern int biosemu(char argc, char**argv);
 extern int vbe_get_info(char argc, char**argv);
 #endif
 
-#ifdef SNK_GENMODULE_APPS
-extern int forth(int, char*[]);
-extern int snkshell(void);
-#endif
-
-#ifdef SNK_LJTAG_PROCESS
-extern int ljtag(char argc, char**argv);
-#endif
-
 extern void _callback_entry(void);
+
 
 int
 main(int argc, char *argv[])
@@ -38,9 +30,6 @@ main(int argc, char *argv[])
 	int i;
 	of_set_callback((void *) &_callback_entry);
 
-#ifdef SNK_LJTAG_PROCESS
-	return ljtag(argc, argv);
-#else
 	if (strcmp(argv[0], "netboot") == 0 && argc >= 5)
 		return netboot(argc, argv);
 	if (strcmp(argv[0], "netflash") == 0)
@@ -53,13 +42,6 @@ main(int argc, char *argv[])
 		return biosemu(argc, argv);
 	if (strcmp(argv[0], "get_vbe_info") == 0)
 		return vbe_get_info(argc, argv);
-#endif
-#ifdef SNK_GENMODULE_APPS
-	if (strcmp(argv[0], "forth") == 0)
-		return forth(argc, argv);
-	if (strcmp(argv[0], "snkshell") == 0)
-		return snkshell();
-#endif
 #endif
 
 	printf("Unknown client application called\n");

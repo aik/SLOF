@@ -85,8 +85,3 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    THEN
    r> set-node r> to my-self  \ Restore my-self
 ;
-
-: modforth ( -- rc )
-   romfs-base eregs 80 + !
-   s" forth" (client-exec)
-;
