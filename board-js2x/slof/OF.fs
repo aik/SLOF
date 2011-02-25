@@ -207,13 +207,7 @@ d# 14318378 VALUE tb-frequency   \ default value - needed for "ms" to work
 #include "helper.fs"
 260 cp
 
-: tb@  BEGIN tbu@ tbl@ tbu@ rot over <> WHILE 2drop REPEAT
-       20 lshift swap ffffffff and or ;
-: milliseconds  tb@ d# 1000 * tb-frequency / ;
-: ms  milliseconds + BEGIN milliseconds over >= UNTIL drop ;
-: get-msecs ( -- n ) milliseconds ;
-\ : usecs tb@ d# 1000000 * tb-frequency / ;
-: us 999 + 1000 / ms ;
+#include <timebase.fs>
 
 280 cp
 

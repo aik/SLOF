@@ -11,8 +11,13 @@
 \ ****************************************************************************/
 \ Define all timebase related words
 
-: milliseconds ( -- ms ) tbl@ d# 1000 * tb-frequency / ;
-: microseconds ( -- us ) tbl@ d# 1000000 * tb-frequency / ;
+: tb@  ( -- tb )
+   BEGIN tbu@ tbl@ tbu@ rot over <> WHILE 2drop REPEAT
+   20 lshift swap ffffffff and or
+;
+
+: milliseconds ( -- ms ) tb@ d# 1000 * tb-frequency / ;
+: microseconds ( -- us ) tb@ d# 1000000 * tb-frequency / ;
 
 : ms ( ms-to-wait -- ) milliseconds + BEGIN milliseconds over >= UNTIL drop ;
 : get-msecs ( -- n ) milliseconds ;
