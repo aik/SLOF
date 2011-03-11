@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2008 IBM Corporation
+# * Copyright (c) 2004, 2011 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -16,12 +16,6 @@ ifndef TOP
   export TOP
 endif
 include $(TOP)/make.rules
-
-
-CFLAGS = -g -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -O2 \
-         -fno-builtin -ffreestanding -msoft-float -Wall \
-	 -fno-stack-protector
-LDFLAGS= -nostdlib
 
 
 OBJS = send.o
