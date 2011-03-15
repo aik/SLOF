@@ -40,14 +40,3 @@ int close(int fd)
 {
     return syscall_1(_close_sc_nr,fd);
 }
-
-int
-getchar(void)
-{
-    char buf;
-    int i;
-
-    if((i = read (1, &buf, 1)) == 1)
-        return (int) buf;
-    return -1;
-}
