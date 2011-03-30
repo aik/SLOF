@@ -204,6 +204,8 @@ static int veth_receive(char *f_buffer_pc, int f_len_i)
 		union ibmveth_buf_desc bdesc;
 		void *buf;
 
+		buf = (void *)desc->correlator;
+
 		if ((desc->flags_off & IBMVETH_RXQ_TOGGLE) != cur_rx_toggle)
 			break;
 
@@ -215,7 +217,6 @@ static int veth_receive(char *f_buffer_pc, int f_len_i)
 			goto recycle;
 		}
 
-		buf = (void *)desc->correlator;
 		packet = desc->length;
 		memcpy(f_buffer_pc,
 		       buf + (desc->flags_off & IBMVETH_RXQ_OFF_MASK), packet);
