@@ -335,8 +335,8 @@ CREATE srp 100 allot
 
 CREATE sector d# 512 allot
 
-0 VALUE current-id
-0 VALUE current-lun
+0 INSTANCE VALUE current-id
+0 INSTANCE VALUE current-lun
 
 \ SCSI test-unit-read
 : test-unit-ready ( -- true | [ ascq asc sense-key false ] )
@@ -458,11 +458,8 @@ CREATE sector d# 512 allot
 \ SCSI scan at boot and child device support
 \ -----------------------------------------------------------
 
-0 INSTANCE VALUE target-id
-0 INSTANCE VALUE target-lun
-
 : set-address ( lun id -- )
-    to target-id to target-lun 
+    to current-id to current-lun 
 ;
 
 : dev-max-transfer ( -- n )
@@ -470,13 +467,11 @@ CREATE sector d# 512 allot
 ;
 
 : dev-get-capacity ( -- blocksize #blocks )
-    target-id to current-id target-lun to current-lun
     read-capacity not IF 0 0 EXIT THEN
     sector scsi-get-capacity-10
 ;
 
 : dev-read-blocks ( -- addr block# #blocks blksize -- #read-blocks )
-    target-id to current-id target-lun to current-lun
     read-blocks    
 ;
 
@@ -551,8 +546,6 @@ CREATE sector d# 512 allot
 ;
 
 : dev-prep-cdrom ( -- )
-    target-id to current-id target-lun to current-lun
-
     5 0 DO
         cdrom-status CASE
 	    CDROM-READY           OF UNLOOP EXIT ENDOF
@@ -587,7 +580,7 @@ CREATE sector d# 512 allot
 : vscsi-find-disks      ( -- )   
     ." VSCSI: Looking for disks" cr
     #dev 0 DO                                      \ check 8 devices (no LUNs)
-        i to current-id 0 to current-lun
+        0 i set-address
 	wrapped-inquiry IF	
 	    ."   SCSI ID " i .
 	    \ XXX FIXME: Check top bits to ignore unsupported units
@@ -614,10 +607,18 @@ scsi-close
 ;
 
 : vscsi-init-and-scan  ( -- )
+    \ Create instance for scanning:
+    0 0 get-node open-node ?dup 0= IF EXIT THEN
+    my-self >r
+    dup to my-self
+    \ Scan the VSCSI bus:
     vscsi-init IF
         vscsi-find-disks
-	setup-alias
+        setup-alias
     THEN
+    \ Close the temporary instance:
+    close-node
+    r> to my-self
 ;
 
 vscsi-init-and-scan
