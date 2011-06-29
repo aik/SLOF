@@ -11,17 +11,14 @@
  *****************************************************************************/
 
 #include "cache.h"
-
-#include "../libc/include/stdio.h"
-#include "../libc/include/string.h"
-#include "../libc/include/stdlib.h"
-
 #include "nvram.h"
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <southbridge.h>
 #include <nvramlog.h>
+#include <byteorder.h>
 
 #ifndef NVRAM_LENGTH
 #define NVRAM_LENGTH	0x10000
