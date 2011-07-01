@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,161 +10,14 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-/* this is elf.fs rewritten in C */
+/*
+ * ELF loader
+ */
 
 #include <string.h>
-#include <cpu.h>
+#include <cache.h>
 #include <libelf.h>
-
-struct ehdr {
-	unsigned int ei_ident;
-	unsigned char ei_class;
-	unsigned char ei_data;
-	unsigned char ei_version;
-	unsigned char ei_pad[9];
-	unsigned short e_type;
-	unsigned short e_machine;
-	unsigned int e_version;
-	unsigned int e_entry;
-	unsigned int e_phoff;
-	unsigned int e_shoff;
-	unsigned int e_flags;
-	unsigned short e_ehsize;
-	unsigned short e_phentsize;
-	unsigned short e_phnum;
-	unsigned short e_shentsize;
-	unsigned short e_shnum;
-	unsigned short e_shstrndx;
-};
-
-struct phdr {
-	unsigned int p_type;
-	unsigned int p_offset;
-	unsigned int p_vaddr;
-	unsigned int p_paddr;
-	unsigned int p_filesz;
-	unsigned int p_memsz;
-	unsigned int p_flags;
-	unsigned int p_align;
-};
-
-struct ehdr64 {
-	unsigned int ei_ident;
-	unsigned char ei_class;
-	unsigned char ei_data;
-	unsigned char ei_version;
-	unsigned char ei_pad[9];
-	unsigned short e_type;
-	unsigned short e_machine;
-	unsigned int e_version;
-	unsigned long e_entry;
-	unsigned long e_phoff;
-	unsigned long e_shoff;
-	unsigned int e_flags;
-	unsigned short e_ehsize;
-	unsigned short e_phentsize;
-	unsigned short e_phnum;
-	unsigned short e_shentsize;
-	unsigned short e_shnum;
-	unsigned short e_shstrndx;
-};
-
-struct phdr64 {
-	unsigned int p_type;
-	unsigned int p_flags;
-	unsigned long p_offset;
-	unsigned long p_vaddr;
-	unsigned long p_paddr;
-	unsigned long p_filesz;
-	unsigned long p_memsz;
-	unsigned long p_align;
-};
-
-#define VOID(x) (void *)((unsigned long)x)
-
-static void
-load_segment(unsigned long *file_addr, struct phdr *phdr)
-{
-	unsigned long src = phdr->p_offset + (unsigned long) file_addr;
-	/* copy into storage */
-	memmove(VOID(phdr->p_vaddr), VOID(src), phdr->p_filesz);
-
-	/* clear bss */
-	memset(VOID(phdr->p_vaddr + phdr->p_filesz), 0,
-	       phdr->p_memsz - phdr->p_filesz);
-
-	if (phdr->p_memsz) {
-		flush_cache(VOID(phdr->p_vaddr), phdr->p_memsz);
-	}
-}
-
-static unsigned int
-load_segments(unsigned long *file_addr)
-{
-	struct ehdr *ehdr = (struct ehdr *) file_addr;
-	/* Calculate program header address */
-	struct phdr *phdr =
-	    (struct phdr *) (((unsigned char *) file_addr) + ehdr->e_phoff);
-	int i;
-	/* loop e_phnum times */
-	for (i = 0; i <= ehdr->e_phnum; i++) {
-		/* PT_LOAD ? */
-		if (phdr->p_type == 1) {
-			/* copy segment */
-			load_segment(file_addr, phdr);
-		}
-		/* step to next header */
-		phdr =
-		    (struct phdr *) (((unsigned char *) phdr) +
-				     ehdr->e_phentsize);
-	}
-	return ehdr->e_entry;
-}
-
-static void
-load_segment64(unsigned long *file_addr, struct phdr64 *phdr64)
-{
-	unsigned long src = phdr64->p_offset + (unsigned long) file_addr;
-	/* copy into storage */
-	memmove(VOID(phdr64->p_vaddr), VOID(src), phdr64->p_filesz);
-
-	/* clear bss */
-	memset(VOID(phdr64->p_vaddr + phdr64->p_filesz), 0,
-	       phdr64->p_memsz - phdr64->p_filesz);
-
-	if (phdr64->p_memsz) {
-		flush_cache(VOID(phdr64->p_vaddr), phdr64->p_memsz);
-	}
-}
-
-static unsigned long
-load_segments64(unsigned long *file_addr)
-{
-	struct ehdr64 *ehdr64 = (struct ehdr64 *) file_addr;
-	/* Calculate program header address */
-	struct phdr64 *phdr64 =
-	    (struct phdr64 *) (((unsigned char *) file_addr) + ehdr64->e_phoff);
-	int i;
-	/* loop e_phnum times */
-	for (i = 0; i <= ehdr64->e_phnum; i++) {
-		/* PT_LOAD ? */
-		if (phdr64->p_type == 1) {
-			/* copy segment */
-			load_segment64(file_addr, phdr64);
-		}
-		/* step to next header */
-		phdr64 =
-		    (struct phdr64 *) (((unsigned char *) phdr64) +
-				       ehdr64->e_phentsize);
-	}
-	return ehdr64->e_entry;
-}
-
-#if __BYTE_ORDER == __BIG_ENDIAN
-#define cpu_to_be32(x)  (x)
-#else
-#define cpu_to_be32(x)  bswap_32(x)
-#endif
+#include <byteorder.h>
 
 /**
  * elf_check_file tests if the file at file_addr is
@@ -185,7 +38,7 @@ elf_check_file(unsigned long *file_addr)
 		return -1;
 
 	/* endian check */
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef __BIG_ENDIAN__
 	if (ehdr->ei_data != 2)
 		/* not a big endian image */
 #else
@@ -194,8 +47,9 @@ elf_check_file(unsigned long *file_addr)
 #endif
 		return -2;
 
-	/* check if it is an ELF executable */
-	if (ehdr->e_type != 2)
+	/* check if it is an ELF executable ... and also
+	 * allow DYN files, since this is specified by ePAPR */
+	if (ehdr->e_type != ET_EXEC && ehdr->e_type != ET_DYN)
 		return -3;
 
 	/* check if it is a PPC ELF executable */
@@ -214,21 +68,98 @@ elf_check_file(unsigned long *file_addr)
  * @param file_addr  pointer to the start of the elf file
  * @param entry      pointer where the ELF loader will store
  *                   the entry point
+ * @param pre_load   handler that is called before copying a segment
+ * @param post_load  handler that is called after copying a segment
  * @return           1 for a 32 bit file
  *                   2 for a 64 bit file
  *                   anything else means an error during load
  */
 int
-load_elf_file(unsigned long *file_addr, unsigned long *entry)
+elf_load_file(void *file_addr, unsigned long *entry,
+              int (*pre_load)(void*, long),
+              void (*post_load)(void*, long))
 {
 	int type = elf_check_file(file_addr);
+
 	switch (type) {
 	case 1:
-		*entry = load_segments(file_addr);
+		*entry = elf_load_segments32(file_addr, 0, pre_load, post_load);
 		break;
 	case 2:
-		*entry = load_segments64(file_addr);
+		*entry = elf_load_segments64(file_addr, 0, pre_load, post_load);
 		break;
 	}
+
 	return type;
+}
+
+
+/**
+ * load_elf_file_to_addr loads an ELF file to given address.
+ * This is useful for 64-bit vmlinux images that use the virtual entry
+ * point address in their headers, and thereby need a special treatment.
+ *
+ * @param file_addr  pointer to the start of the elf file
+ * @param entry      pointer where the ELF loader will store
+ *                   the entry point
+ * @param pre_load   handler that is called before copying a segment
+ * @param post_load  handler that is called after copying a segment
+ * @return           1 for a 32 bit file
+ *                   2 for a 64 bit file
+ *                   anything else means an error during load
+ */
+int
+elf_load_file_to_addr(void *file_addr, void *addr, unsigned long *entry,
+                      int (*pre_load)(void*, long),
+                      void (*post_load)(void*, long))
+{
+	int type;
+	long offset;
+
+	type = elf_check_file(file_addr);
+
+	switch (type) {
+	case 1:
+		/* Parse 32-bit image */
+		offset = (long)addr - elf_get_base_addr32(file_addr);
+		*entry = elf_load_segments32(file_addr, offset, pre_load,
+		                             post_load) + offset;
+		// TODO: elf_relocate32(...)
+		break;
+	case 2:
+		/* Parse 64-bit image */
+		offset = (long)addr - elf_get_base_addr64(file_addr);
+		*entry = elf_load_segments64(file_addr, offset, pre_load,
+		                             post_load) + offset;
+		elf_relocate64(file_addr, offset);
+		break;
+	}
+
+	return type;
+}
+
+
+/**
+ * Get the base load address of the ELF image
+ * @return  The base address or -1 for error
+ */
+long
+elf_get_base_addr(void *file_addr)
+{
+	int type;
+
+	type = elf_check_file(file_addr);
+
+	switch (type) {
+	case 1:
+		/* Return 32-bit image base address */
+		return elf_get_base_addr32(file_addr);
+		break;
+	case 2:
+		/* Return 64-bit image base address */
+		return elf_get_base_addr64(file_addr);
+		break;
+	}
+
+	return -1;
 }

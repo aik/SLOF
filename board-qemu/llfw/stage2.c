@@ -124,7 +124,7 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	struct romfs_lookup_t fileInfo;
 	void (*ofw_start) (uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 	uint64_t *boot_info;
-	uint64_t romfs_base;
+	uint64_t romfs_base, paflof_base;
 	// romfs header values
 	struct stH *header = (struct stH *) (start_addr + 0x28);
 	uint64_t flashlen = 0;
@@ -133,9 +133,15 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 
 	flashlen = header->flashlen;
 
-	romfs_base = 0x10000000 - 0x400000;
-	if (romfs_base)
-		memcpy((char *)romfs_base, 0, 0x400000);
+	if (fdt_addr == 0) {
+		puts("ERROR: Flatten device tree available!");
+	}
+
+	/* Hack: Determine base for "ROM filesystem" in memory...
+	 * QEMU loads the FDT at the top of the available RAM, so we place
+	 * the ROMFS just underneath. */
+	romfs_base = (fdt_addr - 0x410000) & ~0xffffLL;
+	memcpy((char *)romfs_base, 0, 0x400000);
 
 	exception_stack_frame = 0;
 
@@ -157,12 +163,21 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	DEBUG("  [ofw_main size data 0x%lx]\n", fileInfo.size_data);
 	DEBUG("  [ofw_main flags     0x%lx]\n", fileInfo.flags);
 	DEBUG("  [hdr: 0x%08lx 0x%08lx]\n  [     0x%08lx 0x%08lx]\n",
-	       ((uint64_t *)fileInfo.addr_header)[0],	
+	       ((uint64_t *)fileInfo.addr_header)[0],
 	       ((uint64_t *)fileInfo.addr_header)[1],
 	       ((uint64_t *)fileInfo.addr_header)[2],
 	       ((uint64_t *)fileInfo.addr_header)[3]);
-	rc = load_elf_file((void *)fileInfo.addr_data, ofw_addr);
+
+	/* Assume that paflof need ca. 16 MiB RAM right now..
+	 * TODO: Use value from ELF file instead */
+	paflof_base = romfs_base - 0x1000000 + 0x100;
+	if ((int64_t)paflof_base <= 0LL) {
+		puts("ERROR: Not enough memory for Open Firmware");
+	}
+	rc = elf_load_file_to_addr((void *)fileInfo.addr_data, (void*)paflof_base,
+				   ofw_addr, NULL, flush_cache);
 	DEBUG("  [load_elf_file returned %d]\n", rc);
+
 	ofw_start =
 	    (void (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t))
 	    &ofw_addr;

@@ -264,7 +264,9 @@ early_c_entry(uint64_t start_addr)
 	load_file(0x100, "xvect", 0, romfs_base);
 	load_file(SLAVELOOP_LOADBASE, "stageS", 0, romfs_base);
 	c_romfs_lookup("ofw_main", romfs_base, &fileInfo);
-	load_elf_file((void *) fileInfo.addr_data, &ofw_addr);
+
+	elf_load_file((void *) fileInfo.addr_data, &ofw_addr,
+		      NULL, flush_cache);
 	ofw_start =
 	    (void (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t))
 	    &ofw_addr;
@@ -279,6 +281,7 @@ early_c_entry(uint64_t start_addr)
 	 *      non-ePAPR-compliant firmware
 	 * r7 = implementation dependent
 	 */
+	asm volatile("isync; sync;" : : : "memory");
 	ofw_start(0, romfs_base, 0, 0, 0);
 	// never return
 }
