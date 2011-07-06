@@ -12,7 +12,7 @@
 
 #include <macros.h>
 
-#define STACKSIZE 0x1000
+#define STACKSIZE 0x2000
 
 	#
 	# The generic exception code.

@@ -22,6 +22,7 @@ cod(CISTACK)
 // compile buffer for the "structure words in interpret mode" OF extension
 cod(COMP-BUFFER)
 
+cod(PAFLOF-START)
 cod(HEAP-START)
 cod(HEAP-END)
 // flattened device tree start address
@@ -32,6 +33,8 @@ cod(ROMFS-BASE)
 // epapr magic into r6 before starting paflof
 // epapr-magic is a copy of r6
 cod(EPAPR-MAGIC)
+// ePAPR Initially mapped area size
+cod(EPAPR-IMA-SIZE)
 
 cod(BRANCH) _ADDING _O
 cod(0BRANCH) _ADDING _O

@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -12,8 +12,15 @@
 
 \ \\\\\\\\\\\\\\ Constants
 500 CONSTANT AVAILABLE-SIZE
-10000000 CONSTANT MIN-RAM-SIZE \ assumed minimal memory size
 4000 CONSTANT MIN-RAM-RESERVE \ prevent from using first pages
+
+: MIN-RAM-SIZE         \ Initially available memory size
+   epapr-ima-size IF
+      epapr-ima-size
+   ELSE
+      10000000         \ assumed minimal memory size
+   THEN
+;
 
 \ \\\\\\\\\\\\\\ Structures
 \ +
@@ -401,6 +408,10 @@ defer release
 \ claim first pages used for PPC exception vectors
 0 MIN-RAM-RESERVE 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 
-\ claim region used by firmware
-E000000 2000000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
+\ claim region used by firmware (assume 15 MiB size right now)
+paflof-start ffff not and f00000 0 ' claim CATCH IF
+   ." claim failed!" cr 2drop
+THEN drop
 
+\ FIXME: Hard claim memory region of net-snk
+F000000 1000000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop

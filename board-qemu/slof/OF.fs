@@ -139,7 +139,8 @@ check-for-nvramrc
 
 8b0 cp
 
-8e0 cp
+\ Claim remaining memory that is used by firmware:
+romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 
 8ff cp
 

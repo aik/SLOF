@@ -186,7 +186,9 @@ fdt-unflatten-tree
     fdt-debug IF
         dup ." Memory size: " . cr
     THEN
-    MIN-RAM-SIZE swap release
+    \ claim.fs already released the memory between 0 and MIN-RAM-SIZE,
+    \ so we've got only to release the remaining memory now:
+    MIN-RAM-SIZE swap MIN-RAM-SIZE - release
     2drop device-end
 ;
 fdt-parse-memory

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -29,6 +29,11 @@
 	lis	r31, epapr_magic@h	/* if it is an epapr compliant */
 	ori	r31, r31, epapr_magic@l	/* low level firmware; then r6 */
 	std	r6, 0(r31)		/* contains the epapr magic */
+
+	/* this only works if paflof is running below 4GB */
+	lis	r31, epapr_ima_size@h
+	ori	r31, r31, epapr_ima_size@l
+	std	r7, 0(r31)		/* r7 contains the IMA size */
 
 	/* fill in handler address */
 

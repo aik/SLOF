@@ -69,6 +69,9 @@ PRIM(CISTACK) PUSH; TOS.a = the_client_stack
 // compile-in-interpret buffer
 PRIM(COMP_X2d_BUFFER) PUSH; TOS.a = the_comp_buffer; MIRP
 
+// Paflof base address
+PRIM(PAFLOF_X2d_START) PUSH; TOS.a = _start_OF; MIRP
+
 // Heap pointers
 PRIM(HEAP_X2d_START) PUSH; TOS.a = the_heap_start; MIRP
 PRIM(HEAP_X2d_END) PUSH; TOS.a = the_heap_end; MIRP
@@ -83,6 +86,9 @@ PRIM(ROMFS_X2d_BASE) PUSH; TOS.u = romfs_base; MIRP
 // epapr magic into r6 before starting paflof
 // epapr-magic is a copy of r6
 PRIM(EPAPR_X2d_MAGIC) PUSH; TOS.u = epapr_magic; MIRP
+
+// Initially mapped area size (for ePAPR compliant LLFW)
+PRIM(EPAPR_X2d_IMA_X2d_SIZE) PUSH; TOS.u = epapr_ima_size; MIRP
 
 // Codefields.
 code_DOCOL:

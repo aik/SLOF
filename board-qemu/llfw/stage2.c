@@ -185,17 +185,18 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	printf("%s%s", TERM_CTRL_RESET, TERM_CTRL_CRSON);
 	DEBUG("  [ofw_start=%p ofw_addr=0x%lx]\n", ofw_start, ofw_addr[0]);
 	ofw_addr[1] = ofw_addr[0];
-	/* ePAPR 0.5
+	/* Call the Open Firmware layer with ePAPR-style calling conventions:
 	 * r3 = R3 Effective address of the device tree image. Note: this
 	 *      address must be 8-byte aligned in memory.
-	 * r4 = implementation dependent
+	 * r4 = implementation dependent, we use it for ROMFS base address
 	 * r5 = 0
 	 * r6 = 0x65504150 -- ePAPR magic value-to distinguish from
 	 *      non-ePAPR-compliant firmware
-	 * r7 = implementation dependent
+	 * r7 = size of Initially Mapped Area
+	 *      (right now we assume everything from 0 to the FDT is the IMA)
 	 */
 	asm volatile("isync; sync;" : : : "memory");
-	ofw_start(fdt_addr, romfs_base, 0, 0, 0);
+	ofw_start(fdt_addr, romfs_base, 0, 0x65504150, fdt_addr);
 	asm volatile("isync; sync;" : : : "memory");
 	// never return
 }
