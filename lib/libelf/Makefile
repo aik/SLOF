@@ -21,7 +21,7 @@ TARGET = ../libelf.a
 
 all: $(TARGET)
 
-SRCS = elf.c elf32.c elf64.c
+SRCS = elf.c elf32.c elf64.c elf_claim.c
 
 OBJS = $(SRCS:%.c=%.o)
 

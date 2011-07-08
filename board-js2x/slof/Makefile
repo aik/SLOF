@@ -20,9 +20,13 @@ include $(TOPCMNDIR)/make.rules
 all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libnvram
-SLOF_LIBS = $(LIBCMNDIR)/libbootmsg.a $(LIBCMNDIR)/libnvram.a
+SLOF_LIBS = \
+	$(LIBCMNDIR)/libbootmsg.a \
+	$(LIBCMNDIR)/libelf.a \
+	$(LIBCMNDIR)/libnvram.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
+	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libbases/libbases.in  \
 	$(LIBCMNDIR)/libnvram/libnvram.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)

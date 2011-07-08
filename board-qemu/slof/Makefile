@@ -21,11 +21,15 @@ all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libhvcall \
 	 -I$(LIBCMNDIR)/libnvram
-SLOF_LIBS = $(LIBCMNDIR)/libbootmsg.a $(LIBCMNDIR)/libhvcall.a \
+SLOF_LIBS = \
+	$(LIBCMNDIR)/libbootmsg.a \
+	$(LIBCMNDIR)/libelf.a \
+	$(LIBCMNDIR)/libhvcall.a \
 	$(LIBCMNDIR)/libnvram.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libhvcall/hvcall.in \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
+	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libnvram/libnvram.in \
 	$(LIBCMNDIR)/libbases/libbases.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)

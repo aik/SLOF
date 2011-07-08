@@ -85,21 +85,15 @@ defer go ( -- )
       claim-list elf-release 0 to claim-list        \ from last load
    THEN
 
-   dup ['] elf-check-file CATCH IF
-      ( -64 THROW ) \ Not now, let the 'go' (i.e. no-go) whine about it
-      drop 0
-   THEN
+   true swap -1                       ( arg len true file-addr -1 )
+   elf-load-claim                     ( arg len true claim-list entry elftype )
+
+   ( arg len true claim-list entry elftype )
    CASE
-      1 OF true swap ['] load-elf32-claim CATCH IF
-	    2drop drop -66 THROW
-	 THEN
-	 ['] go-32 ENDOF                            ( arg len true claim-list entry go )
-      2 OF true swap ['] load-elf64-claim CATCH IF
-	    2drop drop -66 THROW
-	 THEN
-	 ['] go-64 ENDOF                            ( arg len true claim-list entry go )
-      dup OF drop ['] no-go to go
-	 2drop false EXIT   ENDOF                   ( false )
+      1  OF ['] go-32 ENDOF           ( arg len true claim-list entry go )
+      2  OF ['] go-64 ENDOF           ( arg len true claim-list entry go )
+      dup OF ['] no-go to go
+         2drop 3drop false EXIT   ENDOF                   ( false )
    ENDCASE
 
    to go to go-entry to claim-list

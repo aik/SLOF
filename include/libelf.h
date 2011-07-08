@@ -85,4 +85,6 @@ long elf_get_base_addr64(void *file_addr);
 
 void elf_relocate64(void *file_addr, signed long offset);
 
+int elf_forth_claim(void *addr, long size);
+
 #endif				/* __LIBELF_H */

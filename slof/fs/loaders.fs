@@ -47,7 +47,7 @@ CREATE load-list 2 cells allot load-list 2 cells erase
 ;
 
 : .(client-exec) ( arg len -- rc )
-   s" snk" romfs-lookup 0<> IF load-elf-file drop start-elf64 client-data
+   s" snk" romfs-lookup 0<> IF elf-load-file drop start-elf64 client-data
    ELSE 2drop false THEN
 ;
 ' .(client-exec) to (client-exec)

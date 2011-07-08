@@ -332,11 +332,6 @@ check-for-nvramrc
 #include "elf.fs"
 #include <loaders.fs>
 
-: bios-exec ( arg len -- rc )
-   s" snk" romfs-lookup 0<> IF load-elf-file drop start-elf64
-   ELSE 2drop false THEN
-;
-
 \ check wether a VGA device was found during pci scan, if it was
 \ try to initialize it and create the needed device-nodes
 0 value biosemu-vmem
@@ -365,7 +360,7 @@ vga-device-node? 0<> use-biosemu? AND IF
       20 char-cat biosemu-debug $cathex \ add biosemu-debug as param
       ( paramstr+path+biosemu-debug len )
    THEN
-   bios-exec
+   .(client-exec) drop
    \ s" Time after biosemu:" type .date cr
    s" VGA initialization: detecting displays..." type cr
    \ try to get info for two monitors
@@ -391,7 +386,8 @@ vga-device-node? 0<> use-biosemu? AND IF
       20 char-cat \ add a space ( pathstr len paramstr len )
       2swap $cat ( paramstr+path len )
       20 char-cat
-      screen-info $cathex bios-exec
+      screen-info $cathex
+      .(client-exec) drop
       \ s" Time after client exec:" type .date cr
       screen-info c@ 0<> IF
         s"   display " type i . s" found..." type 
