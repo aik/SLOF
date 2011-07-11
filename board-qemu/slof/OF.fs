@@ -22,6 +22,9 @@ hex
 
 #include "base.fs"
 
+\ Adjust load-base to point to paflof-start / 2:
+paflof-start 1 rshift fff not and to load-base
+
 \ Little-endian accesses.  Also known as `wrong-endian'.
 #include <little-endian.fs>
 

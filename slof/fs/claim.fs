@@ -408,10 +408,7 @@ defer release
 \ claim first pages used for PPC exception vectors
 0 MIN-RAM-RESERVE 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 
-\ claim region used by firmware (assume 15 MiB size right now)
-paflof-start ffff not and f00000 0 ' claim CATCH IF
+\ claim region used by firmware (assume 31 MiB size right now)
+paflof-start ffff not and 1f00000 0 ' claim CATCH IF
    ." claim failed!" cr 2drop
 THEN drop
-
-\ FIXME: Hard claim memory region of net-snk
-F000000 1000000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop

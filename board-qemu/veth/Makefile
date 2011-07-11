@@ -24,15 +24,14 @@ SRCS   = module_entry.c veth.c
 
 OBJS   = $(SRCS:.c=.o) $(TOP)/lib/libhvcall/hvcall.o
 
-all: Makefile.dep net_veth.bin
+all: Makefile.dep net_veth.elf
 
-net_veth.o: $(OBJS)
-	$(LD) $(LDFLAGS) $^ -o $@ -T veth.lds -N
+net_veth.elf: $(OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@ -T veth.lds -N -q
+	$(STRIP) --strip-unneeded $@
 
-net_veth.bin: net_veth.o
-	$(OBJCOPY) -O binary $^ $@ 
-clean:		
-	$(RM) -f *.o *.a *.i *.bin
+clean:
+	$(RM) -f *.o *.a *.i *.elf
 
 distclean : clean
 	rm -f Makefile.dep

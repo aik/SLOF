@@ -360,6 +360,8 @@ elf_apply_rela64(void *file_addr, signed long offset, struct rela *relaentry,
 	 case R_PPC64_REL14:
 	 case R_PPC64_REL24:		/* (S + A - P) >> 2 */
 	 case R_PPC64_REL64:		/* S + A - P */
+	 case R_PPC64_GOT16_DS:
+	 case R_PPC64_GOT16_LO_DS:
 		// printf("\t\tignoring relocation type %i\n",
 		//	  ELF_R_TYPE(relaentry->r_info));
 		break;

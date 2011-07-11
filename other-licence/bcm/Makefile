@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2008 IBM Corporation
+# * Copyright (c) 2004, 2011 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -25,21 +25,19 @@ COMMONOBJS = ../common/module_entry.o
 OBJS   += $(COMMONOBJS) $(SRCS:.c=.o)
 
 
-all:		Makefile.dep net_bcm57xx.bin
+all:	Makefile.dep net_bcm57xx.elf
 
-bcm57xx_net.o:  $(OBJS) 
-		$(LD) $(LDFLAGS) $^ -o $@ -T ../common/module.lds -N
-
-net_bcm57xx.bin: bcm57xx_net.o
-		$(OBJCOPY) -O binary $^ $@ 
+net_bcm57xx.elf:  $(OBJS) 
+	$(LD) $(LDFLAGS) $^ -o $@ -T ../common/module.lds -N -q
+	$(STRIP) --strip-unneeded $@
 
 # A rule for making the object files in the common directory:
 ../common/%.o: ../common/%.c
 	$(MAKE) -C ../common all
 
 
-clean:		
-		$(RM) -f *.o *.a *.i *.bin
+clean:
+	$(RM) *.o *.a *.i *.elf
 
 distclean : clean
 	rm -f Makefile.dep

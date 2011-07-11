@@ -12,7 +12,15 @@
 
 
 #include <macros.h>
-.section        .lowmem,"aw",@progbits
+
+	.section	".toc","aw"	# TOC entries are needed for relocation
+.exception_stack_frame_toc:
+	.tc		exception_stack_frame[TC],exception_stack_frame
+.system_call_toc:
+	.tc		_system_call[TC],_system_call
+
+
+	.section	.lowmem,"aw",@progbits
 
 	.irp i, 0x0200,0x0300,0x0380,0x0400,0x0480,0x0500,0x0600,0x0700, \
 		0x0800,0x0900,0x0a00,0x0b00
@@ -63,10 +71,10 @@
 	mflr	r11
 	std	r11, 0x30(r1)
 	mfsrr0	r11
-	std	r11, 0x40(r1)	
+	std	r11, 0x40(r1)
 	mfsrr1	r11
-	std	r11, 0x48(r1)	
-	ld	r11, _system_call@got(r2)
+	std	r11, 0x48(r1)
+	ld	r11, .system_call_toc@toc(r2)
 	ld	r11, 0(r11)
 	mtctr	r11
 	mr	r10, r0
@@ -143,9 +151,8 @@ _exception_handler:
 	LOAD64(r3,_entry)
 	ld	r2,8(r3)
 
-	ld      r3,exception_stack_frame@got(r2)
-	std     r1,0(r3)
-
+	ld	r3,.exception_stack_frame_toc@toc(r2)
+	std	r1,0(r3)
 
 	mflr	r14
 	bctrl	

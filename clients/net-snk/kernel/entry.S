@@ -13,6 +13,18 @@
 #define STACKSIZE 0x100000
 #include <macros.h>
 
+
+	.section	".toc","aw"	# TOC entries are needed for relocation
+.exception_stack_frame_toc:
+	.tc		exception_stack_frame[TC],exception_stack_frame
+.exit_sp_toc:
+	.tc		_exit_sp[TC],_exit_sp
+.prom_entry_toc:
+	.tc		_prom_entry[TC],_prom_entry
+
+	.previous
+
+
 /*
 Function:	
 	Input:
@@ -24,15 +36,7 @@ Function:
 Decription: Main entry point, called from OF
 	
 */
-	.globl	_entry
-        .section        ".opd","aw"
-        .align 3
-_entry:
-        .quad   ._entry,.TOC.@tocbase,0
-        .previous
-        .size   main,24
-	.globl ._entry
-._entry:	
+C_ENTRY(_entry)
 	mr	r3, r6	# parm 0 passed in r6
 	mr	r4, r7	# parm 1 passed in r7	
 	mr	r6, r1	# save stack pointer	
@@ -48,14 +52,14 @@ over:
 	add	r1, r1, r8		# add base
 	std	r2, 64(r1)		# save got
 	std	r7, 56(r1)		# save link register
-#	ld	r2, .LCgot-base(r8)	# load got pointer
-#	add	r2, r2, r8		# add base	
+	ld	r2, .LCgot-base(r8)	# load got pointer
+	add	r2, r2, r8		# add base
 	std	r6, 0(r1)		# save stack pointer
 
-	ld	r6, _prom_entry@got(r2)
+	ld	r6, .prom_entry_toc@toc(r2)
 	std	r5, 0(r6)		# Save prom handle
 
-	ld	r10, _exit_sp@got(r2)	# save stack pointer for exit call
+	ld	r10, .exit_sp_toc@toc(r2)  # save stack pointer for exit call
 	std	r1, 0(r10)
 
 	bl	._start_kernel		# call kernel init code
@@ -79,16 +83,7 @@ the_end:
  *  function moves R6 to R3 and R7 to R4 and then calls callback_entry().
  *
  */
-	.globl		_callback_entry
-	.section	".opd", "aw"
-	.align		3
-_callback_entry:
-	.quad		._callback_entry,.TOC.@tocbase,0
-	.previous
-	.size		callback,24
-	.type		._callback_entry, @function
-	.globl		._callback_entry
-._callback_entry:
+C_ENTRY(_callback_entry)
 	# Save the LR
 	mflr	r0
 	std	r0, 16(r1)
@@ -114,27 +109,27 @@ _callback_entry:
 	# Return to caller
 	blr
 
+	.section	".bss"
 
-	.globl  _exit_sp
 _exit_sp:	.quad 0
-	.globl	_prom_entry	
+
+.global		_prom_entry
 _prom_entry:	.quad 0
 
-ENTRY(_exit)
-	ld	r1, _exit_sp@got(r2)
+	.section	".text"
+
+C_ENTRY(_exit)
+	ld	r1, .exit_sp_toc@toc(r2)
 	ld	r1, 0(r1)
 	b	the_end
 
-	.globl	.undo_exception
-.undo_exception:
-	.globl	undo_exception
-undo_exception:
 
+C_ENTRY(undo_exception)
 /* 
 	unwind stack
 */
-	ld      r3,exception_stack_frame@got(r2)
-	ld      r1,0(r3)
+	ld	r3,.exception_stack_frame_toc@toc(r2)
+	ld	r1,0(r3)
 
 	ld 	r14,0x130(r1)
 	mtctr	r14
@@ -146,7 +141,7 @@ undo_exception:
 		27, 28, 29, 30, 31
 	ld	r\i, 0x30+\i*8 (r1)
 	.endr
-    addi	r1, r1, 0x130
+	addi	r1, r1, 0x130
 
 //	restore regs as in default handler 
 

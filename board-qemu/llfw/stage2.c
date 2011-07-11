@@ -168,9 +168,9 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	       ((uint64_t *)fileInfo.addr_header)[2],
 	       ((uint64_t *)fileInfo.addr_header)[3]);
 
-	/* Assume that paflof need ca. 16 MiB RAM right now..
+	/* Assume that paflof and SNK need ca. 31 MiB RAM right now.
 	 * TODO: Use value from ELF file instead */
-	paflof_base = romfs_base - 0x1000000 + 0x100;
+	paflof_base = romfs_base - 0x1F00000 + 0x100;
 	if ((int64_t)paflof_base <= 0LL) {
 		puts("ERROR: Not enough memory for Open Firmware");
 	}

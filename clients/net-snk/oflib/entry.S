@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,12 +10,15 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <macros.h>
 
-	.globl call_client_interface
-call_client_interface:	
-	.globl .call_client_interface
-.call_client_interface:
-	ld	r4, _prom_entry@got(r2)	# Load prom entry point
+	.section	".toc","aw"	# TOC entries are needed for relocation
+.prom_entry_toc:
+	.tc		_prom_entry[TC],_prom_entry
+
+
+C_ENTRY(call_client_interface)
+	ld	r4, .prom_entry_toc@toc(r2)	# Load prom entry point
 	mflr	r0
 	ld	r4, 0(r4)
 	stdu	r1, -16(r1)
@@ -27,11 +30,7 @@ call_client_interface:
 	addi	r1, r1, 16
 	blr
 
-	.globl rtas_call_entry
-rtas_call_entry:	
-	.globl .rtas_call_entry
-.rtas_call_entry:
+
+C_ENTRY(rtas_call_entry)
 	mtctr	r5
-	bctr	
-
-
+	bctr

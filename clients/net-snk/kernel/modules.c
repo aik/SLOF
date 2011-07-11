@@ -14,9 +14,11 @@
 #include <kernel.h>
 #include <of.h>
 #include <rtas.h> 
+#include <libelf.h>
 #include <cpu.h> /* flush_cache */
-//#include <stdlib.h> /* malloc */
 #include <unistd.h> /* open, close, read, write */
+#include <stdio.h>
+
 
 unsigned int read_io(void *, size_t);
 int write_io(void *, unsigned int, size_t);
@@ -24,22 +26,21 @@ int write_io(void *, unsigned int, size_t);
 extern void get_mac(char *mac);
 extern snk_module_t of_module;
 
+extern char __client_start[];
+
+
 typedef snk_module_t *(*module_init_t) (snk_kernel_t *, pci_config_t *);
 
 typedef struct {
 	const char *name;
-	void       *link_addr;
 	int        type;
 } mod_descriptor_t;
 
 static const mod_descriptor_t modules[] = {
-	{ "net_e1000" , (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "net_bcm"   , (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "net_nx203x", (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "net_mcmal" , (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "net_spider", (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ "net_veth",   (void*) 0xF800000, MOD_TYPE_NETWORK },
-	{ 0           , (void*) 0         }
+	{ "net_e1000",  MOD_TYPE_NETWORK },
+	{ "net_bcm",    MOD_TYPE_NETWORK },
+	{ "net_veth",   MOD_TYPE_NETWORK },
+	{ NULL,         0                }
 };
 
 snk_module_t *snk_modules[MODULES_MAX];
@@ -59,6 +60,12 @@ load_module(const char *name)
 	void *link_addr;
 	module_init_t module_init;
 
+	// Load modules right after the SNK...
+	// FIXME: hard-coded offset!
+	link_addr = (void*)__client_start + 0x800000;
+
+	// snk_kernel_interface.print("Loading Module '%s'\n", name);
+
 	/* find module in module list and lookup link address */
 	for(i=0; modules[i].name; ++i) {
 		if(strcmp(modules[i].name, name) == 0)
@@ -68,12 +75,11 @@ load_module(const char *name)
 		/* module not in list */
 		return -1;
 	}
-	link_addr = modules[i].link_addr;
 
 	/* check if link address is used already */
-	for(i=0; i<MODULES_MAX; ++i) {
-		if(snk_modules[i] && snk_modules[i]->link_addr == link_addr) {
-			/* busy, can't load modules */
+	for(i=1; i<MODULES_MAX; ++i) {
+		if(snk_modules[i] /* && snk_modules[i]->link_addr == link_addr*/) {
+			// busy, can't load modules
 			return -2;
 		}
 	}
@@ -95,18 +101,13 @@ load_module(const char *name)
 		/* file not found */
 		return -4;
 	}
-	/* Copy image from flash to RAM
-	 * FIXME fix address 8MB
-	 */
 
-	memcpy(link_addr, addr, len);
-
-	flush_cache(link_addr, len);
-
-	/* Module starts with opd structure of the module_init
-	 * function.
-	 */
-	module_init = (module_init_t) link_addr;
+	/* Copy image from flash to RAM */
+	if (elf_load_file_to_addr(addr, link_addr, (void*)&module_init,
+				  NULL, flush_cache) != 2) {
+		snk_kernel_interface.print("ELF loading failed!\n");
+		return -5;
+	}
 
 	snk_modules[i] = module_init(&snk_kernel_interface, &snk_kernel_interface.pci_conf);
 	if(snk_modules[i] == 0) {

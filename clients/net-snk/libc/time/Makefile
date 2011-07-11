@@ -22,14 +22,9 @@ OBJS = timer.o ftime.o
 
 
 all: time.o
-	
 
 time.o: $(OBJS)
 	$(LD) $(LDFLAGS) -r $< -o $@
-
-%.o : %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
 
 clean:
 	$(RM) -f *.o *.i *.s

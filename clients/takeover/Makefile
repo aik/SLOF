@@ -1,5 +1,5 @@
 # *****************************************************************************
-# * Copyright (c) 2004, 2008 IBM Corporation
+# * Copyright (c) 2004, 2011 IBM Corporation
 # * All rights reserved.
 # * This program and the accompanying materials
 # * are made available under the terms of the BSD License
@@ -16,13 +16,14 @@ SNKDIR = $(TOPCMNDIR)/clients/net-snk
 
 CFLAGS += -fno-builtin -I$(LIBCMNDIR)/libc/include
 CFLAGS += -I$(SNKDIR)/include -I. $(CPUARCHDEF)
-CFLAGS += -I$(INCLBRDDIR) -I.. -I$(INCLCMNDIR)/$(CPUARCH)
+CFLAGS += -I$(INCLBRDDIR) -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
 CFLAGS += -O2 -msoft-float -Wa,-mregnames $(RELEASE)
 
 OBJS = $(SNKDIR)/kernel/kernel.o
 OBJS += $(SNKDIR)/oflib/oflib.o
 OBJS += $(SNKDIR)/libc/time/timer.o
-OBJS += $(LIBCMNDIR)/libc.a entry.o main.o of.elf takeover.o
+OBJS += entry.o main.o of.elf takeover.o
+OBJS += $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
 
 %.o: %.S
 	$(CC) $(CFLAGS) -c $^

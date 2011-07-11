@@ -17,23 +17,24 @@ ENTRY(module_init)
 SECTIONS {
 	.code 0xF800000:
 	{
+	  __module_start = .;
 	  module_entry.o(.opd) 
 	  *(.text .stub .text.* .gnu.linkonce.t.*)
 	  *(.sfpr .glink)
-          *(.rodata .rodata.* .gnu.linkonce.r.*)
+	  *(.rodata .rodata.* .gnu.linkonce.r.*)
 	  *(.data .data.* .gnu.linkonce.d.*)
 	  *(.opd)
 	} 
 	.got : 
 	{
 	  _got = .;
-          *(.got .toc)
+	  *(.got .toc)
 	} 
-        .bss : {
+	.bss :
+	{
 	  __bss_start = .;
-          *(*COM* .bss .gnu.linkonce.b.*)
+	  *(*COM* .bss .gnu.linkonce.b.*)
 	  __bss_end = .;
 	} 
-	__bss_size = (__bss_end - __bss_start);	
-        __end = .;
+	__module_end = .;
 }

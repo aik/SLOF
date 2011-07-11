@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -30,23 +30,24 @@ memset( void *dest, int c, size_t n )
 }
 
 
-extern char __bss_start;
-extern char __bss_size;
+extern char __module_start[];
+extern char __module_end[];
+extern char __bss_start[];
+extern char __bss_end[];
 
 snk_module_t*
 module_init(snk_kernel_t *snk_kernel_int, pci_config_t *pciconf)
 {
-	/* Need to clear bss, heavy linker script dependency, expert change only */
-	char              *bss      = &__bss_start;
-	unsigned long long bss_size = (unsigned long long) &__bss_size;
+	long module_size;
 
-	if (((unsigned long long) bss) + bss_size >= 0xFF00000 
-	 || bss_size >= 0x2000000) {
-		snk_kernel_int->print("BSS size (%llu bytes) is too big!\n", bss_size);
+	module_size = __module_end - __module_start;
+	if (module_size >= 0x800000) {
+		snk_kernel_int->print("Module size (%llu bytes) is too big!\n",
+				      module_size);
 		return 0;
 	}
 
-	memset(bss, 0, bss_size);
+	memset(__bss_start, 0, __bss_end - __bss_start);
 
 	if (snk_kernel_int->version != snk_module_interface.version) {
 		return 0;

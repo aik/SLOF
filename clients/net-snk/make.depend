@@ -16,12 +16,12 @@ depend :
 	@rm -rf .depend
 ifdef OBJS
 	@touch .depend && \
-	$(CC) -M $(CFLAGS) $(OBJS:.o=.c) >> .depend
+	$(CC) -M $(CPPFLAGS) $(CFLAGS) $(OBJS:.o=.c) >> .depend
 #else
 #	@echo "OBJ is NOT defined"
 endif
 ifdef OBJS2
-	@$(CC) -M $(CFLAGS) $(OBJS2:.o=.S) >> .depend
+	@$(CC) -M $(CPPFLAGS) $(CFLAGS) $(OBJS2:.o=.S) >> .depend
 #else
 #	@echo "OBJ2 is NOT definde"
 endif

@@ -16,11 +16,10 @@ include $(ROOTDIR)/make.rules
 
 INCLCMNDIR	?= $(ROOTDIR)/include
 LIBCMNDIR	?= $(ROOTDIR)/lib
-CFLAGS		= -g -I. -I$(TOP)/include -I$(LIBCMNDIR)/libc/include \
-		  -I$(LIBCMNDIR)/libbootmsg -I$(INCLCMNDIR)/$(CPUARCH) \
-		  -O2 -fno-builtin -ffreestanding -msoft-float -mno-altivec \
-		  -Wall $(FLAG) -nostdinc -fno-stack-protector
+CPPFLAGS	= -I$(TOP)/include -I$(LIBCMNDIR)/libc/include -I$(INCLCMNDIR) \
+		  -I$(LIBCMNDIR)/libbootmsg -I$(INCLCMNDIR)/$(CPUARCH) -I.
+CFLAGS		+= $(FLAG)
 
-LDFLAGS		= -nostdlib
+LDFLAGS		= -nostdlib -q -n
 ASFLAGS		= -I. -I$(TOP)/include -Wa,-mregnames -I$(INCLCMNDIR)/$(CPUARCH)
 DD		= dd

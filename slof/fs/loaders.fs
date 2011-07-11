@@ -44,8 +44,13 @@ CREATE load-list 2 cells allot load-list 2 cells erase
 ;
 
 : .(client-exec) ( arg len -- rc )
-   s" snk" romfs-lookup 0<> IF elf-load-file drop start-elf64 client-data
-   ELSE 2drop false THEN
+   s" snk" romfs-lookup 0<> IF
+      \ Load SNK client 15 MiB after Paflof... FIXME: Hard-coded offset is ugly!
+      paflof-start f00000 +
+      elf-load-file-to-addr drop start-elf64 client-data
+   ELSE
+      2drop false
+   THEN
 ;
 ' .(client-exec) to (client-exec)
 
