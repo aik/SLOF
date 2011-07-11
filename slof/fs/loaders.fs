@@ -24,9 +24,6 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    dup 8 + @ ciregs >r2 ! @ call-client \ entry point is pointer to .opd
 ;
 
-10000000 VALUE LOAD-BASE
-2000000 VALUE FLASH-LOAD-BASE
-
 : set-bootpath
    s" disk" find-alias
    dup IF ELSE drop s" boot-device" evaluate find-alias THEN
