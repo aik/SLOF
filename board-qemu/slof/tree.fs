@@ -100,6 +100,28 @@ populate-vios
 
 5a0 cp
 
+: populate-pci-busses ( -- )
+    \ Populate the /pci* children with their methods
+    " /" find-device get-node child
+    BEGIN
+        dup 0 <>
+    WHILE
+        dup set-node
+        dup " name" rot get-package-property 0 = IF
+            drop dup from-cstring
+            2dup s" pci" strequal IF
+                s" pci-phb.fs" included
+            THEN
+            2drop
+       THEN
+       peer
+    REPEAT drop
+
+    device-end
+;
+
+populate-pci-busses
+
 600 cp
 
 \ Add rtas cleanup last
