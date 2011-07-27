@@ -78,6 +78,24 @@ ENTRY(hv_send_logical_lan)
 	HVCALL
 	blr
 
+ENTRY(hv_logical_ci_load)
+	mr	r5,r4
+	mr	r4,r3
+	li	r3,H_LOGICAL_CI_LOAD
+	HVCALL
+	cmpdi	cr0,r3,0
+	mr	r3,r4
+	beqlr
+	li	r3,-1
+	blr
+
+ENTRY(hv_logical_ci_store)
+	mr	r6,r5
+	mr	r5,r4
+	mr	r4,r3
+	li	r3,H_LOGICAL_CI_STORE
+	blr
+
 	.section ".bss"
  inbuf:	.space	16
 inlen:	.space	4

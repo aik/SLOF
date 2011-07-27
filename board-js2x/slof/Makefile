@@ -28,7 +28,8 @@ BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
 	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libbases/libbases.in  \
-	$(LIBCMNDIR)/libnvram/libnvram.in
+	$(LIBCMNDIR)/libnvram/libnvram.in \
+	$(LIBCMNDIR)/libnativeio/nativeio.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc

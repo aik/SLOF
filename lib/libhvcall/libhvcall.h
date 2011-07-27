@@ -3,6 +3,8 @@
 
 #define H_SUCCESS		0
 
+#define H_LOGICAL_CI_LOAD	0x3c
+#define H_LOGICAL_CI_STORE	0x40
 #define H_GET_TERM_CHAR		0x54
 #define H_PUT_TERM_CHAR		0x58
 #define H_REG_CRQ		0xFC
@@ -59,6 +61,10 @@ static inline long h_add_logical_lan_buffer(unsigned long unit_address,
 {
 	return hv_generic(H_ADD_LOGICAL_LAN_BUFFER, unit_address, buffer);
 }
+
+extern unsigned long hv_logical_ci_load(unsigned long size, unsigned long addr);
+extern unsigned long hv_logical_ci_store(unsigned long size, unsigned long addr,
+					 unsigned long value);
 
 #endif /* __ASSEMBLY__ */
 

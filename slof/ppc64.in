@@ -12,16 +12,6 @@
 
 // The Forth code words (primitives) that are specific to PowerPC64.
 
-// I/O accesses.
-cod(RB@)
-cod(RB!)
-cod(RW@)
-cod(RW!)
-cod(RL@)
-cod(RL!)
-cod(RX@)
-cod(RX!)
-
 // CPU register accesses.
 cod(HID0!)
 cod(HID0@)
