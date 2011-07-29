@@ -14,9 +14,25 @@
 
 ." Populating " pwd cr
 
-: decode-unit  2 hex-decode-unit  3 #join  8 lshift  0 0 rot F00000 + ;
-: encode-unit  nip nip  ff00 and 8 rshift  3 #split
-               over IF 2 ELSE nip 1 THEN hex-encode-unit ;
+\ needed to find the right path in the device tree
+: decode-unit ( addr len -- phys.lo ... phys.hi )
+   2 hex-decode-unit       \ decode string
+   b lshift swap           \ shift the devicenumber to the right spot
+   8 lshift or             \ add the functionnumber
+   \ my-bus 10 lshift or   \ add the busnumber (assume always bus 0)
+   0 0 rot                 \ make phys.lo = 0 = phys.mid
+;
+
+\ needed to have the right unit address in the device tree listing
+\ phys.lo=phys.mid=0 , phys.hi=config-address
+: encode-unit ( phys.lo phys-mid phys.hi -- unit-str unit-len )
+   nip nip                     \ forget the phys.lo and phys.mid
+   dup 8 rshift 7 and swap     \ calculate function number
+   B rshift 1F and             \ calculate device number
+   over IF 2 ELSE nip 1 THEN   \ create string with dev#,fn# or dev# only?
+   hex-encode-unit
+;
+
 
 0 VALUE my-puid
 

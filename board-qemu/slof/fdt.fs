@@ -94,8 +94,25 @@ fdt-check-header
   2dup + 1 + 3 + fffffffc and -rot
 ;
 
+\ Update unit with information from the reg property...
+\ ... this is required for the PCI nodes for example.
+: fdt-reg-unit ( prop-addr prop-len -- )
+   s" #address-cells" get-parent get-package-property IF
+      2drop
+   ELSE
+      decode-int nip nip        ( prop-addr prop-len #addr-cells )
+      3 <> IF
+         \ Ignore if #addr-cells is not 3, i.e. no PCI
+         2drop EXIT
+      THEN
+      decode-phys               ( prop-addr' prop-len' phys.lo ... phys.hi )
+      set-unit                  ( prop-addr' prop-len' )
+      2drop
+   THEN
+;
+
 \ Lookup a string by index
-: fdt-fetch-string ( index -- $string)  
+: fdt-fetch-string ( index -- str-addr str-len )  
   fdt-strings + dup from-cstring
 ;
 
@@ -122,7 +139,7 @@ fdt-check-header
   \ Set name
   device-name
 
-  \ Set unit address
+  \ Set preliminary unit address - might get overwritten by reg property
   dup IF
      " #address-cells" get-parent get-package-property IF
         2drop
@@ -144,7 +161,10 @@ fdt-check-header
       dup l@ swap 4 +		( fetch nameid, stack is : a1 s s i a3 )
       rot                       ( we now have: a1 s i a3 s )
       encode-bytes rot		( a1 s pa ps i)
-      fdt-fetch-string		( a1 s pa ps $pn )
+      fdt-fetch-string		( a1 s pa ps na ns )
+      2dup s" reg" str= IF
+          2swap 2dup fdt-reg-unit 2swap
+      THEN
       property
       + 8 + 3 + fffffffc and
     ELSE dup OF_DT_BEGIN_NODE = IF
