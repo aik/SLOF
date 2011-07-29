@@ -17,16 +17,33 @@
 #include <stdint.h>
 
 // XXX FIXME: Use proper CI load/store */
-#define cache_inhibited_access(type,name) 			\
-	static inline type ci_read_##name(type * addr)		\
-	{							\
-		type val;					\
-		val = *addr;					\
-		return val;					\
-	}							\
-	static inline void ci_write_##name(type * addr, type data)	\
-	{							\
-		*addr = data;					\
+#define cache_inhibited_access(type,size) 				\
+	static inline type ci_read_##size(type * addr)			\
+	{								\
+		type val;						\
+		register int bytes asm ("r4") = size / 8;		\
+		register uint64_t _addr asm ("r5") = (long)addr;	\
+		asm volatile(" li 3, 0x3c \n" /* H_LOGICAL_CI_LOAD */	\
+			".long	0x44000022 \n"  /* HVCALL */		\
+			" cmpdi	cr0,3,0 \n"				\
+			" mr	%0,4 \n"				\
+			" beq	0f \n"					\
+			" li	%0,-1 \n"				\
+			"0:\n"						\
+			: "=r"(val)					\
+			: "r"(bytes), "r"(_addr)			\
+			: "r3", "memory", "cr0");			\
+		return val;						\
+	}								\
+	static inline void ci_write_##size(type * addr, type data)	\
+	{								\
+		register int bytes asm ("r4") = size / 8;		\
+		register uint64_t _addr asm ("r5") = (uint64_t)addr;	\
+		register uint64_t _data asm ("r6") = (uint64_t)data;	\
+		asm volatile(" li 3, 0x40 \n" /* H_LOGICAL_CI_STORE */	\
+			".long	0x44000022 \n"  /* HVCALL */		\
+			: : "r"(bytes), "r"(_addr), "r"(_data)		\
+			: "r3", "memory");				\
 	}
 
 cache_inhibited_access(uint8_t,  8)

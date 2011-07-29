@@ -94,11 +94,11 @@ ENTRY(hv_logical_ci_store)
 	mr	r5,r4
 	mr	r4,r3
 	li	r3,H_LOGICAL_CI_STORE
+	HVCALL
 	blr
 
 	.section ".bss"
- inbuf:	.space	16
+inbuf:	.space	16
 inlen:	.space	4
 inpos:	.space	4
 	.text
-	
