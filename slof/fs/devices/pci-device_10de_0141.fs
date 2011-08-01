@@ -14,8 +14,8 @@ my-space pci-class-name type
 
 my-space pci-device-generic-setup
 
-enable-io-access
-enable-mem-access
+pci-io-enable
+pci-mem-enable
 
 30 config-l@  pci-find-fcode execute-rom-fcode
 

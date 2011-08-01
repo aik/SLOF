@@ -117,6 +117,15 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 370 cp
 
+\ Grab rtas from qemu
+#include "rtas.fs"
+
+380 cp
+
+#include "pci-setup.fs"
+
+3f0 cp
+
 #include "tree.fs"
 
 800 cp

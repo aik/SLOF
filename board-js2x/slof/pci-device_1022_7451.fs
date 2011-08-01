@@ -15,8 +15,8 @@
 s" io-apic" 2dup device-name device-type
 my-space pci-class-name type s"  ( 8131 IO-APIC )" type
 
-enable-io-access
-enable-mem-access
+pci-io-enable
+pci-mem-enable
 pci-master-enable
 
 my-space b rshift  \ Get slot #.

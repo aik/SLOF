@@ -48,6 +48,7 @@ FCODE_FFS_FILES = \
 
 
 USB_FFS_FILES = \
+	$(SLOFCMNDIR)/fs/devices/pci-class_02.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-class_0c.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-ohci.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-support.fs \

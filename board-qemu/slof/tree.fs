@@ -15,12 +15,6 @@
 
 400 cp
 
-0 value puid
-
-440 cp
-
-480 cp
-
 \ The root of the device tree and some of its kids.
 " /" find-device
 
@@ -31,6 +25,8 @@
 
 \ Yaboot is stupid.  Without this, it can't/won't find /etc/yaboot.conf.
 s" chrp" device-type
+
+480 cp
 
 \ See 3.6.5, and the PowerPC OF binding document.
 new-device
@@ -56,11 +52,6 @@ device-end
     device-end
 ;
 fixup-tbfreq
-
-4d0 cp
-
-\ Grab rtas from qemu
-#include "rtas.fs"
 
 500 cp
 

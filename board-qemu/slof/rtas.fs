@@ -108,6 +108,9 @@ find-qemu-rtas
     enter-rtas
 ;
 
+
+0 value puid
+
 : rtas-do-config-@ ( config-addr size -- value)
     \ We really want to cache this !
     " ibm,read-pci-config" rtas-get-token rtas-cb rtas>token l!

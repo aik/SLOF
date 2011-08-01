@@ -11,7 +11,7 @@
 \ ****************************************************************************/
 
 \ get the PUID from the node above
-s" my-puid" $call-parent CONSTANT my-puid
+s" my-puid" get-node parent $call-static CONSTANT my-puid
 
 \ define the config reads
 : config-b@  puid >r my-puid TO puid my-space + rtas-config-b@ r> TO puid ;
