@@ -3,6 +3,8 @@
 
 #define H_SUCCESS		0
 
+#define H_GET_TCE		0x1C
+#define H_PUT_TCE		0x20
 #define H_LOGICAL_CI_LOAD	0x3c
 #define H_LOGICAL_CI_STORE	0x40
 #define H_GET_TERM_CHAR		0x54

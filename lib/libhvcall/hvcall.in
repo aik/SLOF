@@ -16,6 +16,7 @@ cod(hv-haschar)
 cod(hv-reg-crq)
 cod(hv-free-crq)
 cod(hv-send-crq)
+cod(hv-put-tce)
 
 cod(RB@)
 cod(RB!)

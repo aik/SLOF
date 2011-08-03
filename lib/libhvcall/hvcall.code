@@ -50,6 +50,13 @@ PRIM(hv_X2d_send_X2d_crq)
 	TOS.n = hv_send_crq(unit, msgaddr);
 MIRP
 
+// : hv-put-tce ( liobn ioba tce -- rc )
+PRIM(hv_X2d_put_X2d_tce)
+	uint64_t tce = TOS.u; POP;
+	uint64_t ioba = TOS.u; POP;
+	uint32_t liobn = TOS.u;
+	TOS.u = hv_generic(H_PUT_TCE, liobn, ioba, tce);
+MIRP
 
 PRIM(RB_X40)
 	unsigned long qaddr = TOS.u;
