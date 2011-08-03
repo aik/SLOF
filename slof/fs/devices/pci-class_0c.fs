@@ -23,7 +23,7 @@ my-space pci-device-generic-setup
    pci-master-enable               \ set PCI Bus master bit and
    pci-mem-enable                  \ memory space enable for USB scan
    10 config-l@                    \ get base address on stack for usb-ohci.fs
-                                   \ TODO: Use translate-address here
+   translate-my-address            \ translate PCI address to CPU address
    s" usb-ohci.fs" included
 ;
 

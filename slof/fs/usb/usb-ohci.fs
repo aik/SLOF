@@ -862,7 +862,25 @@ THEN
 \ it.
 \ ==========================================================================
 : HC-reset ( -- )
+   hcrhdescA rl@-le ff and     ( total-rh-ports )
+   to max-rh-ports
 
+   \ if no hardware-reset was issued (rescan)
+   \ switch off all ports first !
+   hcrhpstat TO current-stat              \ start with first port status reg
+   0                                      \ port status default
+   max-rh-ports 0                         \ checking all ports
+   ?DO
+      current-stat rl@-le or              \ OR-ing all stats
+      200 current-stat rl!-le             \ Clear Port Power (CPP)
+      current-stat 4 + TO current-stat    \ check next RH-Port
+   LOOP
+   100 and 0<>                            \ any of the ports had power ?
+   IF
+      d# 750 wait-proceed                 \ wait for power discharge
+   THEN
+
+   \ Reset HC and wait until reset has been cleared
    hccomstat dup rl@-le 01 or swap rl!-le    \ issue HC reset
    BEGIN
       hccomstat rl@-le 01 and 0<>            \ wait for reset end
@@ -875,41 +893,23 @@ THEN
    0000     hcbulkhead rl!-le                \ bulk transfer head
    0ffff    hcintdsbl rl!-le                 \ interrupt disable reg.
 
-\ all devices are still in reset-state
-\ next command starts sending SOFs
+   \ all devices are still in reset-state
+   \ next command starts sending SOFs
    83       hccontrol rl!-le                 \ set USBOPERATIONAL
 
-\ these two repeated register settings are necessary for Bimini
-\ Its OHCI controller (AM8111) behaves different to NEC's one
+   \ these two repeated register settings are necessary for Bimini
+   \ Its OHCI controller (AM8111) behaves different to NEC's one
    23f02edf hcintrval rl!-le                 \ frame-interval register
    hchcca   hchccareg rl!-le                 \ HC communication area
    
    d# 50 ms
 
-   hcrhdescA rl@-le ff and     ( total-rh-ports )
-   to max-rh-ports
-
-\ if no hardware-reset was issued (rescan)
-\ switch off all ports first !
-   hcrhpstat TO current-stat              \ start with first port status reg
-   0                                      \ port status default
-   max-rh-ports 0                         \ checking all ports
-   DO
-      current-stat rl@-le or              \ OR-ing all stats
-      200 current-stat rl!-le             \ Clear Port Power (CPP)
-      current-stat 4 + TO current-stat    \ check next RH-Port
-   LOOP
-   100 and 0<>                            \ any of the ports had power ?
-   IF
-      d# 750 wait-proceed                 \ wait for power discharge
-   THEN
-
-\ now power on all ports of this root-hub
+   \ now power on all ports of this root-hub
    hcrhpstat TO current-stat              \ start with first port status reg
    max-rh-ports 0
-   DO
+   ?DO
       102 current-stat rl!-le             \ power on and enable
-      hcrhdescA 3 + rb@ 2 * ms            \ startup delay 30 ms (2 * POTPGT)
+      hcrhdescA rl@-le 18 rshift 2 * ms   \ startup delay 30 ms (2 * POTPGT)
       current-stat 4 + TO current-stat    \ check next RH-Port
    LOOP
    d# 500 wait-proceed                    \ STEC device needs 300 ms
@@ -1128,7 +1128,10 @@ s" usb-enumerate.fs" INCLUDED
 
    hcrhpstat TO current-stat              \ start with first port status reg
    max-rh-ports 1+ 1
-   DO
+   ?DO
+      usb-debug-flag IF
+         ." Initializing RH port " i . cr
+      THEN
       \ any Device connected to that port ?
       current-stat rl@-le RHP-CCS and 0<> 	( TRUE|FALSE )
       IF
@@ -1143,7 +1146,7 @@ s" usb-enumerate.fs" INCLUDED
             current-stat rl@-le RHP-PRS AND    \ wait for reset end
             WHILE
          REPEAT
-         hcrhdescA 3 + rb@ 2 * ms         \ startup delay 30 ms (POTPGT)
+         hcrhdescA rl@-le 18 rshift 2 * ms     \ startup delay 30 ms (POTPGT)
          d# 100 ms
 
          current-stat rl@-le 200 and 4 lshift
