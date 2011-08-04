@@ -102,10 +102,14 @@ ALSO client-voc DEFINITIONS
 : yield  sc-yield THROW ;
 
 : test ( zstr -- missing? )
-  \ XXX: Should only look in client-voc...
-  zcount 
-  ALSO client-voc $find PREVIOUS IF nip FALSE ELSE nip nip TRUE THEN 
-  ;
+   \ XXX: Should only look in client-voc...
+   zcount 
+   ALSO client-voc $find PREVIOUS IF
+      drop FALSE
+   ELSE
+      2drop TRUE
+   THEN 
+;
 
 : finddevice ( zstr -- phandle )
   zcount find-node dup 0= IF drop -1 THEN ;
