@@ -75,6 +75,7 @@ setup-puid
          dup to my-self
          dup ihandle>phandle node>instance-size @   \ Remember instance size
          \ Include the PCI device functions:
+         s" pci-device-dma.fs" included
          s" pci-device.fs" included
          \ Clean up the temporary instance. Note that we can not use close-node
          \ or destroy-instance here since node>instance-size might have changed.

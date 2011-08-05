@@ -102,6 +102,9 @@ typedef int (*k_ioctl_t) (int, int, void *);
 typedef void (*modules_remove_t) (int);
 typedef snk_module_t *(*modules_load_t) (int);
 
+typedef long (*dma_map_in_t)(void *address, long size, int cachable);
+typedef void (*dma_map_out_t)(void *address, long devaddr, long size);
+
 typedef struct {
 	int version;
 	print_t print;
@@ -129,6 +132,8 @@ typedef struct {
 	k_ioctl_t k_ioctl;
 	modules_remove_t modules_remove;
 	modules_load_t modules_load;
+	dma_map_in_t dma_map_in;
+	dma_map_out_t dma_map_out;
 } snk_kernel_t;
 
 /* Entry of module */

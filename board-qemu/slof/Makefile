@@ -81,6 +81,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFBRDDIR)/default-font.bin \
 	$(SLOFBRDDIR)/pci-phb.fs \
+	$(SLOFBRDDIR)/pci-device-dma.fs \
 	$(SLOFBRDDIR)/rtas.fs \
 	$(FCODE_FFS_FILES)
 

@@ -221,6 +221,12 @@ of_4_1(const char *serv, int arg0, int arg1, int arg2, int arg3)
 }
 
 int
+of_test(const char *name)
+{
+	return (int) of_1_1("test", p32cast name);
+}
+
+int
 of_interpret_1(void *s, void *ret)
 {
 	return of_1_2("interpret", p32cast s, ret);
@@ -373,6 +379,7 @@ bootmsg_error(short id, const char *str)
 	(void) of_2_0("bootmsg-error", id, p32cast str);
 }
 
+/*
 void
 bootmsg_debugcp(short id, const char *str, short lvl)
 {
@@ -384,7 +391,7 @@ bootmsg_cp(short id)
 {
 	(void) of_1_0("bootmsg-cp", id);
 }
-
+*/
 
 static long
 of_fileio_read(snk_fileio_t *fileio, char *buf, long len)
@@ -411,6 +418,34 @@ of_fileio_close(snk_fileio_t *fileio)
 	fileio->type = FILEIO_TYPE_EMPTY;
 	of_close( * (ihandle_t*) fileio->data );
 	return 0;
+}
+
+static long
+dma_map_in(void *address, long size, int cachable)
+{
+	unsigned int ret;
+
+	/* Is dma-map-in available? */
+	if (of_test("dma-map-in") != 0) {
+		/* No dma-map-in available ==> Assume we can use 1:1 addresses */
+		return (long)address;
+	}
+
+	ret = of_3_1("dma-map-in", p32cast address, (int)size, cachable);
+
+	return ret;
+}
+
+static void
+dma_map_out(void *address, long devaddr, long size)
+{
+	/* Is dma-map-out available? */
+	if (of_test("dma-map-out") != 0) {
+		/* No dma-map-out available */
+		return;
+	}
+
+	of_3_0("dma-map-out", p32cast address, (int)devaddr, (int)size);
 }
 
 
@@ -791,6 +826,7 @@ get_timebase(unsigned int *timebase)
 	of_getprop(cpu, "timebase-frequency", timebase, 4);
 }
 
+
 int
 glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
           size_t _client_start, size_t _client_size)
@@ -834,6 +870,9 @@ glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
 	snk_kernel_interface->translate_addr = translate_address;
 	snk_kernel_interface->pci_config_read = rtas_pci_config_read;
 	snk_kernel_interface->pci_config_write = rtas_pci_config_write;
+	snk_kernel_interface->dma_map_in = dma_map_in;
+	snk_kernel_interface->dma_map_out = dma_map_out;
+
 	claim_rc=(int)(long)of_claim(client_start, client_size, 0);
 
 	return 0;
