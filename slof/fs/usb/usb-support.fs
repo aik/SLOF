@@ -190,7 +190,7 @@ VARIABLE controlxfer-cmd
          THEN                              ( ed-ptr done-td )
          (free-td-list)                    ( ed-ptr )
          0 hchccadneq l!-le                ( ed-ptr )
-         (HC-ACK-WDH) \ TDs were written to DOne queue. ACK the HC.
+         (HC-ACK-WDH) \ TDs were written to done queue. ACK the HC.
       THEN
       poll-timer 1+ TO poll-timer
       4 ms              \ longer  1 ms
@@ -199,7 +199,7 @@ VARIABLE controlxfer-cmd
    td-retire-count num-tds <>              ( ed-ptr )
    IF
       dup display-descriptors              ( ed-ptr )
-      s" maximum of retire " usb-debug-print						     
+      s" maximum of retire " usb-debug-print
    THEN
    free-ed
    td-retire-count num-tds <>
@@ -215,22 +215,22 @@ VARIABLE controlxfer-cmd
 \                     INTERFACE FUNCTION
 
 \ ARGUMENTS:
-\ (from the bottom OF stack)
-\ 1. dir -- This is the direction OF data transfer associated with
-\           the DATA STAGE OF the control xfer.
+\ (from the bottom of stack)
+\ 1. dir -- This is the direction of data transfer associated with
+\           the DATA STAGE of the control xfer.
 \           If there is no data transfer (argument dlen is zero)
-\           THEN this argument DOes not matter, nonethless it has
+\           then this argument does not matter, nonethless it has
 \           to be passed.
 \           A "0" represents an IN and "1" represents an "OUT".
-\ 2. addr -- If therez a data stage associated with the transfer,
-\            THEN, this argument holds the address OF the data buffer
-\ 3. dlen -- This arg holds the length OF the data buffer discussed
+\ 2. addr -- If there is a data stage associated with the transfer,
+\            then this argument holds the address of the data buffer
+\ 3. dlen -- This arg holds the length of the data buffer discussed
 \            in previous step (addr)
 \ 4. setup-packet -- This holds the pointer to the setup packet that
-\                    will be transmitted during the SETUP stage OF
+\                    will be transmitted during the SETUP stage of
 \                    the control xfer. The function assumes the length
-\                    OF the status packet to be 8 bytes.
-\ 5. MPS -- This is the MAX PACKET SIZE OF the endpoint.
+\                    of the status packet to be 8 bytes.
+\ 5. MPS -- This is the MAX PACKET SIZE of the endpoint.
 \ 6. ep-fun -- This is the 11-bit value that holds the Endpoint and
 \              the function address. bit 7 to bit 10 holds the Endpoint
 \              address. Bits 0 to Bit 6 holds the Function Address.
@@ -239,16 +239,16 @@ VARIABLE controlxfer-cmd
 \              Bit 13 must be set for low-speed devices.
 
 \ RETURN VALUE:
-\ Returns TRUE | FALSE depending on the success OF the transaction.
+\ Returns TRUE | FALSE depending on the success of the transaction.
 
 \ ASSUMPTIONS:
 \ 1. Function assumes that the setup packet is 8-bytes in length.
 \    If in future, IF we need to add a new argument, we need to change
-\    the function in lot OF places.
+\    the function in lot of places.
 
 \ RISKS:
-\ 1. If for some reason, the USB controller DOes not retire all the TDs
-\    THEN, the status checking part OF this "word" can spin forever.
+\ 1. If for some reason, the USB controller does not retire all the TDs
+\    then the status checking part of this "word" can spin forever.
 
 
 : controlxfer ( dir addr dlen setup-packet MPS ep-fun -- TRUE | FALSE )
@@ -264,7 +264,7 @@ VARIABLE controlxfer-cmd
 
 
    \ FIXME:
-   \ Clear the TAIL pointer in ED. This has got sthg to DO with how
+   \ Clear the TAIL pointer in ED. This has got sthg to do with how
    \ the HC finds an EMPTY queue condition. Refer spec.
 
 
@@ -283,7 +283,7 @@ VARIABLE controlxfer-cmd
    endpt-num setup-packet 4 + c!                \ endpoint number
    0 0 0 setup-packet DEFAULT-CONTROL-MPS usb-addr-contr-req controlxfer
    ( TRUE|FALSE )
-;  
+;
 
 \ It resets the usb bulk-device
 21FF000000000000 CONSTANT BULK-RESET
@@ -298,20 +298,20 @@ VARIABLE controlxfer-cmd
     >r                                          ( bulk-out-endp bulk-in-endp R: usb-addr )
     \ perform a bulk reset
     r@ control-std-bulk-reset
-    IF s" bulk reset OK" 
-    ELSE s" bulk reset failed" 
+    IF s" bulk reset OK"
+    ELSE s" bulk reset failed"
     THEN usb-debug-print
-    
+
     \ clear bulk-in endpoint                    ( bulk-out-endp bulk-in-endp R: usb-addr )
     80 or r@ control-std-clear-feature
-    IF s" control-std-clear IN endpoint OK" 
-    ELSE s" control-std-clear-IN endpoint failed" 
+    IF s" control-std-clear IN endpoint OK"
+    ELSE s" control-std-clear-IN endpoint failed"
     THEN usb-debug-print
 
     \ clear bulk-out endpoint                   ( bulk-out-endp R: usb-addr )
     r@ control-std-clear-feature
-    IF s" control-std-clear OUT endpoint OK" 
-    ELSE s" control-std-clear-OUT endpoint failed" 
+    IF s" control-std-clear OUT endpoint OK"
+    ELSE s" control-std-clear-OUT endpoint failed"
     THEN usb-debug-print
     r> drop
 ;
@@ -448,24 +448,24 @@ VARIABLE controlxfer-cmd
                saved-list-type
                CASE
                   0 OF
-		               0 0 control-std-clear-feature
-		               s" clear feature " usb-debug-print
+                     0 0 control-std-clear-feature
+                     s" clear feature " usb-debug-print
                   ENDOF
                   1 OF                             \ clean bulk stalled
                      s" clear bulk when stalled " usb-debug-print
-		               disable-bulk-list-processing   \ disable procesing
+                     disable-bulk-list-processing   \ disable procesing
                      saved-rw-ed ed>eattr l@-le dup \ extract
                      780 and 7 rshift 80 or         \ endpoint and
                      swap 7f and                    \ usb addr
                      control-std-clear-feature
-		            ENDOF
+                  ENDOF
                   2 OF
-		               0 saved-rw-ed ed>eattr l@-le
+                     0 saved-rw-ed ed>eattr l@-le
                      control-std-clear-feature
-		            ENDOF
-		            dup OF
-		               s" unknown status " usb-debug-print
-		            ENDOF
+                  ENDOF
+                  dup OF
+                     s" unknown status " usb-debug-print
+                  ENDOF
                ENDCASE
             ELSE                             ( td-list failed-TD CC )
                ."  TD failed  " 5b emit .s 5d emit cr
@@ -477,15 +477,15 @@ VARIABLE controlxfer-cmd
             NEXT-TD 0<>                         \ clean the TD if we
             IF
                NEXT-TD (free-td-list)           \ had a stalled
-   	      THEN
+            THEN
          THEN
          (free-td-list)
       ELSE
          drop                                   \ drop td-list pointer
          scan-time? IF 2e emit THEN             \ show proceeding dots
          TRUE TO while-failed
-	      s" time out wait for done" usb-debug-print
-	      20 ms     \ wait for bad device
+         s" time out wait for done" usb-debug-print
+         20 ms     \ wait for bad device
       THEN
    REPEAT
 ;
@@ -500,11 +500,11 @@ VARIABLE controlxfer-cmd
       1 OF disable-bulk-list-processing ENDOF
       2 OF disable-interrupt-list-processing ENDOF
    ENDCASE
-   saved-rw-ed ed>tdqhp l@-le 2 and 0<> IF 
-      1 
+   saved-rw-ed ed>tdqhp l@-le 2 and 0<> IF
+      1
       s" retired 1" usb-debug-print
    ELSE
-      0 
+      0
       s" retired 0" usb-debug-print
    THEN
    \ s" retired " usb-debug-print-val
@@ -517,9 +517,9 @@ VARIABLE controlxfer-cmd
 ;
 
 
-\ (DO-rw-endpoint): T1 12 80 0 0chis method is an privately visible function
+\ (do-rw-endpoint): T1 12 80 0 0chis method is an privately visible function
 \ 		    to be used by the "rw-endpoint" the required
-\ 		    number OF times based on the actual length
+\ 		    number of times based on the actual length
 \ 		    to be transferred
 
 \ Arguments:
@@ -533,9 +533,9 @@ VARIABLE controlxfer-cmd
 \ toggle: Starting toggle for this transfer
 \ buffer length: Data buffer associated with the transfer limited
 \     accordingly by the "rw-endpoint" method to the
-\     value OF max packet size
+\     value of max packet size
 \ mps: Max Packet Size.
-\ address: Address OF endpoint. 11-bit address. The lower 7-bits represent
+\ address: Address of endpoint. 11-bit address. The lower 7-bits represent
 \          the USB addres and the upper 4-bits represent the Endpoint
 \          number.
 
@@ -562,9 +562,9 @@ VARIABLE controlxfer-cmd
 
 \ rw-endpoint: The method is an externally visible method to be exported
 \	       to the child nodes. It uses the internal method
-\	       "(DO-rw-endpoint)", the required number OF times based on the
-\	       actual length OF transfer, so that the limitataion OF MAX-TDS
-\	       DO not hinder the transfer.
+\	       "(do-rw-endpoint)", the required number of times based on the
+\	       actual length of transfer, so that the limitation of MAX-TDS
+\	       do not hinder the transfer.
 
 \ Arguments:
 \ pt: Packet type
@@ -577,7 +577,7 @@ VARIABLE controlxfer-cmd
 \ toggle: Starting toggle for this transfer
 \ buffer length: Data buffer associated with the transfer
 \ mps: Max Packet Size.
-\ address: Address OF endpoint. 11-bit address. The lower 7-bits represent
+\ address: Address of endpoint. 11-bit address. The lower 7-bits represent
 \          the USB addres and the upper 4-bits represent the Endpoint
 \          number.
 
@@ -598,7 +598,7 @@ VARIABLE controlxfer-cmd
    ( pt ed-type toggle buffer length mps address -- )
    ( toggle TRUE |toggle FALSE )
 
-   \ a single transfer descriptor can point to a buffer OF
+   \ a single transfer descriptor can point to a buffer of
    \ 8192 bytes a block on the CDROM has 2048 bytes
    \ but a single transfer is constrained by the MPS
 

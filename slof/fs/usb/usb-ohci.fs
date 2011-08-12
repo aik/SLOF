@@ -61,7 +61,7 @@ STRUCT
 CONSTANT /edlen
 
 
-\ HCCA Done queue location packaged as a structure for ease OF use.
+\ HCCA Done queue location packaged as a structure for ease of use.
 
 
 STRUCT
@@ -231,10 +231,10 @@ INSTANCE VARIABLE cd-buffer
 \ before usage in functions and their values assume significance only during
 \ the function's execution time. Should be used like local variables.
 \ CAUTION:
-\ If you are calling functions that destroy contents OF these variables, be
+\ If you are calling functions that destroy contents of these variables, be
 \ smart enuf to save the values before calling them.
 \ It is recommended that these temporary variables are used only amidst normal
-\ FORTH words -- not among the vicinity OF any OF the functions OF this node.
+\ FORTH words -- not among the vicinity of any of the functions of this node.
 
 
 0 VALUE temp1
@@ -314,7 +314,7 @@ INSTANCE VARIABLE cd-buffer
 \        The following are WORDS internal to this node. They are supposed to
 \        be used by other WORDS inside this device node.
 \        The first three WORDS below form the interface. The fourth and fifth
-\        word is a helper function and is not exposed to other portions OF this
+\        word is a helper function and is not exposed to other portions of this
 \        device node.
 \        a) initialize-td-free-list
 \        b) allocate-td-list
@@ -326,17 +326,15 @@ INSTANCE VARIABLE cd-buffer
 
 : zero-out-a-td-except-link ( td -- )
 
-
-   \ There r definitely smarter ways to DO it especially
+   \ There are definitely smarter ways to do it especially
    \ on a 64-bit machine.
 
    \ Optimization, Portability:
    \ --------------------------
-   \ Replace the following code by two "!" OF zeroes. Since
+   \ Replace the following code by two "!" of zeroes. Since
    \ we know that an "td" is actually 16 bytes and that we
-   \ will be executing on a 64-bit machine, we can finish OFf
+   \ will be executing on a 64-bit machine, we can finish off
    \ with 2 stores.  But that WONT be portable.
-
 
    dup 0 swap td>tattr  l!-le		( td )
    dup 0 swap td>cbptr  l!-le		( td )
@@ -347,7 +345,7 @@ INSTANCE VARIABLE cd-buffer
 
 \ COLON DEFINITION: initialize-td-free-list - Internal Function
 
-\ Initialize the TD Free List Region and create a linked list OF successive
+\ Initialize the TD Free List Region and create a linked list of successive
 \ TDs. Note that the NEXT pointers are all in little-endian and they
 \ can be directly used for HC purposes.
 
@@ -372,17 +370,17 @@ INSTANCE VARIABLE cd-buffer
 \ Argument:
 \ The function accepts a non-negative number and allocates
 \ a TD-LIST containing that many TDs. A TD-LIST is a list
-\ OF TDs that are linked by the next-td field. The next-td
+\ of TDs that are linked by the next-td field. The next-td
 \ field is in little-endian mode so that the TD list can
 \ be directly re-used by the HC.
 \ Return value:
-\ The function returns "head" and "tail" OF the allocated
+\ The function returns "head" and "tail" of the allocated
 \ TD-LIST. If for any reason, the function cannot allocate
 \ the TD-LIST, the function returns 2 NULL pointers in the
 \ stack indicating that the allocation failed.
 
 \ Note that the TD list returned is NULL terminated. i.e
-\ the nextTd field OF the tail is NULL.
+\ the nextTd field of the tail is NULL.
 
 
 
@@ -397,9 +395,9 @@ INSTANCE VARIABLE cd-buffer
       EXIT
    THEN
 
-   \ If we are here THEN we know that the requested number OF TDs is less
-   \ than what we actually have. We need TO traverse the list and find the
-   \ new Head pointer position and THEN update the head pointer accordingly.
+   \ If we are here then we know that the requested number of TDs is less
+   \ than what we actually have. We need to traverse the list and find the
+   \ new Head pointer position and then update the head pointer accordingly.
    \ Update num-free-tds
 
    dup num-free-tds swap - TO num-free-tds	( n )
@@ -422,9 +420,9 @@ INSTANCE VARIABLE cd-buffer
 
 
 \ COLON DEFINITION: find-td-list-tail-and-size
-\ This function counts the number OF TD elements
+\ This function counts the number of TD elements
 \ in the given list. It also returns the last tail
-\ TD OF the TD list.
+\ TD of the TD list.
 
 \ ASSUMPTION:
 \ A NULL terminated TD list is assumed. A not-well formed
@@ -432,9 +430,9 @@ INSTANCE VARIABLE cd-buffer
 
 \ ROOM FOR ENHANCEMENT:
 \ We could arrive at a generic function for counting
-\ list elements to which the next-ptr OFfset can also
+\ list elements to which the next-ptr offset can also
 \ be passed as an argument (in this case it is >ntd)
-\ This function can THEN be changed to call the
+\ This function can then be changed to call the
 \ function with "0 >ntd" as an additional argument
 \ (apart from head and tail)
 
@@ -466,25 +464,25 @@ INSTANCE VARIABLE cd-buffer
 \ COLON DEFINITION: (free-td-list)
 
 \ Arguments: (head  --)
-\ The "head" pointer OF the TD-LIST to be freed is passed as
+\ The "head" pointer of the TD-LIST to be freed is passed as
 \ an argument to this function. The function merely adds the list to the
 \ already existing TD-LIST
 
 \ Assumptions:
 \ The function assumes that the TD-LIST passed as argument is a well-formed
-\ list. The function does not DO any check on it.
+\ list. The function does not do any check on it.
 \ But since, the "TD-LIST" is generally freed from the DONE-QUEUE which is
 \ a well-formed list, the interface makes much sense.
 
 \ Return values:
-\ Nothing is returned. The arguments passed are popped OFf.
+\ Nothing is returned. The arguments passed are popped off.
 
 
 : (free-td-list) ( head  -- )
 
    \ Enhancement:
    \ We could zero-out-a-td-except-link for the TD list that is being freed.
-   \ This way, we could prevent some nasty repercussions OF bugs (that r yet
+   \ This way, we could prevent some nasty repercussions of bugs (that are yet
    \ to be discovered). but we can include this enhancement during the testing
    \ phase.
 
@@ -511,7 +509,7 @@ INSTANCE VARIABLE cd-buffer
    \ --------------------------
    \ Replace by a  "!" and "l!". we know that an "ed" is
    \ actually 16 bytes and that we will be executing on
-   \ a 64-bit machine, we can finish OFf with 2 stores.
+   \ a 64-bit machine, we can finish off with 2 stores.
    \ But that WONT be portable.
 
    dup 0 swap ed>eattr  l!-le 		( ed )
@@ -567,7 +565,7 @@ INSTANCE VARIABLE cd-buffer
 \ ------------------
 \ Note:
 \ -----
-\ 1. What should we DO IF alloc-mem fails ?
+\ 1. What should we do if alloc-mem fails ?
 \ 2. alloc-mem must return aligned memory addresses.
 \ 3. alloc-mem must return DMAable memory!
 
@@ -669,11 +667,11 @@ THEN
 ;
 
 
-\ Clearing WDH to allow HC to write into DOne queue again
+\ Clearing WDH to allow HC to write into done queue again
 
 : (HC-ACK-WDH) ( -- )   WDH hcintstat rl!-le ;
 
-\ Checking whether anything has been written into DOne queue
+\ Checking whether anything has been written into done queue
 
 : (HC-CHECK-WDH) ( -- ) hcintstat rl@-le WDH and 0<> ;
 
@@ -704,14 +702,14 @@ THEN
 
 \ Arguments:
 \ ----------
-\ (from bottom OF stack)
-\ 1. addr -- Address OF the data buffer
-\ 2. dlen -- Length OF the data buffer above.
+\ (from bottom of stack)
+\ 1. addr -- Address of the data buffer
+\ 2. dlen -- Length of the data buffer above.
 \ 3. dir  -- Tells whether the TDs r for an IN or
 \            OUT transaction.
 \ 4. MPS  -- Maximum Packet Size associated with the endpoint
 \            that will use this TD list.
-\ 5. TD-List-Head - Head pointer OF the List OF TDs.
+\ 5. TD-List-Head - Head pointer of the List of TDs.
 \            This list is NOT expected to be NULL terminated.
 
 \ Assumptions:
@@ -721,14 +719,14 @@ THEN
 \ 2. The TDs toggle field is assumed to be taken from the endpoint
 \    descriptor's "toggle carry" field.
 \ 3. Assumes that the caller specifies the correct start-toggle.
-\    If the caller specifies a wrong data toggle OF 1 for a SETUP
+\    If the caller specifies a wrong data toggle of 1 for a SETUP
 \    PACKET, this method will not find it out.
 
 \ COLON DEFINTION: (toggle-current-toggle)
 \ Scope: Internal to fill-TD-list
 \ Functionality:
 \        Toggles the "T" field that is passed as argument.
-\        "T" as in the "T" field OF the TD.
+\        "T" as in the "T" field of the TD.
 
 0 VALUE current-toggle
 : fill-TD-list ( start-toggle addr dlen dp MPS TD-List-Head -- )
@@ -807,8 +805,8 @@ THEN
 \ ==================================================================
 \ COLON DEFINITION: (wait-for-done-q)
 \ FUNCTIONALITY:
-\ To DO a timed polling OF the DOne queue and acknowledge and return
-\ the address OF the last retired Td list
+\ To do a timed polling of the done queue and acknowledge and return
+\ the address of the last retired Td list
 \ SCOPE:
 \ Internal method
 \ ==================================================================
@@ -847,7 +845,7 @@ THEN
 
 \ : debug-frame-counter ( -- )
 \   40 1 DO
-\      ." Frame ct at HCCA at end OF enumeration = "
+\      ." Frame ct at HCCA at end of enumeration = "
 \      hchcca 80 + rl@-le .
 \   LOOP
 \ ;
@@ -858,7 +856,7 @@ THEN
 \ This routine will reset the HC and will bring it to Operational
 \ state.
 \ PENDING:
-\ Arrive at the right value OF FrameInterval. Currently we are hardcoding
+\ Arrive at the right value of FrameInterval. Currently we are hardcoding
 \ it.
 \ ==========================================================================
 : HC-reset ( -- )
@@ -901,7 +899,7 @@ THEN
    \ Its OHCI controller (AM8111) behaves different to NEC's one
    23f02edf hcintrval rl!-le                 \ frame-interval register
    hchcca   hchccareg rl!-le                 \ HC communication area
-   
+
    d# 50 ms
 
    \ now power on all ports of this root-hub
@@ -985,7 +983,7 @@ s" usb-support.fs" INCLUDED
 
 
 \ ==================================================================
-\ To retrieve the configuration descriptor OF a device
+\ To retrieve the configuration descriptor of a device
 \ with a valid USB address
 
 
@@ -1084,11 +1082,11 @@ s" usb-enumerate.fs" INCLUDED
       dd-buffer @ DEVICE-DESCRIPTOR-TYPE-OFFSET + c@  ( Descriptor-type )
       DEVICE-DESCRIPTOR-TYPE <> IF
          s" USB: Error Reading Device Descriptor"   usb-debug-print
-         s" Read descriptor is not OF the right type"  usb-debug-print
+         s" Read descriptor is not of the right type"  usb-debug-print
          s" Aborting enumeration"  usb-debug-print
          EXIT
-         \ NOTE: Tomorrow, IF u have a LOOP here THEN we may need to
-         \ UNLOOP before EXITing. Depends on what type OF LOOPing construct
+         \ NOTE: Tomorrow, if you have a LOOP here then we may need to
+         \ UNLOOP before EXITing. Depends on what type of looping construct
          \ is used. Beware.
 
       THEN
@@ -1100,7 +1098,7 @@ s" usb-enumerate.fs" INCLUDED
       \ NOTE: Probably, we could check MPS for only 8/16/32/64
       \       hmm.. not now...
 
-      \ Read the device class to see what type OF device it is and create an
+      \ Read the device class to see what type of device it is and create an
       \ appropriate child node here.
       create-usb-device-tree
    ELSE
@@ -1108,8 +1106,8 @@ s" usb-enumerate.fs" INCLUDED
       s" Aborting Enumeration."   usb-debug-print
       EXIT
 
-      \ NOTE: Tomorrow , IF u have a LOOP here THEN we may need to
-      \ UNLOOP before EXITing. Depends on what type OF LOOPing construct
+      \ NOTE: Tomorrow , if you have a LOOP here then we may need to
+      \ UNLOOP before EXITing. Depends on what type of looping construct
       \ is used. Beware.
 
    THEN
@@ -1119,9 +1117,9 @@ s" usb-enumerate.fs" INCLUDED
 \ =========================================================================
 \ PROTOTYPE FUNCTION: "rhport-initialize"
 \ Detect Device, reset and enable the respective port.
-\ COLON Definition rhport-initialize accepts the total number OF root hub
+\ COLON Definition rhport-initialize accepts the total number of root hub
 \ ports as an argument and probes every available root hub port and initiates
-\ the build OF the USB devie sub-tree so is effectively the mother OF all
+\ the build of the USB devie sub-tree so is effectively the mother of all
 \ USB device nodes that are to be detected and instantiated.
 \ ==========================================================================
 : rhport-initialize ( -- )
