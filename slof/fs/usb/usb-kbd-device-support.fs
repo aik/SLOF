@@ -92,10 +92,10 @@ to kbd-addr
   0 kbd-addr control-cls-set-idle drop       \ set idle  
   s" KBDS: Set idle returned" usb-debug-print
 
-  cfg-buffer 40 8 kbd-addr                   \ get report descriptor
+  cfg-buffer 3f 8 kbd-addr                   \ get report descriptor
   control-std-get-report-descriptor
   drop
-  \ s" report_desc=" type cfg-buffer 40 dump cr
+  \ s" report_desc=" type cfg-buffer 3f dump cr
 
   s" Finished initializing keyboard" usb-debug-print 
 ;
