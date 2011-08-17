@@ -39,14 +39,14 @@
 	#define LLFW_LOG_BE0_SIGNATURE		0x51			// signature for general firmware usage
 	#define LLFW_LOG_BE0_NAME_PREFIX	0x69626D2C		// first 4 bytes of name: "ibm,"
 	#define LLFW_LOG_BE0_NAME		0x435055306C6F6700	// remaining 8 bytes	: "CPU0log\0"
-	#define LLFW_LOG_BE0_LENGTH		0x2000			// Partition length in block of 16 bytes
+	#define LLFW_LOG_BE0_LENGTH		0x200			// Partition length in block of 16 bytes
 	#define LLFW_LOG_BE0_DATA_OFFSET	0x40			// offset in bytes between header and data
 	#define LLFW_LOG_BE0_FLAGS		0			// unused
 
 	#define LLFW_LOG_BE1_SIGNATURE		0x51			// signature for general firmware usage
 	#define LLFW_LOG_BE1_NAME_PREFIX	0x69626D2C		// first 4 bytes of name: "ibm,"
 	#define LLFW_LOG_BE1_NAME		0x435055316C6F6700	// remaining 8 bytes	: "CPU1log\0\0"
-	#define LLFW_LOG_BE1_LENGTH		0x500			// Partition length in block of 16 bytes
+	#define LLFW_LOG_BE1_LENGTH		0x80			// Partition length in block of 16 bytes
 	#define LLFW_LOG_BE1_DATA_OFFSET	0x40			// offset in bytes between header and data
 	#define LLFW_LOG_BE1_FLAGS		0x0			// unused
 
@@ -59,7 +59,6 @@
 	#define LLFW_LOG_POS_POINTER	0x14			// 20
 
 	// NVRAM info
-	#define MAMBO_NVRAM_BASE	0x100000		// NVRAM Base for MAMBO
 	#define NVRAM_EMPTY_PATTERN	0x0000000000000000	// Pattern (64-bit) used to overwrite NVRAM
 
 #endif

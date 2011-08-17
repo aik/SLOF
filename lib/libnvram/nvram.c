@@ -30,22 +30,30 @@
 void asm_cout(long Character,long UART,long NVRAM);
 
 #if defined(DISABLE_NVRAM)
+
 static volatile uint8_t nvram[NVRAM_LENGTH]; /* FAKE */
-#else
+
+#define nvram_access(type,size,name) 				\
+	type nvram_read_##name(unsigned int offset)		\
+	{							\
+		type *pos;					\
+		if (offset > (NVRAM_LENGTH - sizeof(type)))	\
+			return 0;				\
+		pos = (type *)(nvram+offset);			\
+		return *pos;					\
+	}							\
+	void nvram_write_##name(unsigned int offset, type data)	\
+	{							\
+		type *pos;					\
+		if (offset > (NVRAM_LENGTH - sizeof(type)))	\
+			return;					\
+		pos = (type *)(nvram+offset);			\
+		*pos = data;					\
+	}
+
+#else	/* DISABLE_NVRAM */
+
 static volatile uint8_t *nvram = (volatile uint8_t *)SB_NVRAM_adr;
-#endif
-
-/* This is extremely ugly, but still better than implementing 
- * another sbrk() around it.
- */
-static char nvram_buffer[NVRAM_LENGTH];
-static uint8_t nvram_buffer_locked=0x00;
-
-/**
- * producer for nvram access functions. Since these functions are
- * basically all the same except for the used data types, produce 
- * them via the following macro to keep the code from bloating.
- */
 
 #define nvram_access(type,size,name) 				\
 	type nvram_read_##name(unsigned int offset)		\
@@ -65,10 +73,25 @@ static uint8_t nvram_buffer_locked=0x00;
 		ci_write_##size(pos, data);			\
 	}
 
+#endif
+
+/*
+ * producer for nvram access functions. Since these functions are
+ * basically all the same except for the used data types, produce 
+ * them via the nvram_access macro to keep the code from bloating.
+ */
+
 nvram_access(uint8_t,   8, byte)
 nvram_access(uint16_t, 16, word)
 nvram_access(uint32_t, 32, dword)
 nvram_access(uint64_t, 64, qword)
+
+/*
+ * This is extremely ugly, but still better than implementing 
+ * another sbrk() around it.
+ */
+static char nvram_buffer[NVRAM_LENGTH];
+static uint8_t nvram_buffer_locked=0x00;
 
 /**
  * This function is a minimal abstraction for our temporary
@@ -111,11 +134,11 @@ int nvramlog_printf(const char* fmt, ...)
 	char buff[256];
 	int count, i;
 	va_list ap;
-    
+
 	va_start(ap, fmt);
 	count = vsprintf(buff, fmt, ap);
 	va_end(ap);
- 
+
 	for (i=0; i<count; i++)
 		asm_cout(buff[i], 0, 1);
 
@@ -189,7 +212,8 @@ static int calc_used_nvram_space(void)
 	int walk, len;
 
 	for (walk=0; walk<NVRAM_LENGTH;) {
-		if(get_partition_header_checksum(walk) != 
+		if(nvram_read_byte(walk) == 0 
+		   || get_partition_header_checksum(walk) != 
 				calc_partition_header_checksum(walk)) {
 			/* If there's no valid entry, bail out */
 			break;
@@ -234,7 +258,9 @@ partition_t get_partition(unsigned int type, char *name)
 {
 	partition_t ret={0,-1};
 	int walk, len;
-	
+
+	DEBUG("get_partition(%i, '%s')\n", type, name);
+
 	for (walk=0; walk<NVRAM_LENGTH;) {
 		// DEBUG("get_partition: walk=%x\n", walk);
 		if(get_partition_header_checksum(walk) != 
@@ -492,20 +518,23 @@ static void init_cpulog_partition(partition_t cpulog)
 void reset_nvram(void)
 {
 	partition_t cpulog0, cpulog1;
-	char header[12];
+	struct {
+		uint32_t prefix;
+		uint64_t name;
+	} __attribute__((packed)) header;
 
 	DEBUG("Erasing NVRAM\n");
 	erase_nvram(0, NVRAM_LENGTH);
 
 	DEBUG("Creating CPU log partitions\n");
-	*(uint32_t *)(char *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE0_NAME_PREFIX);
-	*(uint64_t *)(char *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE0_NAME);
-	cpulog0=create_nvram_partition(LLFW_LOG_BE0_SIGNATURE, header, 
+	header.prefix = be32_to_cpu(LLFW_LOG_BE0_NAME_PREFIX);
+	header.name   = be64_to_cpu(LLFW_LOG_BE0_NAME);
+	cpulog0=create_nvram_partition(LLFW_LOG_BE0_SIGNATURE, (char *)&header, 
 			(LLFW_LOG_BE0_LENGTH*16)-PARTITION_HEADER_SIZE);
 
-	*(uint32_t *)(char *)&(header[0]) = be32_to_cpu(LLFW_LOG_BE1_NAME_PREFIX);
-	*(uint64_t *)(char *)&(header[4]) = be64_to_cpu(LLFW_LOG_BE1_NAME);
-	cpulog1=create_nvram_partition(LLFW_LOG_BE1_SIGNATURE, header, 
+	header.prefix = be32_to_cpu(LLFW_LOG_BE1_NAME_PREFIX);
+	header.name   = be64_to_cpu(LLFW_LOG_BE1_NAME);
+	cpulog1=create_nvram_partition(LLFW_LOG_BE1_SIGNATURE, (char *)&header, 
 			(LLFW_LOG_BE1_LENGTH*16)-PARTITION_HEADER_SIZE);
 
 	DEBUG("Initializing CPU log partitions\n");

@@ -14,6 +14,8 @@ SRCS = nvram.c envvar.c
 
 TOPCMNDIR ?= ../..
 
+include $(TOPCMNDIR)/make.rules
+
 ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
 CPPFLAGS = -I../libc/include $(CPUARCHDEF) $(FLAG) \
 	   -I$(INCLBRDDIR) -I$(INCLCMNDIR)/$(CPUARCH) -I. -I../../include
@@ -43,7 +45,8 @@ depend:
 	$(MAKE) Makefile.dep
 
 Makefile.dep: Makefile
-	
+	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $(SRCS) > Makefile.dep
+
 
 # Include dependency file if available:
 -include Makefile.dep
