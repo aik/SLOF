@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,6 +10,7 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+s" entered usb-storage.fs" usb-debug-print
 
 \ -----------------------------------------------------------
 \ OF properties
@@ -40,17 +41,11 @@ s" block" device-type
 \ Instance specific values
 \ ----------------------------------------------------------
 
-0  VALUE csw-buffer
-0e VALUE cfg-buffer
-0  VALUE response-buffer
-0  VALUE command-buffer
-0  VALUE resp-size
-0  VALUE resp-buffer
 INSTANCE VARIABLE ihandle-bulk
 INSTANCE VARIABLE ihandle-deblocker
 INSTANCE VARIABLE flag
 INSTANCE VARIABLE count
-0     VALUE max-transfer
+4000 CONSTANT max-transfer
 200   VALUE block-size           \ default (512 Bytes)
 -1    VALUE max-block-num        \ highest reported block-number
 
@@ -60,6 +55,36 @@ INSTANCE VARIABLE count
 \ -------------------------------------------------------
 
 0f CONSTANT SCSI-COMMAND-OFFSET
+
+
+\ -------------------------------------------------------
+\ DMA-able buffers
+\ -------------------------------------------------------
+
+STRUCT
+   max-transfer FIELD >read-buffer
+   80 FIELD >response-buffer
+   40 FIELD >command-buffer
+   10 FIELD >csw-buffer
+   8  FIELD >cfg-buffer
+CONSTANT /dma-buf
+
+0 VALUE dma-buf
+0 VALUE dma-buf-phys
+
+: (dma-buf-init)  ( -- )
+   /dma-buf s" dma-alloc" $call-parent TO dma-buf
+   dma-buf /dma-buf 0 s" dma-map-in" $call-parent TO dma-buf-phys
+
+   s" storage dma-buf = " dma-buf usb-debug-print-val
+;
+
+: (dma-buf-free)  ( -- )
+   dma-buf dma-buf-phys /dma-buf s" dma-map-out" $call-parent
+   dma-buf /dma-buf s" dma-free" $call-parent
+   0 TO dma-buf
+   0 TO dma-buf-phys
+;
 
 
 \ -------------------------------------------------------
@@ -81,15 +106,17 @@ s" usb-storage-support.fs" INCLUDED
 0 VALUE bulk-cnt
 0 VALUE bulk-cmd-len
 0 VALUE itest
+0 VALUE resp-buffer
+0 VALUE resp-size
 : do-bulk-command ( resp-buffer resp-size -- TRUE | FALSE )
    TO resp-size
    TO resp-buffer
    \ dump buffer in debug-mode
    usb-debug-flag
    IF
-      command-buffer 0E + c@ TO bulk-cmd-len 
+      dma-buf >command-buffer 0E + c@ TO bulk-cmd-len 
       s" cmd-length: " bulk-cmd-len usb-debug-print-val
-      command-buffer bulk-cmd-len 0E + dump cr
+      dma-buf >command-buffer bulk-cmd-len 0E + dump cr
    THEN
 
    6 TO bulk-cnt \ 2 old value
@@ -99,7 +126,7 @@ s" usb-storage-support.fs" INCLUDED
       WHILE
       drop
       \ prepare and send bulk CBW
-      1 1 bulk-out-toggle command-buffer 1f mps-bulk-out
+      1 1 bulk-out-toggle dma-buf >command-buffer 1f mps-bulk-out
                ( pt ed-type toggle buffer length mps-bulk-out )
       my-usb-address bulk-out-ep 7 lshift or
                ( pt ed-type toggle buffer length mps address )
@@ -120,7 +147,7 @@ s" usb-storage-support.fs" INCLUDED
             TRUE
          THEN
          IF               \ read the bulk CSW
-            0 1 bulk-in-toggle csw-buffer D mps-bulk-in
+            0 1 bulk-in-toggle dma-buf >csw-buffer D mps-bulk-in
                      ( pt ed-type toggle buffer length mps-bulk-in )
             my-usb-address bulk-in-ep 7 lshift or
                      ( pt ed-type toggle buffer length mps address )
@@ -136,17 +163,17 @@ s" usb-storage-support.fs" INCLUDED
          ELSE
             s" Command failed while receiving DATA... read CSW..." usb-debug-print
             \ STALLED: Get CSW to send the CBW again
-            0 1 bulk-in-toggle csw-buffer D mps-bulk-in
+            0 1 bulk-in-toggle dma-buf >csw-buffer D mps-bulk-in
                      ( pt ed-type toggle buffer length mps-bulk-in )
             my-usb-address bulk-in-ep 7 lshift or
                      ( pt ed-type toggle buffer length mps address )
             rw-endpoint swap                    ( TRUE toggle | FALSE toggle )
             to bulk-in-toggle                   ( TRUE | FALSE )
             IF
-	            s" OK evaluate the CSW ..." usb-debug-print
-               csw-buffer c + c@ dup TO itest
-	            s" CSW Status: " itest usb-debug-print-val
-	            dup
+               s" OK evaluate the CSW ..." usb-debug-print
+               dma-buf >csw-buffer c + c@ dup TO itest
+               s" CSW Status: " itest usb-debug-print-val
+               dup
                2 =
                IF \ Phase Error
 	               s" Phase error do a bulk reset-recovery ..." usb-debug-print
@@ -188,17 +215,17 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 
 : inquiry ( -- )
    s" usb-storage: inquiry" usb-debug-print
-   command-buffer 1 inquiry-length 80 lun scsi-length-inquiry
+   dma-buf >command-buffer 1 inquiry-length 80 lun scsi-length-inquiry
    ( address tag transfer-len direction lun command-len )
    build-cbw
-   inquiry-length command-buffer SCSI-COMMAND-OFFSET +   ( alloc-len address  )
+   inquiry-length dma-buf >command-buffer SCSI-COMMAND-OFFSET +   ( alloc-len address  )
    scsi-build-inquiry
-   response-buffer inquiry-length erase      \ provide clean buffer
-   response-buffer inquiry-length do-bulk-command
+   dma-buf >response-buffer inquiry-length erase      \ provide clean buffer
+   dma-buf >response-buffer inquiry-length do-bulk-command
    IF
      s" Successfully read INQUIRY data" usb-debug-print
      0d emit space space
-     response-buffer c@  \ get 'Peripheral Device Type' (PDT)
+     dma-buf >response-buffer c@  \ get 'Peripheral Device Type' (PDT)
      CASE
         0   OF ." BLOCK-DEV: " ENDOF  \ SCSI Block Device
         5   OF ." CD-ROM   : " ENDOF
@@ -208,8 +235,8 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
      ENDCASE
      space
      \ create vendor identification in device property
-     response-buffer 8 + 16 encode-string s" ident-str" property
-     response-buffer .inquiry-text
+     dma-buf >response-buffer 8 + 16 encode-string s" ident-str" property
+     dma-buf >response-buffer .inquiry-text
    ELSE
      5040 error" (USB) Device transaction error. (inquiry)"
      ABORT
@@ -223,18 +250,18 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 
 : read-capacity ( -- )
    s" usb-storage: read-capacity" usb-debug-print
-   command-buffer 1 8  80 lun  scsi-length-read-cap-10
+   dma-buf >command-buffer 1 8  80 lun  scsi-length-read-cap-10
    ( address tag transfer-len direction lun command-len )
    build-cbw 
-   \ command-buffer 30 dump cr      \ dump the command buffer
-   command-buffer SCSI-COMMAND-OFFSET +      ( address )   
+   \ dma-buf >command-buffer 30 dump cr      \ dump the command buffer
+   dma-buf >command-buffer SCSI-COMMAND-OFFSET +      ( address )   
    scsi-build-read-cap-10
    lun 5 lshift
-   command-buffer SCSI-COMMAND-OFFSET +      ( address )
+   dma-buf >command-buffer SCSI-COMMAND-OFFSET +      ( address )
    read-cap-10>reserved1 c!
 
-   response-buffer 8 erase          \ provide clean buffer
-   response-buffer 8 do-bulk-command
+   dma-buf >response-buffer 8 erase          \ provide clean buffer
+   dma-buf >response-buffer 8 do-bulk-command
    IF
      s" Successfully read READ CAPACITY data" usb-debug-print
    ELSE
@@ -250,16 +277,16 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 \ -------------------------------------------------------------------
 
 : test-unit-ready ( -- TRUE | FALSE )
-   command-buffer 1 0 80 lun scsi-length-test-unit-ready    \ was: 0c
+   dma-buf >command-buffer 1 0 80 lun scsi-length-test-unit-ready    \ was: 0c
    ( address tag transfer-len direction lun command-len )
    build-cbw
-   command-buffer SCSI-COMMAND-OFFSET +      ( address )
+   dma-buf >command-buffer SCSI-COMMAND-OFFSET +      ( address )
    scsi-build-test-unit-ready                ( cdb -- )
-   response-buffer 0 do-bulk-command
+   dma-buf >response-buffer 0 do-bulk-command
    IF
      s" Successfully read test unit ready data" usb-debug-print
-     s" Test Unit STATUS availabe in csw-buffer" usb-debug-print
-     csw-buffer 0c + c@ 0=  IF
+     s" Test Unit STATUS availabe in dma-buf >csw-buffer" usb-debug-print
+     dma-buf >csw-buffer 0c + c@ 0=  IF
        s" Test Unit Command Successfully Executed" usb-debug-print
        TRUE                             ( TRUE )
      ELSE
@@ -304,19 +331,17 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 
 : request-sense ( -- )
    s" request-sense: Command ready." usb-debug-print
-   command-buffer 1 12 80 lun scsi-length-request-sense
+   dma-buf >command-buffer 1 12 80 lun scsi-length-request-sense
    ( address tag transfer-len direction lun command-len )
    build-cbw
-\ -scsi-supp-   command-buffer SCSI-COMMAND-OFFSET + 12   ( address alloc-len )
-\ -scsi-supp-   build-request-sense
 
-   12 command-buffer SCSI-COMMAND-OFFSET +   ( alloc-len cdb )
-   scsi-build-request-sense                  ( alloc-len cdb -- )
+   12 dma-buf >command-buffer SCSI-COMMAND-OFFSET +   ( alloc-len cdb )
+   scsi-build-request-sense                           ( alloc-len cdb -- )
 
-   response-buffer 12 do-bulk-command
+   dma-buf >response-buffer 12 do-bulk-command
    IF
       s" Read Sense data successfully" usb-debug-print
-      \   response-buffer 12 dump cr      \ dump the rsponsed message
+      \   dma-buf >response-buffer 12 dump cr      \ dump the rsponsed message
    ELSE
      \ TRUE ABORT" USB device transaction error. (request-sense)"
      5040 error" (USB) Device transaction error. (request-sense)"
@@ -325,16 +350,14 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 ;
 
 : start ( -- )
-   command-buffer 1 0 80 lun scsi-length-start-stop-unit
+   dma-buf >command-buffer 1 0 80 lun scsi-length-start-stop-unit
    ( address tag transfer-len direction lun command-len )
    build-cbw
-\ -scsi-supp-   command-buffer SCSI-COMMAND-OFFSET +  ( address )
-\ -scsi-supp-   build-start
 
-   command-buffer SCSI-COMMAND-OFFSET +            ( cdb )
-   scsi-const-start scsi-build-start-stop-unit     ( state# cdb -- )
+   dma-buf >command-buffer SCSI-COMMAND-OFFSET +      ( cdb )
+   scsi-const-start scsi-build-start-stop-unit        ( state# cdb -- )
 
-   response-buffer 0 do-bulk-command
+   dma-buf >response-buffer 0 do-bulk-command
    IF
      s" Start successfully" usb-debug-print
    ELSE
@@ -348,16 +371,14 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 \ To transmit SCSI Stop command
 
 : stop ( -- )
-   command-buffer 1 0 80 lun scsi-length-start-stop-unit
+   dma-buf >command-buffer 1 0 80 lun scsi-length-start-stop-unit
    ( address tag transfer-len direction lun command-len )
    build-cbw
-\ -scsi-supp-   command-buffer SCSI-COMMAND-OFFSET +      ( address )
-\ -scsi-supp-   build-stop
 
-   command-buffer SCSI-COMMAND-OFFSET +         ( cdb )
-   scsi-const-stop scsi-build-start-stop-unit   ( state# cdb -- )
+   dma-buf >command-buffer SCSI-COMMAND-OFFSET +      ( cdb )
+   scsi-const-stop scsi-build-start-stop-unit         ( state# cdb -- )
 
-   response-buffer 0 do-bulk-command
+   dma-buf >response-buffer 0 do-bulk-command
    IF
      s" Stop successfully" usb-debug-print
    ELSE
@@ -416,20 +437,23 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
       bs emit ." ) ... read aborted **" cr
       nip nip                       \ leave #blocks on stack
    ELSE
-      block-size * command-buffer  ( address block# transfer-len command-buffer )
+      block-size *
+      dma-buf >command-buffer      ( address block# transfer-len command-buffer )
       1 2 pick 80 lun 0c build-cbw ( address block# transfer-len )
       dup to temp1                 ( address block# transfer-len )
       block-size /                 ( address block# #blocks )
-      command-buffer               ( address block# #blocks command-addr )
+      dma-buf >command-buffer      ( address block# #blocks command-addr )
       SCSI-COMMAND-OFFSET +        ( address block# #blocks cdb )
-      scsi-build-read?                     ( block# #blocks cdb -- length )
-      command-buffer 0e + c!       \ update bCBWCBLength-field with resulting CDB length
-      temp1                        ( address length )
-      do-bulk-command
+      scsi-build-read?             ( address cdblength )
+      dma-buf >command-buffer 0e + c!   \ update bCBWCBLength-field with resulting CDB length
+      dma-buf >read-buffer temp1   ( address read-buffer transfer-len )
+      do-bulk-command              ( address )
       IF
+        dma-buf >read-buffer swap temp1    ( read-buffer address transfer-len )
+        move
         s" Read  data successfully" usb-debug-print
       ELSE
-        \ TRUE ABORT" USB device transaction error. (read-blocks)"
+        drop
         5040 error" (USB) Device transaction error. (read-blocks)"
         ABORT
       THEN
@@ -462,7 +486,7 @@ d# 800 CONSTANT media-ready-retry
             ABORT
          THEN
          request-sense
-         response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
+         dma-buf >response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
          IF
             ffff00 AND     \ remaining: sense-key ASC
             CASE
@@ -498,7 +522,7 @@ d# 800 CONSTANT media-ready-retry
    space
    test-unit-ready drop             \ initial command
    request-sense
-   response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
+   dma-buf >response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
    IF
       dup FFFF00 and 023a00 =       ( sense-id flag )
       IF
@@ -514,10 +538,10 @@ d# 800 CONSTANT media-ready-retry
          wait-for-unit-ready
          IF
             read-capacity
-            response-buffer scsi-get-capacity-10 space .capacity-text
+            dma-buf >response-buffer scsi-get-capacity-10 space .capacity-text
          ELSE
             request-sense
-            response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
+            dma-buf >response-buffer scsi-get-sense-ID? ( addr -- false | sense-ID true )
             IF
                dup ff0000 and 040000 =       \ sense-code = 4 ?
                IF
@@ -549,7 +573,7 @@ d# 800 CONSTANT media-ready-retry
    BEGIN
       2drop
       request-sense
-      response-buffer scsi-get-sense-data ( ascq asc sense-key )
+      dma-buf >response-buffer scsi-get-sense-data      ( ascq asc sense-key )
       0<>  r> 1- dup >r 0<> AND          \ loop-counter or sense-key
       WHILE
    REPEAT
@@ -568,13 +592,13 @@ scsi-close        \ no further scsi words required
 
 : (init-block-size)
    read-capacity
-   response-buffer l@ dup 0<>
+   dma-buf >response-buffer l@ dup 0<>
    IF
       to max-block-num        \ highest block-number
    ELSE
       -1 to max-block-num     \ indeterminate
    THEN
-   response-buffer 4 + 
+   dma-buf >response-buffer 4 + 
    l@ to block-size
    s" usb-storage: block-size=" block-size usb-debug-print-val
 ;
@@ -584,6 +608,7 @@ scsi-close        \ no further scsi words required
 
 : open ( -- TRUE )
    s" usb-storage: open" usb-debug-print
+   (dma-buf-init)
    ihandle-bulk s" bulk" (open-package)
 
    make-media-ready
@@ -602,6 +627,7 @@ scsi-close        \ no further scsi words required
 : close  ( -- )
    ihandle-deblocker (close-package)
    ihandle-bulk (close-package)
+   (dma-buf-free)
 ;
 
 
@@ -610,7 +636,7 @@ scsi-close        \ no further scsi words required
 : (init-device-name)  ( -- )
    init-dev-ready
    inquiry
-   response-buffer c@
+   dma-buf >response-buffer c@
    CASE
       1  OF .showcap s" tape"    device-name ENDOF
       5  OF .showcap s" cdrom"   device-name s" CDROM found" usb-debug-print ENDOF
@@ -625,15 +651,18 @@ scsi-close        \ no further scsi words required
 \ Initial device node setup
 
 : (initial-setup)
+   (dma-buf-init)
    ihandle-bulk s" bulk" (open-package)
+
    device-init
    (init-device-name)
    set-drive-alias
    200 to block-size       \ Default block-size, will be overwritten in "open"
-   10000 to max-transfer
-   
+
    ihandle-bulk (close-package)
+   (dma-buf-free)
 ;
 
 (initial-setup)
 
+s" leaving usb-storage.fs" usb-debug-print

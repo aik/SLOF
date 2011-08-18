@@ -10,6 +10,7 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+s" entered usb-storage-support.fs" usb-debug-print
 
 \ ---------------------------------------------------------------------------
 \ Parent methods
@@ -116,20 +117,12 @@
    THEN
    s" Extracted properties inherited from parent."  usb-debug-print
 
-   \ PENDING:
-   \ Do some return value check here...
-
-   40 alloc-mem to command-buffer
-   80 alloc-mem to response-buffer
-   10 alloc-mem to csw-buffer
-   8 alloc-mem to cfg-buffer
-   s" Allocated buffers." usb-debug-print
-   cfg-buffer 8 mps-dcp my-usb-address      ( buffer len mps fun-addr )
-   control-std-get-configuration-descriptor ( TRUE | FALSE )
+   dma-buf >cfg-buffer 8 mps-dcp my-usb-address   ( buffer len mps fun-addr )
+   control-std-get-configuration-descriptor       ( TRUE | FALSE )
    drop
    s" Configuration descriptor extracted." usb-debug-print
-   cfg-buffer 5 + c@ my-usb-address         ( configvalue fun-addr )
-   control-std-set-configuration            ( TRUE | FALSE )
+   dma-buf >cfg-buffer 5 + c@ my-usb-address      ( configvalue fun-addr )
+   control-std-set-configuration                  ( TRUE | FALSE )
    s" usb-storage: Set config returned: " rot usb-debug-print-val
 ;
 
@@ -153,3 +146,4 @@
    0 swap !
 ;
 
+s" leaving usb-storage-support.fs" usb-debug-print

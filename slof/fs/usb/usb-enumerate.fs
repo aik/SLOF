@@ -24,7 +24,6 @@
    encode-int s" MPS-DCP" property
    s" MPS Set"   usb-debug-print
    s" usb-hub.fs" INCLUDED
-   s" Driver Included"   usb-debug-print
    finish-device
 ;
 
@@ -150,14 +149,14 @@
       THEN
    THEN
 
-   0 ch-buffer !                 \ preset a clean response
+   0 ch-buffer c!                \ preset a clean response
    mps new-device-address 0 ch-buffer 1 control-std-get-maxlun ( TRUE|FALSE )
    IF
 \      s" GET-MAX-LUN IS WORKING :" usb-debug-print
-\      ch-buffer  5 dump cr      \ dump the responsed message
+\      ch-buffer  1 dump cr      \ dump the responsed message
    ELSE
       s" ERROR in GET-MAX-LUN " usb-debug-print
-      0 ch-buffer !              \ clear invalid numbers
+      0 ch-buffer c!             \ clear invalid numbers
       cd-buffer @ 5 + c@ to temp1
       temp1 new-device-address control-std-set-configuration drop
    THEN
@@ -183,7 +182,7 @@
       AND                  ( counter flag )
       while
          d# 500 ms                     \ this device is not yet ready
-         0 ch-buffer !                 \ preset a clean response
+         0 ch-buffer c!                \ preset a clean response
          mps new-device-address 0 ch-buffer 1 control-std-get-maxlun ( TRUE|FALSE )
          not
          IF
@@ -271,27 +270,26 @@
             (classify-storage)
          ENDOF
          03 OF
-	         ( Interface-protocol Interface-subclass )
-	         s" USB: HID Found!" usb-debug-print
-	         01 =
-            IF
-		         case
-		            01 of
-			            s" USB keyboard!" usb-debug-print
-			            (keyboard-create)
-		            endof
-		            02 of
-		     	         s" USB mouse!" usb-debug-print
-		     	         (mouse-create)
-		            endof
-		            dup of
-			            s" USB: unsupported HID!" usb-debug-print
-		            endof
-		         endcase
-	         ELSE
-		         s" USB: unsupported HID!" usb-debug-print
-	         THEN
-	      ENDOF
+            ( Interface-protocol Interface-subclass )
+            s" USB: HID Found!" usb-debug-print
+            01 = IF
+               case
+                  01 of
+                     s" USB keyboard!" usb-debug-print
+                     (keyboard-create)
+                  endof
+                  02 of
+                     s" USB mouse!" usb-debug-print
+                     (mouse-create)
+                  endof
+                  dup of
+                     s" USB: unsupported HID!" usb-debug-print
+                  endof
+               endcase
+            ELSE
+               s" USB: unsupported HID protocol " rot usb-debug-print-val
+            THEN
+         ENDOF
          dup OF
             ( Interface-protocol Interface-subclass )
             s" USB: unsupported interface type." usb-debug-print

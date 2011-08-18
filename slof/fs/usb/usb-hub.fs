@@ -111,12 +111,17 @@ A006002900000000 CONSTANT hubds-get
 
 
 \ --------------------------------------------------------------------------
-\ Buffer allocations
+\ DMA buffer allocations
 \ --------------------------------------------------------------------------
 
+: dma-alloc    s" dma-alloc" $call-parent ;
+: dma-map-in   s" dma-map-in" $call-parent ;
+: dma-map-out  s" dma-map-out" $call-parent ;
+: dma-free     s" dma-free" $call-parent ;
 
-VARIABLE setup-packet     \ 8 bytes for setup packet
-VARIABLE ch-buffer        \ 1 byte character buffer
+
+0 INSTANCE VALUE setup-packet     \ 8 bytes for setup packet
+0 INSTANCE VALUE ch-buffer        \ 1 byte character buffer
 
 INSTANCE VARIABLE dd-buffer
 INSTANCE VARIABLE cd-buffer
@@ -124,25 +129,40 @@ INSTANCE VARIABLE cd-buffer
 \ TODO:
 \ Should arrive a proper value for the size of the "cd-buffer"
 
-8 chars alloc-mem VALUE status-buffer
-9 chars alloc-mem VALUE hd-buffer
+STRUCT
+   8 FIELD >setup-packet                         \ 8 bytes for setup packet
+   DEVICE-DESCRIPTOR-LEN FIELD >dd-buffer
+   BULK-CONFIG-DESCRIPTOR-LEN FIELD >cd-buffer
+   8 chars FIELD >status-buffer
+   9 chars FIELD >hd-buffer
+   1 chars FIELD >ch-buffer                      \ character buffer
+CONSTANT /hub-buf
 
+0 INSTANCE VALUE hub-buf
+0 INSTANCE VALUE hub-buf-phys
 
 : (allocate-mem)  ( -- )
-   DEVICE-DESCRIPTOR-LEN chars alloc-mem dd-buffer !
-   BULK-CONFIG-DESCRIPTOR-LEN chars alloc-mem cd-buffer !
+   /hub-buf dma-alloc TO hub-buf
+   hub-buf /hub-buf 0 dma-map-in TO hub-buf-phys
+
+   hub-buf >setup-packet TO setup-packet
+   hub-buf >ch-buffer TO ch-buffer
+   hub-buf >dd-buffer dd-buffer !
+   hub-buf >cd-buffer cd-buffer !
+
+   s" hub-buf = " hub-buf usb-debug-print-val
 ;
 
 
 : (de-allocate-mem)  ( -- )
-   dd-buffer @ ?dup IF
-      DEVICE-DESCRIPTOR-LEN free-mem
-      0 dd-buffer !
-   THEN
-   cd-buffer @ ?dup IF
-      BULK-CONFIG-DESCRIPTOR-LEN free-mem
-      0 cd-buffer !
-   THEN
+   hub-buf hub-buf-phys /hub-buf dma-map-out
+   hub-buf /hub-buf dma-free
+   0 TO hub-buf
+   0 TO hub-buf-phys
+   0 TO setup-packet
+   0 TO ch-buffer
+   0 dd-buffer !
+   0 cd-buffer !
 ;
 
 
@@ -301,31 +321,34 @@ s" usb-enumerate.fs" INCLUDED
    \ Step 1: check if reset state ended
 
    BEGIN				( port# )
-      status-buffer 4 erase             ( port# )
-      status-buffer over control-hub-port-status-get drop ( port# ) 
-      status-buffer w@-le 102 and 0= 	( port# TRUE|FALSE )
+      hub-buf >status-buffer 4 erase    ( port# )
+      hub-buf >status-buffer over
+      control-hub-port-status-get drop  ( port# ) 
+      hub-buf >status-buffer w@-le 102 and 0=   ( port# TRUE|FALSE )
    WHILE				( port# )
-   REPEAT			( port# )
+   REPEAT                               ( port# )
    po2pg 3 * ms    \ wait for bPwrOn2PwrGood*3 ms
    
    \ STEP 2: Reset the port.
    \         (this also enables the port)
    dup control-hub-port-reset-set drop	( port# )
    BEGIN				( port# )
-      status-buffer 4 erase             ( port# )
-      status-buffer over control-hub-port-status-get drop ( port# ) 
-      status-buffer w@-le 10 and 	( port# TRUE|FALSE )
+      hub-buf >status-buffer 4 erase    ( port# )
+      hub-buf >status-buffer over
+      control-hub-port-status-get drop  ( port# ) 
+      hub-buf >status-buffer w@-le 10 and  ( port# TRUE|FALSE )
    WHILE				( port# )
    REPEAT				( port# )
 
    \ STEP 3: Check if a device is connected to the port.
 
-   status-buffer 4 erase                ( port# )
-   status-buffer over control-hub-port-status-get drop ( port# ) 
-   status-buffer w@-le    103 and    103 <> 	       ( port# TRUE|FALSE )
-   s" Port status bits: " status-buffer w@-le usb-debug-print-val
+   hub-buf >status-buffer 4 erase       ( port# )
+   hub-buf >status-buffer over
+   control-hub-port-status-get drop     ( port# ) 
+   hub-buf >status-buffer w@-le  103 and  103 <>   ( port# TRUE|FALSE )
+   s" Port status bits: " hub-buf >status-buffer w@-le usb-debug-print-val
    IF					( port# ) 
-      drop			
+      drop
       s" Connect status: No device connected "  usb-debug-print
       EXIT 
    THEN 
@@ -333,8 +356,8 @@ s" usb-enumerate.fs" INCLUDED
 
    \ STEP 4: Assign an address to this device.
 
-   status-buffer w@-le 200 and 4 lshift \ get speed bit
-   dup to device-speed                  \ store speed bit
+   hub-buf >status-buffer w@-le 200 and 4 lshift  \ get speed bit
+   dup to device-speed                            \ store speed bit
                                 ( port# speedbit )
    control-std-set-address	( port# usb-addr TRUE|FALSE )
    50 ms			( port# usb-addr TRUE|FALSE )
@@ -416,18 +439,18 @@ s" usb-enumerate.fs" INCLUDED
    cd-buffer @ 5 + c@ to temp1 \ Store the configuration in temp1
    temp1 my-usb-address control-std-set-configuration drop
    my-usb-address to temp1
-   hd-buffer 9 erase
-   hd-buffer 9 control-get-hub-descriptor drop
+   hub-buf >hd-buffer 9 erase
+   hub-buf >hd-buffer 9 control-get-hub-descriptor drop
 
    \ PENDING: 1. Check Return value.
    \          2. HUB descriptor size is variable. Currently we r hardcoding
    \             a value of 9.
 
-   hd-buffer 2 + c@ to temp2     \ number of downstream ports
+   hub-buf >hd-buffer 2 + c@ to temp2     \ number of downstream ports
 
    s" HUB: Found " usb-debug-print
    s" number of downstream hub ports! : " temp2 usb-debug-print-val
-   hd-buffer 5 + c@ to po2pg     \ get bPwrOn2PwrGood
+   hub-buf >hd-buffer 5 + c@ to po2pg     \ get bPwrOn2PwrGood
 
    \ power on all present hub ports
    \ to allow slow devices to set up

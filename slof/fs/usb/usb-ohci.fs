@@ -189,6 +189,7 @@ A1FE000000000100 CONSTANT GET-MAX-LUN
 0 VALUE current-stat
 
 INSTANCE VARIABLE td-list-region
+INSTANCE VARIABLE td-list-region-dma
 
 \ ED Management constants
 
@@ -197,6 +198,7 @@ INSTANCE VARIABLE td-list-region
 0 VALUE ed-freelist-head
 0 VALUE num-free-eds
 INSTANCE VARIABLE ed-list-region
+INSTANCE VARIABLE ed-list-region-dma
 0 VALUE usb-address
 0 VALUE initial-hub-address
 0 VALUE new-device-address
@@ -220,11 +222,15 @@ INSTANCE VARIABLE ed-list-region
 9 CONSTANT HUB-DEVICE-CLASS
 0 CONSTANT NO-CLASS
 
-VARIABLE  setup-packet     \ 8 bytes for setup packet
-VARIABLE  ch-buffer        \ 1 byte character buffer
+\ DMA-able buffers:
+
+0 VALUE setup-packet     \ 8 bytes for setup packet
+0 VALUE ch-buffer        \ 1 byte character buffer
 
 INSTANCE VARIABLE dd-buffer
+INSTANCE VARIABLE dd-buffer-dma
 INSTANCE VARIABLE cd-buffer
+INSTANCE VARIABLE cd-buffer-dma
 
 
 \ Temporary variables for functions. These variables have to be initialized
@@ -563,37 +569,64 @@ INSTANCE VARIABLE cd-buffer
 
 \ Buffer allocations
 \ ------------------
-\ Note:
-\ -----
-\ 1. What should we do if alloc-mem fails ?
-\ 2. alloc-mem must return aligned memory addresses.
-\ 3. alloc-mem must return DMAable memory!
+
+\ Memory size for HCCA (0x100), setup-packet (8) and ch-buf (1)
+109 CONSTANT OHCI-GLOBAL-DMA-BUF-SIZE
 
 \ Memory for the HCCA - must stay allocated as long as the HC is operational!
-100 alloc-mem VALUE hchcca
-hchcca ff and IF
-   \ This should never happen - alloc-mem always aligns
-   s" Warning: hchcca not aligned!" usb-debug-print
-THEN
+
+0 VALUE hchcca
+0 VALUE hchcca-dma
+
+: (init-global-dma-bufs)
+   \ Allocate memory for HCCA (0x100), setup-packet (8) and ch-buf (1)
+   OHCI-GLOBAL-DMA-BUF-SIZE dma-alloc TO hchcca
+   hchcca OHCI-GLOBAL-DMA-BUF-SIZE 0 dma-map-in TO hchcca-dma
+   hchcca ff and IF
+      \ This should never happen - alloc-mem always aligns
+      s" Warning: hchcca not aligned!" usb-debug-print
+   THEN
+   hchcca 8 + TO setup-packet
+   setup-packet 1 + TO ch-buffer
+;
+(init-global-dma-bufs)
 
 84 hchcca + CONSTANT hchccadneq
 
+." hchcca = " hchcca . cr
+
 
 : (allocate-mem)  ( -- )
-   /tdlen MAX-TDS * 10 + alloc-mem dup td-list-region !  ( td-list-region-ptr )
-   f and IF
+   /tdlen MAX-TDS * 10 +
+   dup dma-alloc                          ( td-region-size td-list-region-ptr )
+   dup td-list-region !
+   dup f and IF
       s" Warning: td-list-region not aligned!" usb-debug-print
    THEN
+   swap 0 dma-map-in td-list-region-dma !
    initialize-td-free-list
 
-   /edlen MAX-EDS * 10 + alloc-mem dup ed-list-region !  ( ed-list-region-ptr )
-   f and IF
+   /edlen MAX-EDS * 10 +
+   dup dma-alloc                          ( ed-region-size ed-list-region-ptr )
+   dup ed-list-region !
+   dup f and IF
       s" Warning: ed-list-region not aligned!" usb-debug-print
    THEN
+   swap 0 dma-map-in ed-list-region-dma !
    initialize-ed-free-list
 
-   DEVICE-DESCRIPTOR-LEN chars alloc-mem dd-buffer !
-   BULK-CONFIG-DESCRIPTOR-LEN chars alloc-mem cd-buffer !
+   DEVICE-DESCRIPTOR-LEN chars dup dma-alloc
+   dup dd-buffer !                        ( dd-len dd-buf )
+   swap 0 dma-map-in dd-buffer-dma !
+   
+   BULK-CONFIG-DESCRIPTOR-LEN chars dup dma-alloc
+   dup cd-buffer !                        ( cd-len cd-buf )
+   swap 0 dma-map-in cd-buffer-dma !
+
+." td-list-region = " td-list-region @ . cr
+." ed-list-region = " ed-list-region @ . cr
+." dd-buffer = " dd-buffer @ . cr
+." cd-buffer-dma = " cd-buffer-dma @ . cr
 ;
 
 
@@ -603,20 +636,32 @@ THEN
 
 : (de-allocate-mem)  ( -- )
    td-list-region @ ?dup IF
-      /tdlen MAX-TDS * 10 + free-mem
+      /tdlen MAX-TDS * 10 +               ( td-list-region td-region-size )
+      2dup td-list-region-dma @ swap dma-map-out
+      dma-free
       0 td-list-region !
+      0 td-list-region-dma !
    THEN
    ed-list-region @ ?dup IF
-      /edlen MAX-EDS * 10 + free-mem
+      /edlen MAX-EDS * 10 +
+      2dup ed-list-region-dma @ swap dma-map-out
+      dma-free
       0 ed-list-region !
+      0 ed-list-region-dma !
    THEN
    dd-buffer @ ?dup IF
-      DEVICE-DESCRIPTOR-LEN free-mem
+      DEVICE-DESCRIPTOR-LEN
+      2dup dd-buffer-dma @ swap dma-map-out
+      dma-free
       0 dd-buffer !
+      0 dd-buffer-dma !
    THEN
    cd-buffer @ ?dup IF
-      BULK-CONFIG-DESCRIPTOR-LEN free-mem
+      BULK-CONFIG-DESCRIPTOR-LEN
+      2dup cd-buffer-dma @ swap dma-map-out
+      dma-free
       0 cd-buffer !
+      0 cd-buffer-dma !
    THEN
 ;
 
@@ -626,9 +671,12 @@ THEN
 \ It prevents the HC from doing DMA in the background during boot
 \ (e.g. updating its frame number counter in the HCCA)
 
-: hc-suspend  ( -- )
+: hc-quiesce  ( -- )
    \ s" USB HC suspend with hccontrol=" type hccontrol . cr
    00C3 hccontrol rl!-le             \ Suspend USB host controller
+   \ Release memory for HCCA etc:
+   hchcca hchcca-dma OHCI-GLOBAL-DMA-BUF-SIZE dma-map-out
+   hchcca OHCI-GLOBAL-DMA-BUF-SIZE dma-free
 ;
 
 
@@ -886,7 +934,7 @@ THEN
    REPEAT
 
    23f02edf hcintrval rl!-le                 \ frame-interval register
-   hchcca   hchccareg rl!-le                 \ HC communication area
+   hchcca-dma hchccareg rl!-le               \ HC communication area
    0000     hcctrhead rl!-le                 \ control transfer head
    0000     hcbulkhead rl!-le                \ bulk transfer head
    0ffff    hcintdsbl rl!-le                 \ interrupt disable reg.
@@ -898,7 +946,7 @@ THEN
    \ these two repeated register settings are necessary for Bimini
    \ Its OHCI controller (AM8111) behaves different to NEC's one
    23f02edf hcintrval rl!-le                 \ frame-interval register
-   hchcca   hchccareg rl!-le                 \ HC communication area
+   hchcca-dma hchccareg rl!-le               \ HC communication area
 
    d# 50 ms
 
@@ -958,6 +1006,7 @@ s" usb-support.fs" INCLUDED
    allocate-usb-address dup setup-packet 2 + c!       ( usb-addr  R: speedbit )
    s" USB set-address: " 2 pick usb-debug-print-val   ( usb-addr  R: speedbit )
    0 0 0 setup-packet 8 r> controlxfer                ( usb-addr TRUE | FALSE )
+." controlxfer of set-address done" cr
    IF						      ( TRUE | FALSE )
       TRUE 					      ( TRUE )
    ELSE
@@ -1179,7 +1228,7 @@ s" usb-enumerate.fs" INCLUDED
 
 : enumerate ( -- )
    HC-reset
-   ['] hc-suspend add-quiesce-xt     \ Assert that HC will be supsended
+   ['] hc-quiesce add-quiesce-xt     \ Assert that HC will be supsended
    store-initial-usb-hub-address
    rhport-initialize                 \ Probe all available RH ports
    reset-to-initial-usb-hub-address

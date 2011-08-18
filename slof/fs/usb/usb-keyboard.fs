@@ -27,12 +27,10 @@ s" EN" encode-string s" language" property
 
 00 value kbd-addr
 to kbd-addr                                \ save speed bit
+
 8 value mps-dcp
 8 constant DEFAULT-CONTROL-MPS
-8 chars alloc-mem value setup-packet
-8 chars alloc-mem value kbd-report
-4 chars alloc-mem value multi-key
-0 value cfg-buffer
+0 value multi-key
 0 value led-state
 0 value temp1
 0 value temp2
@@ -47,46 +45,80 @@ to kbd-addr                                \ save speed bit
 0 value int-in-ep
 0 value int-in-toggle
 
-kbd-addr                                    \ give speed bit to include file 
+\ Buffers which must be capable of DMA:
+
+STRUCT
+   80 FIELD kb>cfg              \ For config descriptors etc, size 0x80
+   8  FIELD kb>report           \ For keyboard report, size 8
+   8  FIELD kb>setup-packet     \ For setup-packet, size 8
+   4  FIELD kb>data             \ Various data, size 4
+CONSTANT /kbd-buf
+
+0 VALUE kbd-buf
+0 VALUE kbd-buf-dma
+
+: (kbd-buf-init)  ( -- )
+   /kbd-buf s" dma-alloc" $call-parent TO kbd-buf
+   kbd-buf /kbd-buf 0 s" dma-map-in" $call-parent TO kbd-buf-dma
+
+   s" kbd-buf = " kbd-buf usb-debug-print-val
+;
+
+: (kbd-buf-free)  ( -- )
+   kbd-buf kbd-buf-dma /kbd-buf s" dma-map-out" $call-parent
+   kbd-buf /kbd-buf s" dma-free" $call-parent
+   0 TO kbd-buf
+   0 TO kbd-buf-dma
+;
+
+
 s" usb-kbd-device-support.fs" included
+
 
 : control-cls-set-report ( reportvalue FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
-  2109000200000100 setup-packet ! 
-  temp2 kbd-data l!-le  
-  1 kbd-data 1 setup-packet DEFAULT-CONTROL-MPS temp1 controlxfer  
+  2109000200000100 kbd-buf kb>setup-packet ! 
+  temp2 kbd-buf kb>data l!-le  
+  1 kbd-buf kb>data 1 kbd-buf kb>setup-packet
+  DEFAULT-CONTROL-MPS temp1 controlxfer  
 ;
 
 : control-cls-get-report ( data-buffer data-len MPS FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
   to temp3
-  a101000100000000 setup-packet ! 
-  temp3 setup-packet 6 + w!-le  
-  0 swap temp3 setup-packet temp2 temp1 controlxfer  
+  a101000100000000 kbd-buf kb>setup-packet ! 
+  temp3 kbd-buf kb>setup-packet 6 + w!-le  
+  0 swap temp3 kbd-buf kb>setup-packet
+  temp2 temp1 controlxfer  
 ;
 
-: int-get-report ( -- )                                           \ get report for interrupt transfer
-    0 2 int-in-toggle kbd-report 8 mps-int-in
-    kbd-addr int-in-ep 7 lshift or rw-endpoint                    \ get report 
-    swap to int-in-toggle if
-	kbd-report @ ff00000000000000 and 38 rshift to kbd-shift  \ store shift status
-	kbd-report @ 0000ffffffffffff and to kbd-scan             \ store scan codes
-    else
-	0 to kbd-shift                                            \ clear shift status 
-	0 to kbd-scan                                             \ clear scan code buffer
-    then
+: int-get-report ( -- )                                     \ get report for interrupt transfer
+   0 2 int-in-toggle kbd-buf kb>report 8 mps-int-in
+   kbd-addr int-in-ep 7 lshift or rw-endpoint               \ get report 
+   swap to int-in-toggle IF
+      kbd-buf kb>report @
+      ff00000000000000 and 38 rshift to kbd-shift           \ store shift status
+      kbd-buf kb>report @
+      0000ffffffffffff and to kbd-scan                      \ store scan codes
+   ELSE
+      0 to kbd-shift                                        \ clear shift status 
+      0 to kbd-scan                                         \ clear scan code buffer
+   THEN
 ;
 
-: ctl-get-report ( -- )                                           \ get report for control transfer      
-    kbd-report 8 8 kbd-addr control-cls-get-report if             \ get report 
-        kbd-report @ ff00000000000000 and 38 rshift to kbd-shift  \ store shift status
-        kbd-report @ 0000ffffffffffff and to kbd-scan             \ store scan codes 
-    else
-	0 to kbd-shift                                            \ clear shift status 
-	0 to kbd-scan                                             \ clear scan code buffer
-    then
+: ctl-get-report ( -- )                                     \ get report for control transfer      
+   kbd-buf kb>report 8 8 kbd-addr
+   control-cls-get-report IF                                \ get report 
+      kbd-buf kb>report @
+      ff00000000000000 and 38 rshift to kbd-shift           \ store shift status
+      kbd-buf kb>report @
+      0000ffffffffffff and to kbd-scan                      \ store scan codes 
+   ELSE
+      0 to kbd-shift                                        \ clear shift status 
+      0 to kbd-scan                                         \ clear scan code buffer
+   THEN
 ;
 
 : set-led ( led -- ) 
@@ -317,7 +349,7 @@ s" usb-kbd-device-support.fs" included
 	    dup key-old <> if                            \ if the scancode is new
 	    	dup to key-old                           \ save current scan code
 	    	get-ukbd-char                            \ translate scan code --> char
-	    	milliseconds fa + to expire-ms           \ set typematic delay 250ms	    
+	    	milliseconds fa + to expire-ms           \ set typematic delay 250ms
 	    else                                         \ scan code is not changed
 	    	milliseconds expire-ms > if              \ if timer is expired ... should be considered timer carry over
 	    	    get-ukbd-char                        \ translate scan code --> char
@@ -345,17 +377,19 @@ s" usb-kbd-device-support.fs" included
    usb-kread ?dup  IF  swap c! 1  ELSE  0 swap c! -2  THEN
 ;
 
-
+(kbd-buf-init)
 kbd-init                                                 \ keyboard initialize
 milliseconds to expire-ms                                \ Timer initialize
 0 to multi-key                                           \ multi key buffer clear
 7 set-led                                                \ flash leds
 250 ms
 0 set-led
+(kbd-buf-free)
 
 s" keyboard" get-node node>path set-alias
 
 : open ( -- true )
+   (kbd-buf-init)
    7 set-led
    100 ms
    3 set-led
@@ -368,4 +402,9 @@ s" keyboard" get-node node>path set-alias
    true
 ;
 
-: close ;
+: close
+   (kbd-buf-free)
+;
+
+
+s" Keyboard init done"  usb-debug-print

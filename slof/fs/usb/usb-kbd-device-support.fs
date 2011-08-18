@@ -11,11 +11,6 @@
 \ ****************************************************************************/
 
 
-00 value kbd-addr
-to kbd-addr
-8 alloc-mem to kbd-report
-4 chars alloc-mem value kbd-data
-
 : rw-endpoint
   s" rw-endpoint" $call-parent ;
 
@@ -34,26 +29,29 @@ to kbd-addr
 : control-cls-set-protocol ( reportvalue FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
-  210b000000000100 setup-packet ! 
-  temp2 kbd-data l!-le
-  1 kbd-data 1 setup-packet DEFAULT-CONTROL-MPS temp1 controlxfer  
+  210b000000000100 kbd-buf kb>setup-packet ! 
+  temp2 kbd-buf kb>data l!-le
+  1 kbd-buf kb>data 1 kbd-buf kb>setup-packet
+  DEFAULT-CONTROL-MPS temp1 controlxfer  
 ;
 
 : control-cls-set-idle ( reportvalue FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
-  210a000000000000 setup-packet ! 
-  temp2 kbd-data l!-le
-  0 kbd-data 0 setup-packet DEFAULT-CONTROL-MPS temp1 controlxfer  
+  210a000000000000 kbd-buf kb>setup-packet ! 
+  temp2 kbd-buf kb>data l!-le
+  0 kbd-buf kb>data 0 kbd-buf kb>setup-packet
+  DEFAULT-CONTROL-MPS temp1 controlxfer  
 ;
 
 : control-std-get-report-descriptor ( data-buffer data-len MPS FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
   to temp3
-  8106002200000000 setup-packet ! 
-  temp3 setup-packet 6 + w!-le
-  0 swap temp3 setup-packet temp2 temp1 controlxfer  
+  8106002200000000 kbd-buf kb>setup-packet ! 
+  temp3 kbd-buf kb>setup-packet 6 + w!-le
+  0 swap temp3 kbd-buf kb>setup-packet
+  temp2 temp1 controlxfer  
 ;
 
 : kbd-init
@@ -71,32 +69,28 @@ to kbd-addr
 	decode-int nip nip to int-in-ep
     then
 
-  7f alloc-mem to cfg-buffer
-  s" Allocated buffers!!" usb-debug-print
+   kbd-buf kb>cfg 12 8 kbd-addr           \ get device descriptor
+   control-std-get-device-descriptor
+   drop
+   \ s" dev_desc=" type cfg-buffer 12 dump cr
 
-  cfg-buffer 12 8 kbd-addr                   \ get device descriptor
-  control-std-get-device-descriptor
-  drop
-  \ s" dev_desc=" type cfg-buffer 12 dump cr
+   kbd-buf kb>cfg 9 8 kbd-addr            \ get config descriptor  
+   control-std-get-configuration-descriptor
+   drop
+   \ s" cfg_desc=" type cfg-buffer 9 dump cr
 
-  cfg-buffer 9 8 kbd-addr                    \ get config descriptor  
-  control-std-get-configuration-descriptor
-  drop
-  \ s" cfg_desc=" type cfg-buffer 9 dump cr
+   kbd-buf kb>cfg 5 + c@ kbd-addr         \ set configuration  
+   control-std-set-configuration
+   drop
+   s" KBDS: Set config returned" usb-debug-print 
 
-  cfg-buffer 5 + c@ kbd-addr                 \ set configuration  
-  control-std-set-configuration
-  drop
-  s" KBDS: Set config returned" usb-debug-print 
+   0 kbd-addr control-cls-set-idle drop       \ set idle  
+   s" KBDS: Set idle returned" usb-debug-print
 
-  0 kbd-addr control-cls-set-idle drop       \ set idle  
-  s" KBDS: Set idle returned" usb-debug-print
+   kbd-buf kb>cfg 3f 8 kbd-addr           \ get report descriptor
+   control-std-get-report-descriptor
+   drop
+   \ s" report_desc=" type cfg-buffer 3f dump cr
 
-  cfg-buffer 3f 8 kbd-addr                   \ get report descriptor
-  control-std-get-report-descriptor
-  drop
-  \ s" report_desc=" type cfg-buffer 3f dump cr
-
-  s" Finished initializing keyboard" usb-debug-print 
+   s" Finished initializing keyboard" usb-debug-print 
 ;
-
