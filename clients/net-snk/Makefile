@@ -19,7 +19,10 @@ OBJS	=  kernel/kernel.o oflib/oflib.o libc/libc-glue.o app/app.o
 
 CLIENTLIBS = $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
 
-client : .depend subdirs $(OBJS) $(CLIENTLIBS)
+all:	.depend subdirs
+	$(MAKE) client
+
+client : $(OBJS) $(CLIENTLIBS)
 	$(LD) $(LDFLAGS) -o $@ -Tclient.lds $(OBJS) $(CLIENTLIBS)
 	$(OBJDUMP) -DSsx $@ > $@.dis
 	cp $@ $@.unstripped

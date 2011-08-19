@@ -23,9 +23,10 @@ OBJDIRS = socket/socket.o time/time.o
 SUBDIRS = $(filter-out ./,$(dir $(OBJDIRS)))
 
 
-all: libc-glue.o
+all:	subdirs
+	$(MAKE) libc-glue.o
 
-libc-glue.o: subdirs sbrk.o io.o ioctl.o
+libc-glue.o: $(OBJS) $(OBJDIRS)
 	$(LD) $(LDFLAGS) $(OBJS) $(OBJDIRS) -o $@ -r
 
 
