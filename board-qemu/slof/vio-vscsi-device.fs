@@ -50,12 +50,17 @@ INSTANCE VARIABLE deblocker
 : open ( -- true | false )
     my-unit " set-address" $call-parent
     is_cdrom IF " dev-prep-cdrom" ELSE " dev-prep-disk" THEN $call-parent
-    " dev-get-capacity" $call-parent to max-block-num to block-size
     " dev-max-transfer" $call-parent to max-transfer
+
+    " dev-get-capacity" $call-parent to max-block-num to block-size
+    max-block-num 0=  block-size 0= OR IF
+       ." Failed to get disk capacity!" cr
+       FALSE EXIT
+    THEN
 
     0 0 " deblocker" $open-package dup deblocker ! dup IF 
         " disk-label" find-package IF
-	    my-args rot interpose
+            my-args rot interpose
         THEN
    THEN 0<>
 ;

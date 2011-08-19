@@ -467,7 +467,12 @@ CREATE sector d# 512 allot
 ;
 
 : dev-get-capacity ( -- blocksize #blocks )
-    read-capacity not IF 0 0 EXIT THEN
+    \ Make sure that there are zeros in the buffer in case something goes wrong:
+    sector 10 erase
+    \ Now issue the read-capacity command
+    read-capacity not IF
+        0 0 EXIT
+    THEN
     sector scsi-get-capacity-10
 ;
 
@@ -560,6 +565,10 @@ CREATE sector d# 512 allot
 ;
 
 : dev-prep-disk ( -- )
+    initial-test-unit-ready 0= IF
+        ." Disk not ready!" cr
+        3drop
+    THEN
 ;
 
 : vscsi-create-disk	( lun id -- )
