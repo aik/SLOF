@@ -10,12 +10,13 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-JS2X_TARGETS = tools_build romfs_build clients_build bcm57xx stage1
+BOARD_TARGETS = tools_build romfs_build clients_build bcm57xx stage1 subdirs
 
 SUBDIRS = slof rtas 
 COMMON_LIBS = libc libipmi libbootmsg libbases libnvram libelf
 
-all: $(JS2X_TARGETS) subdirs boot_rom.bin
+all: $(BOARD_TARGETS)
+	$(MAKE) boot_rom.bin
 
 .PHONY : subdirs $(SUBDIRS) clean distclean
 
@@ -27,59 +28,59 @@ include $(TOPCMNDIR)/Makefile.gen
 subdirs: $(SUBDIRS)
 
 $(SUBDIRS): common-libs
-		@echo " ====== Building $@ ======"
-		$(MAKE) -C $@ $(MAKEARG)
+	@echo " ====== Building $@ ======"
+	$(MAKE) -C $@ $(MAKEARG)
 
 stage1:	common-libs
-		@echo " ====== Building llfw ======"
-		make -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
+	@echo " ====== Building llfw ======"
+	$(MAKE) -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
 
 bcm57xx:
-		make -C ../other-licence/bcm
+	$(MAKE) -C ../other-licence/bcm
 
 clean_here:
-		rm -f ../slof/OF.ffs
-		rm -f ../boot_rom.bin
+	rm -f ../slof/OF.ffs
+	rm -f ../boot_rom.bin
 
 clean:		clean_here clean_gen
-		@for dir in $(SUBDIRS); do \
-			$(MAKE) -C $$dir clean || exit 1; \
-		done
-		rm -f ../boot_rom.bin ../js2*.img 
-		make -C ../other-licence/bcm clean
-		@make -C llfw clean
-		@make -C $(TOPCMNDIR)/clients/takeover clean
+	@for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir clean || exit 1; \
+	done
+	rm -f ../boot_rom.bin ../js2*.img 
+	$(MAKE) -C ../other-licence/bcm clean
+	@$(MAKE) -C llfw clean
+	@$(MAKE) -C $(TOPCMNDIR)/clients/takeover clean
 
 distclean:	clean_here distclean_gen
-		@for dir in $(SUBDIRS); do \
-			$(MAKE) -C $$dir distclean || exit 1; \
-		done
-		rm -f ../boot_rom.bin ../js2*.img 
-		make -C ../other-licence/bcm clean
-		make -C llfw clean
-		make -C $(TOPCMNDIR)/clients/takeover distclean
+	@for dir in $(SUBDIRS); do \
+		$(MAKE) -C $$dir distclean || exit 1; \
+	done
+	rm -f ../boot_rom.bin ../js2*.img 
+	$(MAKE) -C ../other-licence/bcm clean
+	$(MAKE) -C llfw clean
+	$(MAKE) -C $(TOPCMNDIR)/clients/takeover distclean
 
 takeover: all
-		$(MAKE) -C $(TOPCMNDIR)/clients/takeover
+	$(MAKE) -C $(TOPCMNDIR)/clients/takeover
 
 .driver_dirs:
-		@rm -rf ../driver-$(RELEASE)
-		@mkdir -p ../driver-$(RELEASE)
+	@rm -rf ../driver-$(RELEASE)
+	@mkdir -p ../driver-$(RELEASE)
 
 .tar_gz:	.driver_dirs takeover external_flasher
-		@mv ../boot_rom.bin \
-			../driver-$(RELEASE)/$(RELEASE)-js2x.bin
-		@mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \
-			../driver-$(RELEASE)/$(RELEASE)-$(FLASH_SIZE_MB)MB-BigEndian.bin
-		@mv $(TOPCMNDIR)/clients/takeover/takeover.elf \
-			../driver-$(RELEASE)/$(RELEASE)-takeover.bin
-		@cp ../VERSION ../driver-$(RELEASE)
-		@cp changes.txt ../driver-$(RELEASE)
-		@cd ../driver-$(RELEASE) && md5sum * > md5sum.txt
-		@chmod 644 ../driver-$(RELEASE)/*
-		@mv ../driver-$(RELEASE) ../driver-$(RELEASE)-`date +%Y-%h%d`
-		@tar czf ../driver-$(RELEASE)-`date +%Y-%h%d`.tar.gz \
-			../driver-$(RELEASE)-`date +%Y-%h%d` > /dev/null  2>&1
-		@rm -rf ../driver-$(RELEASE)-`date +%Y-%h%d`
+	@mv ../boot_rom.bin \
+		../driver-$(RELEASE)/$(RELEASE)-js2x.bin
+	@mv ../boot_rom-$(FLASH_SIZE_MB)MB-BigEndian.bin \
+		../driver-$(RELEASE)/$(RELEASE)-$(FLASH_SIZE_MB)MB-BigEndian.bin
+	@mv $(TOPCMNDIR)/clients/takeover/takeover.elf \
+		../driver-$(RELEASE)/$(RELEASE)-takeover.bin
+	@cp ../VERSION ../driver-$(RELEASE)
+	@cp changes.txt ../driver-$(RELEASE)
+	@cd ../driver-$(RELEASE) && md5sum * > md5sum.txt
+	@chmod 644 ../driver-$(RELEASE)/*
+	@mv ../driver-$(RELEASE) ../driver-$(RELEASE)-`date +%Y-%h%d`
+	@tar czf ../driver-$(RELEASE)-`date +%Y-%h%d`.tar.gz \
+		../driver-$(RELEASE)-`date +%Y-%h%d` > /dev/null  2>&1
+	@rm -rf ../driver-$(RELEASE)-`date +%Y-%h%d`
 
 driver:		driver_prep clean .tar_gz

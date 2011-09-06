@@ -37,17 +37,17 @@ all:
 		echo "  $(STD_BOARDS)"; \
 		exit 1; \
 	fi
-	@make `cat .target`
+	@$(MAKE) `cat .target`
 
 rom:
 	@echo "******* Build $(BOARD) System ********"
 	@echo $(BOARD) > .target
-	@make -C board-$(BOARD)
+	@$(MAKE) -C board-$(BOARD)
 	@$(RM) -f .crc_flash
 rw:
 	@echo "******* Build $(BOARD) system (RISCWatch boot) ********"
 	@echo $(BOARD) > .target
-	@make -C board-$(BOARD) l2b
+	@$(MAKE) -C board-$(BOARD) l2b
 	@$(RM) -f .crc_flash
 
 $(STD_BOARDS):
@@ -55,7 +55,7 @@ $(STD_BOARDS):
 	@if [ -f .target ]; then \
 		if [ `cat .target` != $@ ]; then \
 			echo "Configuration changed - cleaning up first..."; \
-			make distclean; \
+			$(MAKE) distclean; \
 			echo $@ > .target; \
 		fi; \
 	else \
@@ -65,14 +65,14 @@ $(STD_BOARDS):
 	if [ -n "$$b" ]; then \
 		subboard=$${b##*-}; \
 		board=$${b%%-*}; \
-		make -C board-$$board SUBBOARD=$$subboard; \
+		$(MAKE) -C board-$$board SUBBOARD=$$subboard; \
 	else \
-		make -C board-$@; \
+		$(MAKE) -C board-$@; \
 	fi
 	@$(RM) .crc_flash
 
 test_all:
-	@for i in $(STD_BOARDS); do make distclean $$i; done
+	@for i in $(STD_BOARDS); do $(MAKE) distclean $$i; done
 
 driver:
 	@echo "******** Building $(BOARD) system ********"
@@ -80,54 +80,54 @@ driver:
 	if [ -n "$$b" ]; then \
 		subboard=$${b##*-}; \
 		board=$${b%%-*}; \
-		DRIVER=1 make -C board-$$board SUBBOARD=$$subboard driver; \
+		DRIVER=1 $(MAKE) -C board-$$board SUBBOARD=$$subboard driver; \
 	else \
-		DRIVER=1 make -C board-$(BOARD) driver; \
+		DRIVER=1 $(MAKE) -C board-$(BOARD) driver; \
 	fi
 	@$(RM) -f .crc_flash .boot_xdr.ffs
 
 cli:
-		make -C clients
+	$(MAKE) -C clients
 
 # Rules for making clean:
 clean_here:
-		rm -f boot_rom.bin .boot_rom.ffs boot_xdr.bin .boot_xdr.ffs
-		rm -f boot_l2-dd2.ad boot_l2b.bin .crc_flash
+	$(RM) boot_rom.bin .boot_rom.ffs boot_xdr.bin .boot_xdr.ffs
+	$(RM) boot_l2-dd2.ad boot_l2b.bin .crc_flash
 
 
 clean:		clean_here
-		@if [ -e .target ]; then \
-			tar=`cat .target`; \
-			b=`echo $$tar | grep "-"`; \
-			if [ -n "$$b" ]; then \
-				subboard=$${b##*-}; \
-				board=$${b%%-*}; \
-				make -C board-$$board SUBBOARD=$$subboard clean; \
-			else \
-				pwd; \
-				make -C board-$$tar clean; \
-			fi \
-		fi
+	@if [ -e .target ]; then \
+		tar=`cat .target`; \
+		b=`echo $$tar | grep "-"`; \
+		if [ -n "$$b" ]; then \
+			subboard=$${b##*-}; \
+			board=$${b%%-*}; \
+			$(MAKE) -C board-$$board SUBBOARD=$$subboard clean; \
+		else \
+			pwd; \
+			$(MAKE) -C board-$$tar clean; \
+		fi \
+	fi
 
 distclean:	clean_here
-		@if [ -e .target ]; then \
-			tar=`cat .target`; \
-			b=`echo $$tar | grep "-"`; \
-			if [ -n "$$b" ]; then \
-				subboard=$${b##*-}; \
-				board=$${b%%-*}; \
-				make -C board-$$board SUBBOARD=$$subboard distclean; \
-			else \
-				make -C board-$$tar distclean; \
-			fi; \
-			rm -f .target; \
-		fi
+	@if [ -e .target ]; then \
+		tar=`cat .target`; \
+		b=`echo $$tar | grep "-"`; \
+		if [ -n "$$b" ]; then \
+			subboard=$${b##*-}; \
+			board=$${b%%-*}; \
+			$(MAKE) -C board-$$board SUBBOARD=$$subboard distclean; \
+		else \
+			$(MAKE) -C board-$$tar distclean; \
+		fi; \
+		$(RM) .target; \
+	fi
 
 distclean_all:	clean_here
-		@for dir in board-* ; do \
-			$(MAKE) -C $$dir distclean || exit 1; \
-		done
-		rm -f .target
+	@for dir in board-* ; do \
+		$(MAKE) -C $$dir distclean || exit 1; \
+	done
+	$(RM) .target
 
 cli-clean:
-		make -C clients clean
+	$(MAKE) -C clients clean

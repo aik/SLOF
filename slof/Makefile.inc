@@ -111,10 +111,10 @@ checkpoint.o:
 	$(CC) $(CPPFLAGS) $(ASFLAGS) -c -o $@ $(LLFWCMNDIR)/checkpoint.S
 
 $(LLFWBRDDIR)/board_io.o:
-	make -C $(LLFWBRDDIR) board_io.o
+	$(MAKE) -C $(LLFWBRDDIR) board_io.o
 
 $(LLFWBRDDIR)/io_generic_lib.o:
-	make -C $(LLFWBRDDIR) io_generic_lib.o
+	$(MAKE) -C $(LLFWBRDDIR) io_generic_lib.o
 
 default-font.o: $(SLOFCMNDIR)/default-font.c
 	$(CC) $(CPPFLAGS) $< -c -o default-font.o

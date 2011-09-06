@@ -37,8 +37,8 @@ takeover.elf: ppc32wrap.o takeover.elf32
 		$(LDFLAGS) $^ -o $@
 
 takeover.elf64: entry.o main.o takeover.o $(SNKDIR)/libc/time/timer.o of.elf
-	make -C $(LIBCMNDIR) libc
-	make -C $(CLIENTSDIR)
+	$(MAKE) -C $(LIBCMNDIR) libc
+	$(MAKE) -C $(CLIENTSDIR)
 	$(LD) $(LDFLAGS) -o $@ -Tclient.lds $(OBJS)
 
 of.elf: ../../boot_rom.bin
@@ -52,8 +52,8 @@ ppc32wrap.o: ppc32wrap.S
 	$(CROSS)gcc -m32 -a32 $(CFLAGS) -c $< -o $@
 
 clean distclean:
-	make -C $(LIBCMNDIR) $@
-	make -C $(CLIENTSDIR) $@
+	$(MAKE) -C $(LIBCMNDIR) $@
+	$(MAKE) -C $(CLIENTSDIR) $@
 	$(RM) *.o *.bin *.elf
 	$(RM) takeover.elf32 takeover.elf64 takeover.tmp
 %.o: %.oco

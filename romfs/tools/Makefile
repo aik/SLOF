@@ -31,7 +31,7 @@ build_romfs: $(OBJS)
 	$(HOSTCC) $(HOSTCFLAGS) $(FLAG) -o $@ $^
 
 testing: build_romfs
-	make -C test
+	$(MAKE) -C test
 
 %.o: %.c
 	$(HOSTCC) $(CPPFLAGS) $(HOSTCFLAGS) $(FLAG) -c $< -o $@

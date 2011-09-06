@@ -63,10 +63,10 @@ $(TOOLSDIR)/gen_reloc_table: $(TOOLSDIR)/gen_reloc_table.c
 	$(MAKE) -C $(TOOLSDIR) gen_reloc_table
 
 ../../lib/libc.a:
-	make -C ../../lib
+	$(MAKE) -C ../../lib
 
 clean:
-	make -C ../../lib clean
+	$(MAKE) -C ../../lib clean
 	rm -f $(OBJS) reloc_table.o rtas rtas.bin
 
 distclean : clean
