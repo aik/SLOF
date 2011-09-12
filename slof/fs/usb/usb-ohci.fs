@@ -222,6 +222,26 @@ INSTANCE VARIABLE ed-list-region-dma
 9 CONSTANT HUB-DEVICE-CLASS
 0 CONSTANT NO-CLASS
 
+
+\ Temporary variables for functions. These variables have to be initialized
+\ before usage in functions and their values assume significance only during
+\ the function's execution time. Should be used like local variables.
+\ CAUTION:
+\ If you are calling functions that destroy contents of these variables, be
+\ smart enuf to save the values before calling them.
+\ It is recommended that these temporary variables are used only amidst normal
+\ FORTH words -- not among the vicinity of any of the functions of this node.
+
+0 VALUE temp1
+0 VALUE temp2
+0 VALUE temp3
+0 VALUE extra-bytes
+0 VALUE num-td
+0 VALUE current
+
+0 VALUE device-speed
+
+
 \ DMA-able buffers:
 
 0 VALUE setup-packet     \ 8 bytes for setup packet
@@ -233,24 +253,48 @@ INSTANCE VARIABLE cd-buffer
 INSTANCE VARIABLE cd-buffer-dma
 
 
-\ Temporary variables for functions. These variables have to be initialized
-\ before usage in functions and their values assume significance only during
-\ the function's execution time. Should be used like local variables.
-\ CAUTION:
-\ If you are calling functions that destroy contents of these variables, be
-\ smart enuf to save the values before calling them.
-\ It is recommended that these temporary variables are used only amidst normal
-\ FORTH words -- not among the vicinity of any of the functions of this node.
+\ Global buffer allocation
+\ ------------------------
 
+\ Memory size for HCCA (0x100), setup-packet (8) and ch-buf (1)
+109 CONSTANT OHCI-GLOBAL-DMA-BUF-SIZE
 
-0 VALUE temp1
-0 VALUE temp2
-0 VALUE temp3
-0 VALUE extra-bytes
-0 VALUE num-td
-0 VALUE current
+\ Memory for the HCCA - must stay allocated as long as the HC is operational!
 
-0 VALUE device-speed
+0 VALUE hchcca
+0 VALUE hchcca-dma
+
+: (init-global-dma-bufs)
+   \ Allocate memory for HCCA (0x100), setup-packet (8) and ch-buf (1)
+   OHCI-GLOBAL-DMA-BUF-SIZE dma-alloc TO hchcca
+   hchcca OHCI-GLOBAL-DMA-BUF-SIZE 0 dma-map-in TO hchcca-dma
+   hchcca ff and IF
+      \ This should never happen - alloc-mem always aligns
+      s" Warning: hchcca not aligned!" usb-debug-print
+   THEN
+   hchcca 8 + TO setup-packet
+   setup-packet 1 + TO ch-buffer
+
+   s" hchcca = " hchcca usb-debug-print-val
+;
+(init-global-dma-bufs)
+
+84 hchcca + CONSTANT hchccadneq                   \ HccaDoneHead
+
+\ Convert virtual address to physical
+hchcca-dma hchcca - CONSTANT virt2phys-offset
+: virt2phys  ( virt -- phys )
+   dup 0<> IF
+      virt2phys-offset +
+   THEN
+;
+
+\ Convert physical address to virtual
+: phys2virt  ( phys -- virt )
+   dup 0<> IF
+      virt2phys-offset -
+   THEN
+;
 
 
 \ Debug functions for displaying ED, TD and their combo list.
@@ -301,14 +345,14 @@ INSTANCE VARIABLE cd-buffer-dma
 
 \ display's the descriptors
 
-
 : display-descriptors ( ED-ADDRESS -- )
-   10  1- not and             ( ED-ADDRESS~ )
-   dup display-ed ed>tdqhp l@-le  BEGIN ( ED-ADDRESS~ )
-      10  1- not and         ( ED-ADDRESS~ )
-      dup 0<>                ( ED-ADDRESS~ TRUE | FALSE )
+   10  1- not and                             ( ED-ADDRESS~ )
+   dup display-ed ed>tdqhp l@-le phys2virt    ( ED-ADDRESS~ )
+   BEGIN
+      10  1- not and                          ( ED-ADDRESS~ )
+      dup 0<>                                 ( ED-ADDRESS~ TRUE | FALSE )
    WHILE
-      dup  display-td td>ntd l@-le ( ED-ADDRESS~ )
+      dup  display-td td>ntd l@-le phys2virt  ( ED-ADDRESS~ )
    REPEAT
    drop
 ;
@@ -362,7 +406,7 @@ INSTANCE VARIABLE cd-buffer-dma
    td-list-region @ TO temp1
    0 TO temp2  BEGIN
       temp1 zero-out-a-td-except-link
-      temp1 /tdlen + dup   temp1 td>ntd   l!-le TO temp1
+      temp1 /tdlen +  dup virt2phys  temp1 td>ntd  l!-le  TO temp1
       temp2 1+ TO temp2
       temp2 MAX-TDS = 		( TRUE | FALSE )
    UNTIL
@@ -387,8 +431,6 @@ INSTANCE VARIABLE cd-buffer-dma
 
 \ Note that the TD list returned is NULL terminated. i.e
 \ the nextTd field of the tail is NULL.
-
-
 
 : allocate-td-list ( n -- head tail )
    dup 0= IF drop 0 0 EXIT THEN 		( 0 0 )
@@ -417,7 +459,7 @@ INSTANCE VARIABLE cd-buffer-dma
    swap 					( td-list-head n )
    0 DO						( td-list-head   )
       temp1 TO temp2				( td-list-head   )
-      temp1 td>ntd l@-le   TO   temp1		( td-list-head   )
+      temp1 td>ntd l@-le phys2virt  TO temp1	( td-list-head   )
    LOOP						( td-list-head   )
    temp2 					( td-list-head td-list-tail )
    dup td>ntd 0 swap l!-le 			( td-list-head td-list-tail )
@@ -457,7 +499,7 @@ INSTANCE VARIABLE cd-buffer-dma
          temp1 u. cr
       THEN
       temp1 TO temp3
-      temp1 td>ntd l@-le TO temp1
+      temp1 td>ntd l@-le phys2virt TO temp1
       temp2 1+ TO temp2
    REPEAT
    temp3 temp2					( tail n )
@@ -496,7 +538,7 @@ INSTANCE VARIABLE cd-buffer-dma
    td-freelist-tail 0=  IF					 ( head tail )
       dup TO td-freelist-tail					 ( head tail )
    THEN								 ( head tail )
-   td>ntd td-freelist-head swap l!-le				 ( head )
+   td>ntd td-freelist-head virt2phys swap l!-le			 ( head )
    TO td-freelist-head
 ;
 
@@ -507,17 +549,6 @@ INSTANCE VARIABLE cd-buffer-dma
 
 
 : zero-out-an-ed-except-link ( ed -- )
-
-   \ There are definitely smarter ways to do it especially
-   \ on a 64-bit machine.
-
-   \ Optimization, Portability:
-   \ --------------------------
-   \ Replace by a  "!" and "l!". we know that an "ed" is
-   \ actually 16 bytes and that we will be executing on
-   \ a 64-bit machine, we can finish off with 2 stores.
-   \ But that WONT be portable.
-
    dup 0 swap ed>eattr  l!-le 		( ed )
    dup 0 swap ed>tdqtp  l!-le		( ed )
    dup 0 swap ed>tdqhp  l!-le		( ed )
@@ -535,7 +566,7 @@ INSTANCE VARIABLE cd-buffer-dma
    ed-list-region @ TO temp1
    0 TO temp2   BEGIN
       temp1 zero-out-an-ed-except-link
-      temp1 /edlen + dup   temp1 ed>ned   l!-le TO temp1
+      temp1 /edlen +  dup virt2phys  temp1 ed>ned  l!-le  TO temp1
       temp2 1+ TO temp2
       temp2 MAX-EDS =
    UNTIL
@@ -551,7 +582,8 @@ INSTANCE VARIABLE cd-buffer-dma
 : allocate-ed	( -- ed-ptr )
    num-free-eds 0= IF 0 EXIT THEN
    ed-freelist-head					( ed-freelist-head )
-   ed-freelist-head ed>ned l@-le TO ed-freelist-head	( ed-freelist-head )
+   ed-freelist-head ed>ned				( ed-freelist-head ned )
+   l@-le phys2virt TO ed-freelist-head			( ed-freelist-head )
    num-free-eds 1- TO num-free-eds			( ed-freelist-head )
    dup ed>ned 0 swap l!-le \ Terminate the Link.	( ed-freelist-head )
 ;
@@ -561,40 +593,14 @@ INSTANCE VARIABLE cd-buffer-dma
 
 : free-ed ( ed-ptr  -- )
    dup zero-out-an-ed-except-link			( ed-ptr )
-   dup ed>ned ed-freelist-head swap l!-le 		( ed-ptr )
+   dup ed>ned ed-freelist-head virt2phys swap l!-le	( ed-ptr )
    TO ed-freelist-head
    num-free-eds 1+ TO num-free-eds
 ;
 
 
-\ Buffer allocations
-\ ------------------
-
-\ Memory size for HCCA (0x100), setup-packet (8) and ch-buf (1)
-109 CONSTANT OHCI-GLOBAL-DMA-BUF-SIZE
-
-\ Memory for the HCCA - must stay allocated as long as the HC is operational!
-
-0 VALUE hchcca
-0 VALUE hchcca-dma
-
-: (init-global-dma-bufs)
-   \ Allocate memory for HCCA (0x100), setup-packet (8) and ch-buf (1)
-   OHCI-GLOBAL-DMA-BUF-SIZE dma-alloc TO hchcca
-   hchcca OHCI-GLOBAL-DMA-BUF-SIZE 0 dma-map-in TO hchcca-dma
-   hchcca ff and IF
-      \ This should never happen - alloc-mem always aligns
-      s" Warning: hchcca not aligned!" usb-debug-print
-   THEN
-   hchcca 8 + TO setup-packet
-   setup-packet 1 + TO ch-buffer
-;
-(init-global-dma-bufs)
-
-84 hchcca + CONSTANT hchccadneq
-
-." hchcca = " hchcca . cr
-
+\ Instance buffer allocation
+\ --------------------------
 
 : (allocate-mem)  ( -- )
    /tdlen MAX-TDS * 10 +
@@ -623,10 +629,10 @@ INSTANCE VARIABLE cd-buffer-dma
    dup cd-buffer !                        ( cd-len cd-buf )
    swap 0 dma-map-in cd-buffer-dma !
 
-." td-list-region = " td-list-region @ . cr
-." ed-list-region = " ed-list-region @ . cr
-." dd-buffer = " dd-buffer @ . cr
-." cd-buffer-dma = " cd-buffer-dma @ . cr
+   s" td-list-region = " td-list-region @ usb-debug-print-val
+   s" ed-list-region = " ed-list-region @ usb-debug-print-val
+   s" dd-buffer = " dd-buffer @ usb-debug-print-val
+   s" cd-buffer-dma = " cd-buffer-dma @ usb-debug-print-val
 ;
 
 
@@ -679,6 +685,8 @@ INSTANCE VARIABLE cd-buffer-dma
    hchcca OHCI-GLOBAL-DMA-BUF-SIZE dma-free
 ;
 
+' hc-quiesce add-quiesce-xt     \ Assert that HC will be supsended
+
 
 \ OF methods
 
@@ -717,11 +725,15 @@ INSTANCE VARIABLE cd-buffer-dma
 
 \ Clearing WDH to allow HC to write into done queue again
 
-: (HC-ACK-WDH) ( -- )   WDH hcintstat rl!-le ;
+: (HC-ACK-WDH) ( -- )
+   WDH hcintstat rl!-le
+;
 
 \ Checking whether anything has been written into done queue
 
-: (HC-CHECK-WDH) ( -- ) hcintstat rl@-le WDH and 0<> ;
+: (HC-CHECK-WDH) ( -- updated? )
+   hcintstat rl@-le WDH and 0<>
+;
 
 
 \ Disable USB transaction and keep it ready
@@ -790,38 +802,37 @@ INSTANCE VARIABLE cd-buffer-dma
    ENDCASE
    temp3 -1 = IF EXIT THEN                          ( start-toggle addr dlen )
 
-
 \ temp1 -- TD-List-Head
 \ temp2 -- Max Packet Size
 \ temp3 -- TD-DP-IN or TD-DP-OUT or TD-DP-SETUP
 
-   rot                                              ( addr dlen start-toggle )
-   TO current-toggle swap 			    ( dlen addr )
+   rot                                               ( addr dlen start-toggle )
+   TO current-toggle swap                            ( dlen addr )
    BEGIN
-      over temp2 >= 				    ( dlen addr TRUE|FALSE )
-   WHILE					    ( dlen addr )
-      dup temp1 td>cbptr l!-le			    ( dlen addr )
-      current-toggle 18 lshift                      ( dlen addr current-toggle~ )
-      DATA0-TOGGLE                        ( dlen  addr current-toggle~ toggle )
-      CC-FRESH-TD temp3 or or or          ( dlen  addr or-result )
-      temp1 td>tattr l!-le                ( dlen addr~  )
-      dup temp2 1- + temp1 td>bfrend l!-le ( dlen addr~  )
-      temp2 +                             ( dlen next-addr )
+      over temp2 >=                                  ( dlen addr TRUE|FALSE )
+   WHILE                                             ( dlen addr )
+      dup virt2phys temp1 td>cbptr l!-le             ( dlen addr )
+      current-toggle 18 lshift                       ( dlen addr current-toggle~ )
+      DATA0-TOGGLE                                   ( dlen addr current-toggle~ toggle )
+      CC-FRESH-TD temp3 or or or                     ( dlen addr or-result )
+      temp1 td>tattr l!-le                           ( dlen addr~  )
+      dup temp2 1- + virt2phys temp1 td>bfrend l!-le ( dlen addr~  )
+      temp2 +                                        ( dlen next-addr )
       swap temp2 - swap
-      temp1 td>ntd l@-le TO temp1         ( dlen next-addr )
-      current-toggle                      ( dlen next-addr current-toggle )
+      temp1 td>ntd l@-le phys2virt TO temp1          ( dlen next-addr )
+      current-toggle                                 ( dlen next-addr current-toggle )
       CASE
          0 OF 1 TO current-toggle ENDOF
          1 OF 0 TO current-toggle ENDOF
       ENDCASE
    REPEAT                                   ( dlen addr )
    over 0<>  IF
-      dup temp1 td>cbptr l!-le              ( dlen addr )
+      dup virt2phys temp1 td>cbptr l!-le    ( dlen addr )
       current-toggle 18 lshift              ( dlen addr curent-toggle~ )
       DATA0-TOGGLE                          ( dlen addr curent-toggle~ toggle )
       CC-FRESH-TD temp3 or or or            ( dlen addr or-result )
       temp1 td>tattr l!-le                  ( dlen addr )
-      + 1- temp1 td>bfrend l!-le
+      + 1- virt2phys temp1 td>bfrend l!-le
    ELSE
       2drop
    THEN
@@ -845,7 +856,7 @@ INSTANCE VARIABLE cd-buffer-dma
       drop FALSE dup ( FALSE )
    THEN
    WHILE
-      drop drop td>ntd l@-le
+      drop drop td>ntd l@-le phys2virt
    REPEAT
 ;
 
@@ -868,13 +879,13 @@ INSTANCE VARIABLE cd-buffer-dma
       1 ms                    \ wait
       1-                      ( timeout )
       dup ff and 0= IF show-proceed THEN
-   REPEAT	                  ( timeout )
+   REPEAT                     ( timeout )
    drop
-   hchccadneq  l@-le          \ read last HcDoneHead (RAM)
-   (HC-CHECK-WDH)             \ HcDoneHead was updated ?
+   hchccadneq l@-le phys2virt    \ read last HcDoneHead (RAM)
+   (HC-CHECK-WDH)                \ HcDoneHead was updated ?
    IF
-      (HC-ACK-WDH)	         \ clear register bit: WDH
-      TRUE                    ( td-list TRUE )
+      (HC-ACK-WDH)               \ clear register bit: WDH
+      TRUE                       ( td-list TRUE )
    ELSE
       FALSE
    THEN
@@ -1006,7 +1017,6 @@ s" usb-support.fs" INCLUDED
    allocate-usb-address dup setup-packet 2 + c!       ( usb-addr  R: speedbit )
    s" USB set-address: " 2 pick usb-debug-print-val   ( usb-addr  R: speedbit )
    0 0 0 setup-packet 8 r> controlxfer                ( usb-addr TRUE | FALSE )
-." controlxfer of set-address done" cr
    IF						      ( TRUE | FALSE )
       TRUE 					      ( TRUE )
    ELSE
@@ -1228,7 +1238,6 @@ s" usb-enumerate.fs" INCLUDED
 
 : enumerate ( -- )
    HC-reset
-   ['] hc-quiesce add-quiesce-xt     \ Assert that HC will be supsended
    store-initial-usb-hub-address
    rhport-initialize                 \ Probe all available RH ports
    reset-to-initial-usb-hub-address

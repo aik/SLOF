@@ -61,13 +61,13 @@ VARIABLE controlxfer-cmd
 \ Fill in the ED structure completely.
 
 
-: (td-ready)  ( dir addr dlen ed-ptr setup-ptr td-head td-tail -- )
-              ( dir addr dlen ed-ptr setup-ptr )
-   3 pick     ( dir addr dlen ed-ptr setup-ptr td-head td-tail ed-ptr )
-   tuck       ( dir addr dlen ed-ptr setup-ptr td-head ed-ptr td-tail ed-ptr )
-   ed>tdqtp l!-le            ( dir addr dlen ed-ptr setup-ptr td-head ed-ptr )
-   ed>tdqhp l!-le            ( dir addr dlen ed-ptr setup-ptr )
-   over ed>ned 0 swap l!-le  ( dir addr dlen ed-ptr setup-ptr )
+: (td-ready)  ( ed-ptr setup-ptr td-head td-tail -- ed-ptr setup-ptr )
+   swap virt2phys swap virt2phys   \ Convert td-head and td-tail to physical
+   3 pick                      ( ed-ptr s-ptr td-head' td-tail' ed-ptr )
+   tuck                        ( ed-ptr s-ptr td-head' ed-ptr td-tail' ed-ptr )
+   ed>tdqtp l!-le              ( ed-ptr s-ptr td-head' ed-ptr )
+   ed>tdqhp l!-le              ( ed-ptr s-ptr )
+   over ed>ned 0 swap l!-le    ( ed-ptr s-ptr )
 ;
 
 
@@ -76,12 +76,13 @@ VARIABLE controlxfer-cmd
 
 
 : (td-setup-status) ( dir addr dlen ed-ptr setup-ptr -- dir addr dlen ed-ptr )
-   over ed>tdqhp l@-le             ( dir addr dlen ed-ptr setup-ptr td-head )
+   over ed>tdqhp l@-le phys2virt   ( dir addr dlen ed-ptr setup-ptr td-head )
    dup zero-out-a-td-except-link   ( dir addr dlen ed-ptr setup-ptr td-head )
    dup td>tattr DATA0-TOGGLE CC-FRESH-TD or swap l!-le
                                    ( dir addr dlen ed-ptr setup-ptr td-head )
-   2dup td>cbptr l!-le             ( dir addr dlen ed-ptr setup-ptr td-head )
-   2dup td>bfrend swap STD-REQUEST-SETUP-SIZE 1- + swap l!-le
+   2dup swap virt2phys swap td>cbptr l!-le 
+                                   ( dir addr dlen ed-ptr setup-ptr td-head )
+   2dup td>bfrend swap STD-REQUEST-SETUP-SIZE 1- + virt2phys swap l!-le
                                    ( dir addr dlen ed-ptr setup-ptr td-head )
    2drop                           ( dir addr dlen ed-ptr )
 ;
@@ -90,7 +91,7 @@ VARIABLE controlxfer-cmd
 
 
 : (td-tailpointer) ( dir addr dlen ed-ptr -- dir addr dlen ed-ptr )
-   dup ed>tdqtp l@-le              ( dir addr dlen ed-ptr td-tail )
+   dup ed>tdqtp l@-le phys2virt    ( dir addr dlen ed-ptr td-tail )
    dup zero-out-a-td-except-link   ( dir addr dlen ed-ptr td-tail )
    dup td>tattr dup l@-le DATA1-TOGGLE CC-FRESH-TD or or swap l!-le
                                    ( dir addr dlen ed-ptr td-tail )
@@ -113,11 +114,12 @@ VARIABLE controlxfer-cmd
    -rot             ( dir ed-ptr addr dlen )
    dup 0<>  IF      ( dir ed-ptr addr dlen )
       >r >r >r TO temp1 r> r> r> temp1 ( ed-ptr addr dlen dir )
-      3 pick 		            ( ed-ptr addr dlen dir ed-ptr )
-      ed>tdqhp l@-le td>ntd l@-le   ( ed-ptr addr dlen dir td-datahead )
-      4 pick 		           ( ed-ptr addr dlen dir td-datahead ed-ptr )
-      td>tattr l@-le 10 rshift ( ed-ptr addr dlen dir td-head-data MPS )
-      swap 			    ( ed-ptr addr dlen dir MPS td-head-data )
+      3 pick                        ( ed-ptr addr dlen dir ed-ptr )
+      ed>tdqhp l@-le phys2virt      ( ed-ptr addr dlen dir tdqhp )
+      td>ntd l@-le phys2virt        ( ed-ptr addr dlen dir td-datahead )
+      4 pick                        ( ed-ptr addr dlen dir td-datahead ed-ptr )
+      td>tattr l@-le 10 rshift      ( ed-ptr addr dlen dir td-head-data MPS )
+      swap                          ( ed-ptr addr dlen dir MPS td-head-data )
       >r >r >r >r >r 1 r> r> r> r> r>
                                    ( ed-ptr 1 addr dlen dir MPS td-head-data )
       >r >r 0=  IF                 ( ed-ptr 1 addr dlen dir )
@@ -141,7 +143,7 @@ VARIABLE controlxfer-cmd
 10 CONSTANT max-retire-td
 
 : (transfer-wait-for-doneq)  ( ed-ptr -- TRUE | FALSE )
-   dup                               ( ed-ptr ed-ptr )
+   dup virt2phys                     ( ed-ptr ed-ptr-dma )
    hcctrhead rl!-le                  ( ed-ptr )
    HC-enable-control-list-processing ( ed-ptr )
    0 TO td-retire-count              ( ed-ptr )
@@ -149,13 +151,14 @@ VARIABLE controlxfer-cmd
    BEGIN
       td-retire-count num-tds <>     ( ed-ptr TRUE | FALSE )
       poll-timer max-retire-td < and       ( ed-ptr TRUE | FALSE )
-      WHILE
-      (HC-CHECK-WDH)                                      ( ed-ptr )
+   WHILE
+      (HC-CHECK-WDH)                                      ( ed-ptr updated? )
       IF
-         hchccadneq l@-le find-td-list-tail-and-size nip ( ed-ptr n )
+         hchccadneq l@-le phys2virt
+         find-td-list-tail-and-size nip                   ( ed-ptr n )
          td-retire-count + TO td-retire-count             ( ed-ptr )
-         hchccadneq l@-le dup              ( ed-ptr done-td done-td )
-         (td-list-status)                  ( ed-ptr done-td failed-td CCcode )
+         hchccadneq l@-le phys2virt dup     ( ed-ptr done-td done-td )
+         (td-list-status)                   ( ed-ptr done-td failed-td CCcode )
          IF
             \ keep condition code of TD on return stack
             dup >r
@@ -262,15 +265,13 @@ VARIABLE controlxfer-cmd
    (td-tailpointer)   ( dir addr dlen ed-ptr )
    (td-data)          ( ed-ptr )
 
-
    \ FIXME:
    \ Clear the TAIL pointer in ED. This has got sthg to do with how
-   \ the HC finds an EMPTY queue condition. Refer spec.
+   \ the HC finds an empty queue condition. Refer spec.
 
-
-   dup ed>tdqtp l@-le TO saved-tail    ( ed-ptr )
-   dup ed>tdqtp 0 swap l!-le           ( ed-ptr )
-   (transfer-wait-for-doneq)           ( TRUE | FALSE )
+   dup ed>tdqtp l@-le phys2virt TO saved-tail    ( ed-ptr )
+   dup ed>tdqtp 0 swap l!-le                     ( ed-ptr )
+   (transfer-wait-for-doneq)                     ( TRUE | FALSE )
 ;
 
 0201000000000000 CONSTANT CLEARHALTFEATURE
@@ -327,7 +328,7 @@ VARIABLE controlxfer-cmd
 
 : (ed-prepare-rw)
    ( pt ed-type toggle buffer length mps address ed-ptr --
-      FALSE | pt ed-type toggle buffer length mps )
+      FALSE | pt ed-type toggle buffer length mps TRUE )
    allocate-ed dup 0=  IF
    ( pt ed-type toggle buffer length mps address ed-ptr )
       drop 2drop 2drop 2drop drop
@@ -348,7 +349,7 @@ VARIABLE controlxfer-cmd
 
 : (td-prepare-rw)
    ( pt ed-type toggle buffer length mps --
-     FALSE | pt ed-type toggle buffer length mps head )
+     FALSE | pt ed-type toggle buffer length mps head TRUE )
    2dup              ( pt ed-type toggle buffer length mps  length mps )
    /mod              ( pt ed-type toggle buffer length mps num-tds rem )
    swap 0<> IF       ( pt ed-type toggle buffer length mps num-tds )
@@ -369,9 +370,8 @@ VARIABLE controlxfer-cmd
 
 \ Populate TD list with data buffers and toggle info.
 
-
 : (td-data-rw)
-   ( pt ed-type toggle buffer length mps head -- FALSE | pt et head )
+   ( pt ed-type toggle buffer length mps head -- FALSE | pt et head TRUE )
    6 pick                    ( pt ed-type toggle buffer length mps head  pt )
    FALSE TO case-failed  CASE
       0   OF OHCI-DP-IN    ENDOF
@@ -396,27 +396,26 @@ VARIABLE controlxfer-cmd
 
 \ Enqueue the ED with the appropriate list
 
-
 : (ed-ready-rw)  ( pt et  -- - | toggle FALSE )
    nip           ( et )
    FALSE TO case-failed  CASE
       0   OF \ Control List. Queue the ED to control list
       0 TO saved-list-type
-      saved-rw-ed hcctrhead rl!-le
+      saved-rw-ed virt2phys hcctrhead rl!-le
       HC-enable-control-list-processing
       ENDOF
       1   OF \ Bulk List. Queue the ED to bulk list
       1 TO saved-list-type
-      saved-rw-ed hcbulkhead rl!-le
+      saved-rw-ed virt2phys hcbulkhead rl!-le
       HC-enable-bulk-list-processing
       ENDOF
       2   OF \ Interrupt List.
       2 TO saved-list-type
-      saved-rw-ed hchccareg rl@-le rl!-le
+      saved-rw-ed virt2phys  hchccareg rl@-le phys2virt  rl!-le
       HC-enable-interrupt-list-processing
       ENDOF
       dup OF
-      saved-rw-ed ed>tdqhp l@-le (free-td-list)
+      saved-rw-ed ed>tdqhp l@-le phys2virt (free-td-list)
       saved-rw-ed free-ed
       TRUE TO case-failed
       ENDOF
@@ -427,6 +426,7 @@ VARIABLE controlxfer-cmd
    THEN
    TRUE                           ( TRUE )
 ;
+
 
 \  Wait for TDs to return to the Done Q.
 
@@ -539,20 +539,19 @@ VARIABLE controlxfer-cmd
 \          the USB addres and the upper 4-bits represent the Endpoint
 \          number.
 
-
-
 : (do-rw-endpoint)
    ( pt ed-type toggle buffer length mps address -- toggle TRUE|toggle FALSE )
    4 pick              ( pt ed-type toggle buffer length mps address toggle )
    TO saved-rw-start-toggle ( pt ed-type toggle buffer length mps address )
-   (ed-prepare-rw)     ( FALSE | pt ed-type toggle buffer length mps )
-    invert IF FALSE EXIT THEN
-   (td-prepare-rw)     ( FALSE | pt ed-type toggle buffer length mps head )
+   (ed-prepare-rw)     ( FALSE | pt ed-type toggle buffer length mps TRUE )
    invert IF FALSE EXIT THEN
-   (td-data-rw)        ( FALSE | pt et head )
+   (td-prepare-rw)     ( FALSE | pt ed-type toggle buffer length mps head TRUE )
    invert IF FALSE EXIT THEN
-   saved-rw-ed ed>tdqhp l!-le ( pt et )
-   saved-rw-ed ed>tdqhp l@-le td>ntd l@-le TO NEXT-TD \ save for a stalled
+   (td-data-rw)        ( FALSE | pt et head TRUE )
+   invert IF FALSE EXIT THEN
+   virt2phys saved-rw-ed ed>tdqhp l!-le  ( pt et )
+   saved-rw-ed ed>tdqhp l@-le phys2virt
+   td>ntd l@-le phys2virt  TO NEXT-TD    \ save for a stalled
    (ed-ready-rw)
    invert IF FALSE EXIT THEN
    (wait-td-retire)
