@@ -260,8 +260,9 @@ CREATE srp 100 allot
     srp /srp-cmd erase
     SRP_CMD srp >srp-cmd-opcode c!
     1 srp >srp-cmd-tag x!
-    srp >srp-cmd-lun 1 + c!	\ lun
-    srp >srp-cmd-lun c!		\ id
+    srp >srp-cmd-lun 1 + c!     \ lun
+    80 or                       \ select logical unit addressing method
+    srp >srp-cmd-lun c!         \ id
     /srp-cmd to srp-len   
 ;
 
