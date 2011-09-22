@@ -318,5 +318,4 @@
          s" USB: Unknown device found." usb-debug-print
       ENDOF
    ENDCASE
-   uDOC-present 0f and to uDOC-present \ remove uDOC processing flag
 ;

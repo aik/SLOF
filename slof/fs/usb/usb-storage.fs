@@ -526,7 +526,6 @@ d# 800 CONSTANT media-ready-retry
    IF
       dup FFFF00 and 023a00 =       ( sense-id flag )
       IF
-         uDOC-failure?
          023a02 =                   \ see sense-codes SPC-3 clause 4.5.6
          IF
             ."  Tray Open!"
@@ -546,10 +545,9 @@ d# 800 CONSTANT media-ready-retry
                dup ff0000 and 040000 =       \ sense-code = 4 ?
                IF
                   ." *HW-ERROR*"
-                  uDOC-failure?
                ELSE
-                  dup FFFF00 and 023a00 = IF uDOC-failure? THEN
-                  CASE              ( sense-ID )
+                  ( sense-ID )
+                  CASE
                      \ see SPC-3 clause 4.5.6
                      023a00 OF ."   No Media " ENDOF
                      023a02 OF ." Tray Open! " ENDOF

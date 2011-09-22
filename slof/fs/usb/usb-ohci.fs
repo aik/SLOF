@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -1192,11 +1192,6 @@ s" usb-enumerate.fs" INCLUDED
       \ any Device connected to that port ?
       current-stat rl@-le RHP-CCS and 0<> 	( TRUE|FALSE )
       IF
-         current-stat hcrhpstat3 =        \ third port of NEC ?
-         IF
-            81 to uDOC-present            \ uDOC is present and now processed
-         THEN
-
          s" Device connected to this port!" usb-debug-print
          RHP-PRS current-stat rl!-le      \ issue a port reset
          BEGIN
@@ -1218,16 +1213,12 @@ s" usb-enumerate.fs" INCLUDED
 
       ELSE
          s" No device detected at this port." usb-debug-print
-         current-stat hcrhpstat3 =        \ third port of NEC ? (=ModFD)
-         IF                               \ here a ModFD should be on ELBA
-            current-stat rl@-le 80000 and 0<> 	\ is over-current detected ?
-            IF
-               uDOC-present 08 or to uDOC-present  \ set flag for uDOC-check
-            THEN
+         current-stat rl@-le 80000 and 0<>	\ is over-current detected ?
+         IF
+            s" Warning: Overcurrent indicated" usb-debug-print
          THEN
       THEN
       current-stat 4 + TO current-stat    \ check next RH-Port
-      uDOC-present 0f and to uDOC-present \ remove processing flag
    LOOP
 ;
 

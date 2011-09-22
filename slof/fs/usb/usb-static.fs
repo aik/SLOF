@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,19 +10,13 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-\ #include "scsi-support.fs"
 
 \ Set usb-debug flag to TRUE for debugging output:
 0 VALUE usb-debug-flag
 false VALUE scan-time?
 
 VARIABLE ihandle-bulk-tran
-\ -scsi-supp-  VARIABLE ihandle-scsi-tran
 
-\ uDOC (Micro-Disk-On-Chip) is a FLASH-device
-\ normally connected to usb-port 5 on ELBA
-\
-0 VALUE uDOC-present       \ device present and working?
 
 \ Print a debug message when usb-debug-flag is set
 : usb-debug-print  ( str len -- )
@@ -100,31 +94,13 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
          disk-alias-num dup 1 + to disk-alias-num
          s" disk"                \ all block devices will be named "disk"
 
-         \ this is a block-device.
-         \ check if parent is 'usb' and not 'hub'
-         \ if so this block-device is directly connected
-         \ to root-hub and must be the uDOC-device in Elba
-         s" usb" drop            \ parent = usb controller ? (not hub)
-         get-node node>parent @ node>name
-         comp 0=                 \ parent node starts with 'usb' ?
-         IF                      ( true|false )
-            1 s" hdd"            \ add extra alias hdd1 for IntFlash
+         ext-disk-alias not   \ flag for first ext. disk already assigned
+         IF
+            TRUE to ext-disk-alias
+            2 s" hdd"         \ add extra alias hdd2 for first USB disk
             2dup type 2 pick .
             8 emit 2f emit
             do-alias-setting
-            uDOC-present 1 and
-            IF
-               uDOC-present 2 or to uDOC-present \ present and ready
-            THEN
-         ELSE
-            ext-disk-alias not   \ flag for first ext. disk already assigned
-            IF
-               TRUE to ext-disk-alias
-               2 s" hdd"         \ add extra alias hdd2 for first USB disk
-               2dup type 2 pick .
-               8 emit 2f emit
-               do-alias-setting
-            THEN
          THEN
       ELSE
          0 s" ??? "              \ unknown device
@@ -141,84 +117,11 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
 ;
 
 
-\ *****************************************************
-\ This is a final check to see, if a uDOC-device
-\ is ready for booting
-\ If physically present, but not working, an
-\ Error-LED must be activated (on ELBA only!)
-\ *****************************************************
-\ uDOC is now replaced by ModFD (Modular-Flash-Drive)
-\ due to right properties
-\ 'sys-signal-modfd-fault' sends an IPMI-Message to
-\ aMM for generating a log entry and to switch on
-\ an error LED (call to libsystem->libipmi)
-\ *****************************************************
-\ although there are IPMI-warnings defined concerning
-\ detected media errors, it doesn't make sense to send
-\ a warning when booting from this device is impossible.
-\ The decision was made to send an error call in this
-\ case as well
-\ *****************************************************
-\ uDOC-present bits:
-\ *****************************************************
-\ D0: any device is connected on port 3 of root-hub
-\ D1: device on port 3 is directly connected (no hub)
-\ D2: warnings were received (scancodes)
-\ D3: OverCurrentIndicator on USB-Port was set
-\ D7: flag, set while ModFD is beeing processed
-
-: uDOC-check   ( -- )
-#ifdef ELBA
-   uDOC-present 7 and               \ flags concerning ModFD device
-   CASE
-      0  OF                         \ not present not detected
-         uDOC-present 8 and 0<>     \ not detected due to OverCurrent?
-         IF
-            0d emit ."   * OverCurrent on ModFD *" cr
-            sys-signal-modfd-fault     ( -- )      \ send IPMI-call to BMC
-         ELSE
-            0d emit ."   ModFD not present" cr
-         THEN
-      ENDOF
-
-      1  OF       \ present but not detected by USB
-         0d emit ."   * ModFD not accessible *" cr
-         sys-signal-modfd-fault     ( -- )      \ send IPMI-call to BMC
-      ENDOF
-
-      3  OF       \ present and detected
-\        0d emit ."   ModFD OK" cr
-      ENDOF
-
-      7  OF       \ present and detected but with warnings
-         0d emit ."   * ModFD Warnings *" cr
-         sys-signal-modfd-fault     ( -- )      \ send IPMI-call to BMC
-      ENDOF
-
-      dup OF      \ we have a fault in our firmware !
-         s"   *** ModFD detection error ***" usb-debug-print
-      ENDOF
-   ENDCASE
-#endif
-;
-
-\ *****************************************************
-\ check if actual processed device is ModFD and
-\ then sets its warning bit
-\ *****************************************************
-: uDOC-failure?   ( -- )
-   uDOC-present 80 and 0<>                \ is ModFD actual beeing processed?
-   IF
-      uDOC-present 04 or to uDOC-present  \ set Warning flag
-   THEN
-;
-
 \ Scan all USB host controllers for attached devices:
 : usb-scan
    \ Scan all OHCI chips:
    space ." Scan USB... " cr
    true to scan-time?            \ show proceeding signs
-   0 to uDOC-present             \ mark as not present
    0 to disk-alias-num           \ start with disk0
    s" pci-disk-num" $find        \ previously detected disks ?
    IF
@@ -256,42 +159,6 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
    ELSE 
        drop                         ( -- )
    THEN
-   uDOC-check  \ check if uDOC-device is present and working (ELBA only)
+
    false to scan-time?                 \ suppress proceeding signs
 ;
-
-: usb-probe
-
-  usb-scan
-
-  cdrom-alias-num 0= IF
-     ." Not found CDROM! " cr
-  THEN
-     ." CDROM found " cdrom-alias-num . cr 
-;
-
- 
-: usb-dev-test ( -- TRUE )
-   s" USB Device Test " usb-debug-print
-   1 usb-create-alias-name
-   find-alias ?dup IF
-      ." * open " 2dup type . cr
-   ELSE
-      s" can't found alias " usb-debug-print
-   THEN
-   open-dev ?dup IF
-      dup to my-self
-      dup ihandle>phandle dup set-node
-      s" bulk" $open-package ihandle-bulk-tran !
-\      make-media-ready
-      s" close all " usb-debug-print
-      close-dev 0 set-node 0 to my-self
-
-      ihandle-bulk-tran close-package
-   ELSE
-      s" can't open usb hub" usb-debug-print
-   THEN
-
-   TRUE
-;
-
