@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -22,9 +22,8 @@ my-space pci-device-generic-setup
    4 config-w@ 110 or 4 config-w!
    pci-master-enable               \ set PCI Bus master bit and
    pci-mem-enable                  \ memory space enable for USB scan
-   10 config-l@                    \ get base address on stack for usb-ohci.fs
-   translate-my-address            \ translate PCI address to CPU address
-   s" usb-ohci.fs" included
+   \ Create an alias for this controller:
+   set-ohci-alias
 ;
 
 \ Check PCI sub-class and interface type of Serial Bus Controller
@@ -36,4 +35,3 @@ my-space pci-device-generic-setup
 ;
 
 handle-sbc-subclass
-

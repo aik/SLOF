@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -60,7 +60,6 @@ setup-puid
 \ Scan the child nodes of the pci root node to assign bars, fixup
 \ properties etc.
 : setup-children
-   my-self >r                       \ Save old value of my-self
    puid >r                          \ Save old value of puid
    my-puid TO puid                  \ Set current puid
    get-node child
@@ -68,25 +67,15 @@ setup-puid
       dup                           \ Continue as long as there are children
    WHILE
       \ ." Working on " dup node>path type cr
-      \ Open child node:
+      \ Set child node as current node:
       dup set-node
-      dup 0 0 rot open-node ?dup 0<> IF
-         ( child-phandle child-ihandle )
-         dup to my-self
-         dup ihandle>phandle node>instance-size @   \ Remember instance size
-         \ Include the PCI device functions:
-         s" pci-device-dma.fs" included
-         s" pci-device.fs" included
-         \ Clean up the temporary instance. Note that we can not use close-node
-         \ or destroy-instance here since node>instance-size might have changed.
-         ( child-phandle child-ihandle instance-size )
-         free-mem
-      THEN                          ( child-phandle )
-      peer
+      \ Include the PCI device functions:
+      s" pci-device.fs" included
+      s" pci-device-dma.fs" included
+      peer                          ( next-child-phandle )
    REPEAT
    drop
    r> TO puid                       \ Restore previous puid
-   r> to my-self                    \ Restore previous my-self
 ;
 
 setup-children

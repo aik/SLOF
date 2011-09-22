@@ -151,6 +151,11 @@ check-for-nvramrc
 
 8b0 cp
 
+\ Scan USB devices
+usb-scan
+
+8c0 cp
+
 \ Claim remaining memory that is used by firmware:
 romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 

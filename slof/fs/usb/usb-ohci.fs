@@ -11,36 +11,25 @@
 \ ****************************************************************************/
 
 
-\ We expect to base address of the OHCI controller on the stack:
-
-CONSTANT baseaddrs
-
-s" OHCI base address = " baseaddrs usb-debug-print-val
-
-
 \ Open Firmware Properties
 
-
-s" usb" 2dup device-name device-type
+s" usb" device-type
 1 encode-int s" #address-cells" property
 0 encode-int s" #size-cells" property
 
 
 \ converts physical address to text unit string
 
-
 : encode-unit ( port -- unit-str unit-len ) 1 hex-encode-unit ;
 
 
 \ Converts text unit string to phyical address
-
 
 : decode-unit ( addr len -- port ) 1 hex-decode-unit ;
 
 
 \  Data Structure Definitions
 \ OHCI Task Descriptor Structure.
-
 
 STRUCT
    /l field td>tattr
@@ -52,7 +41,6 @@ CONSTANT /tdlen
 
 \ OHCI Endpoint Descriptor Structure.
 
-
 STRUCT
    /l field ed>eattr
    /l field ed>tdqtp
@@ -63,7 +51,6 @@ CONSTANT /edlen
 
 \ HCCA Done queue location packaged as a structure for ease of use.
 
-
 STRUCT
    /l field hc>hcattr
    /l field hc>hcdone
@@ -72,20 +59,15 @@ CONSTANT /hclen
 
 \ OHCI Memory Mapped Registers
 
+: get-base-address ( -- baseaddr )
+   s" assigned-addresses" get-node get-property
+   ABORT" Could not get OHCI base address"
+   decode-int drop                          ( addr len )
+   decode-64 nip nip                        ( n )
+   translate-my-address
+;
 
-\ : get-base-address ( -- baseaddr )
-\    s" assigned-addresses" get-my-property  IF
-\       s" not possible"  usb-debug-print
-\       -1
-\    ELSE                  ( addr len )
-\       decode-int drop    ( addr len )
-\       decode-int drop    ( addr len )
-\       decode-int nip nip ( n )
-\    THEN
-\    \ TODO: Use translate-address here
-\ ;
-
-\ get-base-address CONSTANT baseaddrs
+get-base-address CONSTANT baseaddrs
 
 baseaddrs      CONSTANT HcRevision
 baseaddrs 4  + CONSTANT hccontrol
@@ -1233,8 +1215,3 @@ s" usb-enumerate.fs" INCLUDED
    rhport-initialize                 \ Probe all available RH ports
    reset-to-initial-usb-hub-address
 ;
-
-
-\ Create an alias for this controller:
-set-ohci-alias
-

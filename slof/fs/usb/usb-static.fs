@@ -117,8 +117,8 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
 ;
 
 
-\ Scan all USB host controllers for attached devices:
-: usb-scan
+\ Scan all USB OHCI host controllers for attached devices:
+: ohci-scan
    \ Scan all OHCI chips:
    space ." Scan USB... " cr
    true to scan-time?            \ show proceeding signs
@@ -135,20 +135,30 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
       r@ usb-create-alias-name
       find-alias ?dup               ( false | str len len  R: num )
    WHILE
+      ( str len  R: num )
       usb-debug-flag IF
          ." * Scanning hub " 2dup type ." ..." cr
       THEN
-      open-dev ?dup IF              ( ihandle  R: num )
-         dup to my-self
-         dup ihandle>phandle dup set-node
-          child ?dup IF
-              delete-node s" Deleting node" usb-debug-print
-          THEN
-         >r s" enumerate" r@ $call-method   \ Scan host controller
-         r> close-dev  0 set-node 0 to my-self
+      2dup find-node ?dup IF              ( str len phandle  R: num )
+         dup set-node
+         dup child ?dup IF
+            delete-node s" Deleting node" usb-debug-print
+         THEN
+         \ Check whether usb-ohci.fs has already been included:
+         s" enumerate" rot find-method IF
+            drop
+         ELSE
+            s" usb-ohci.fs" included
+         THEN                             ( str len  R: num )
+         \ Create instance for enumeration:
+         open-dev dup to my-self
+         s" enumerate" 2 pick $call-method   \ Scan host controller
+         close-dev  0 to my-self
+         0 set-node
       THEN                          ( R: num )
       r> 1+ >r                      ( R: num+1 )
-   REPEAT   r> drop
+   REPEAT
+   r> drop
    0 TO ohci-alias-num
    0 TO cdrom-alias-num
    s" cdrom0" find-alias            ( false | dev-path len )
@@ -161,4 +171,11 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
    THEN
 
    false to scan-time?                 \ suppress proceeding signs
+;
+
+: usb-scan
+   s" ohci0" find-alias IF
+      drop
+      ohci-scan
+   THEN
 ;
