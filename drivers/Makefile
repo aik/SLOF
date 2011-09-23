@@ -10,14 +10,19 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-# FFile-Name	Real Filename			Flags		ROM-Offset i/a
-#--------------|-------------------------------|---------------|--------------
-header		romfs/header.img		0		0
-stage1		board-js2x/llfw/stage1.bin	1		0x100
-xvect		slof/xvect.bin			0		0
-ofw_main	board-js2x/slof/paflof		0		0
-stageS		board-js2x/llfw/stageS.bin	0		0
-bootinfo	board-js2x/llfw/Cboot.bin	0		0
-rtas		board-js2x/rtas/rtas.bin	0		0
-snk		clients/net-snk.client		0		0
-net_bcm 	drivers/bcm57xx/net_bcm57xx.elf	0		0
+ifndef TOP
+  TOP = $(shell while ! test -e make.rules; do cd ..  ; done; pwd)
+  export TOP
+endif
+include $(TOP)/make.rules
+
+SUBDIRS=common bcm57xx
+CLEANSUBDIRS = $(SUBDIRS) 
+
+
+all:
+	for subdir in $(SUBDIRS) ; do $(MAKE) -C $${subdir} || exit 1 ; done
+
+# Common targets for all subdirectories:
+clean distclean depend:		
+	for subdir in $(CLEANSUBDIRS) ; do $(MAKE) -C $${subdir} $@ ; done

@@ -16,16 +16,16 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-SUBDIRS=common bcm
+SUBDIRS=
 ifeq ($(SNK_BIOSEMU_APPS), 1)
 SUBDIRS += x86emu
 endif
 CLEANSUBDIRS = $(SUBDIRS) 
 
 
-all :		
-		for subdir in $(SUBDIRS) ; do $(MAKE) -C $${subdir} || exit 1 ; done
+all :
+	for subdir in $(SUBDIRS) ; do $(MAKE) -C $${subdir} || exit 1 ; done
 
 # Common targets for all subdirectories:
-clean distclean depend:		
-		for subdir in $(CLEANSUBDIRS) ; do $(MAKE) -C $${subdir} $@ ; done
+clean distclean depend:
+	for subdir in $(CLEANSUBDIRS) ; do $(MAKE) -C $${subdir} $@ ; done

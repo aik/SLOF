@@ -10,7 +10,7 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-BOARD_TARGETS = tools_build romfs_build clients_build bcm57xx stage1 subdirs
+BOARD_TARGETS = tools_build romfs_build clients_build netdrivers stage1 subdirs
 
 SUBDIRS = slof rtas 
 COMMON_LIBS = libc libipmi libbootmsg libbases libnvram libelf
@@ -35,8 +35,8 @@ stage1:	common-libs
 	@echo " ====== Building llfw ======"
 	$(MAKE) -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
 
-bcm57xx:
-	$(MAKE) -C ../other-licence/bcm
+netdrivers: common-libs
+	$(MAKE) -C ../drivers
 
 clean_here:
 	rm -f ../slof/OF.ffs
@@ -47,7 +47,6 @@ clean:		clean_here clean_gen
 		$(MAKE) -C $$dir clean || exit 1; \
 	done
 	rm -f ../boot_rom.bin ../js2*.img 
-	$(MAKE) -C ../other-licence/bcm clean
 	@$(MAKE) -C llfw clean
 	@$(MAKE) -C $(TOPCMNDIR)/clients/takeover clean
 
@@ -56,7 +55,6 @@ distclean:	clean_here distclean_gen
 		$(MAKE) -C $$dir distclean || exit 1; \
 	done
 	rm -f ../boot_rom.bin ../js2*.img 
-	$(MAKE) -C ../other-licence/bcm clean
 	$(MAKE) -C llfw clean
 	$(MAKE) -C $(TOPCMNDIR)/clients/takeover distclean
 
