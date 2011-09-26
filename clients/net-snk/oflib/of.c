@@ -754,12 +754,24 @@ static int set_config(snk_kernel_t * snk_kernel_interface)
 void
 get_mac(char *mac)
 {
+	uint8_t localmac[8];
+	int len;
+
 	phandle_t net = get_boot_device();
 
 	if (net == -1)
 		return;
 
-	of_getprop(net, "local-mac-address", mac, 6);
+	len = of_getprop(net, "local-mac-address", localmac, 8);
+
+	if (len == 8) {
+		/* Some bad FDT nodes like veth use a 8-byte wide
+		 * property instead of 6-byte wide MACs... :-( */
+		memcpy(mac, &localmac[2], 6);
+	}
+	else {
+		memcpy(mac, localmac, 6);
+	}
 }
 
 static void
