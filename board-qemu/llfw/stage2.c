@@ -92,7 +92,7 @@ uint64_t tb_frequency(void)
 static void load_file(uint64_t destAddr, char *name, uint64_t maxSize,
 		      uint64_t romfs_base)
 {
-	uint64_t *src, *dest, cnt;
+	uint64_t cnt;
 	struct romfs_lookup_t fileInfo;
 	int rc;
 
@@ -108,8 +108,6 @@ static void load_file(uint64_t destAddr, char *name, uint64_t maxSize,
 		cnt = fileInfo.size_data;
 	}
 	memcpy((void *)destAddr, (void *)fileInfo.addr_data, cnt);
-	dest = (uint64_t *) destAddr;
-	src = (uint64_t *) fileInfo.addr_data;
 	flush_cache((void *) destAddr, fileInfo.size_data);
 }
 
@@ -126,12 +124,10 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	uint64_t *boot_info;
 	uint64_t romfs_base, paflof_base;
 	// romfs header values
-	struct stH *header = (struct stH *) (start_addr + 0x28);
-	uint64_t flashlen = 0;
+	// struct stH *header = (struct stH *) (start_addr + 0x28);
+	// uint64_t flashlen = header->flashlen;
 	unsigned long ofw_addr[2];
 	int rc;
-
-	flashlen = header->flashlen;
 
 	if (fdt_addr == 0) {
 		puts("ERROR: Flatten device tree available!");

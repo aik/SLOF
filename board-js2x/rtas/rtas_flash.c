@@ -34,7 +34,7 @@
 static uint64_t size;
 static uint64_t flashOffset;
 
-unsigned short manage_flash_buffer[BUFSIZE];
+unsigned char manage_flash_buffer[BUFSIZE*2];
 unsigned long check_flash_image(unsigned long rombase, unsigned long length,
 				unsigned long start_crc);
 
@@ -253,7 +253,7 @@ copy_flash(short mode)
 
 	for (blockCnt = 0; blockCnt <= FLASHSIZE; blockCnt += BUFSIZE) {
 		uint64_t *srcPtr = (uint64_t *)(flash + blockCnt);
-		uint64_t *destPtr = (uint64_t *)((void*)manage_flash_buffer);
+		uint64_t *destPtr = (uint64_t *)manage_flash_buffer;
 		uint64_t cnt = BUFSIZE / 8;
 		if (bmc_set_flashside(mode) != mode) {
 			return -1;
@@ -333,7 +333,7 @@ rtas_ibm_manage_flash_image(rtas_args_t *rtas_args)
 	result = copy_flash(mode);
 	bmc_set_flashside(mode);
 	enter_data_mode();
-	rtas_args->args[rtas_args->nargs] = 0;
+	rtas_args->args[rtas_args->nargs] = result;
 }
 
 /**

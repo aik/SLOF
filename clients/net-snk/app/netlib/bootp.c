@@ -99,12 +99,15 @@ receive_bootp(filename_ip_t * fn_ip)
 	int len, old_sum;
 	unsigned int packetsize = 2000;
 	unsigned char packet[packetsize];
-	struct ethhdr *ethh;
 	struct iphdr *iph;
 	struct udphdr *udph;
 	struct btphdr *btph;
 
+#if DEBUG
+	struct ethhdr *ethh;
 	ethh = (struct ethhdr *) packet;
+#endif
+
 	iph = (struct iphdr *) (packet + sizeof(struct ethhdr));
 	udph = (struct udphdr *) (iph + 1);
 	btph = (struct btphdr *) (udph + 1);
@@ -133,6 +136,9 @@ receive_bootp(filename_ip_t * fn_ip)
 			printf(".\n");
 		}
 #endif
+		if (len == 0)
+			continue;
+
 		/* check if the ip checksum is correct */
 		old_sum = iph->ip_sum;
 		iph->ip_sum = 0x00;
@@ -210,7 +216,6 @@ receive_bootp(filename_ip_t * fn_ip)
  		printf("Header btph->chaddr: %02x:%02x:%02x:%02x:%02x:%02x:\n",
 		       btph->chaddr[0], btph->chaddr[1], btph->chaddr[2],
 		       btph->chaddr[3], btph->chaddr[4], btph->chaddr[5]);
-
 #endif
 		return 0;
 

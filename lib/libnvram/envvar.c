@@ -83,10 +83,9 @@ char *get_env(partition_t part, char *envvar)
 static int find_last_envvar(partition_t part)
 {
 	uint8_t last, current;
-	int offset, len;
+	int offset;
 
 	offset=part.addr;
-	len=part.len;
 
 	last=nvram_read_byte(part.addr);
 
