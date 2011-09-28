@@ -10,7 +10,7 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-BOARD_TARGETS = tools_build romfs_build clients_build stage1 subdirs
+BOARD_TARGETS = tools_build romfs_build clients_build netdrivers stage1 subdirs
 
 SUBDIRS = slof veth
 COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall
@@ -34,6 +34,9 @@ $(SUBDIRS): common-libs
 stage1:	common-libs
 	@echo " ====== Building llfw ======"
 	$(MAKE) -C llfw RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
+
+netdrivers: common-libs
+	$(MAKE) -C ../drivers/e1k
 
 clean_here:
 	rm -f ../slof/OF.ffs
