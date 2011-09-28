@@ -672,22 +672,22 @@ get_puid(phandle_t node)
 {
 	uint64_t puid = 0;
 	uint64_t tmp = 0;
-	phandle_t curr_node = of_parent(node);
-	if (!curr_node)
-		/* no parent found */
-		return 0;
-	for (;;) {
+	phandle_t curr_node, last_node;
+
+	curr_node = last_node = of_parent(node);
+
+	while (curr_node) {
 		puid = tmp;
 		if (of_getprop(curr_node, "reg", &tmp, 8) < 8) {
 			/* if the found PHB is not directly under
 			 * root we need to translate the found address */
-			translate_address_dev(&puid, node);
+			translate_address_dev(&puid, last_node);
 			return puid;
 		}
+		last_node = curr_node;
 		curr_node = of_parent(curr_node);
-		if (!curr_node)
-			return 0;
 	}
+
 	return 0;
 }
 
