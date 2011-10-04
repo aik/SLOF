@@ -14,7 +14,7 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
-#include <types.h>
+#include <stdint.h>
 
 /* Initialize the environment for DNS client. */
 extern int8_t dns_init(uint32_t dns_server_ip);

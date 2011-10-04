@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <rtas.h>
 #include <of.h>
-#include <types.h>
+#include <stdint.h>
 #include <netdriver_int.h>
 #include "kernel.h"
 

@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <types.h>
+#include <stdint.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

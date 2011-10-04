@@ -9,7 +9,8 @@
  * Contributors:
  *     IBM Corporation - initial implementation
  *****************************************************************************/
-#include <types.h>
+
+#include <stdint.h>
 
 //*******************************************************************
 // variable "tb_freq" contains the frequency in Hz

@@ -16,7 +16,7 @@
 #include <string.h>
 #include <netdriver_int.h>
 #include <fileio.h>
-#include <types.h>
+#include <stdint.h>
 
 extern void call_client_interface(of_arg_t *);
 

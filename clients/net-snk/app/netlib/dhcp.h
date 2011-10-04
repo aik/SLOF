@@ -13,7 +13,7 @@
 #ifndef _DHCP_H_
 #define _DHCP_H_
 
-#include <types.h>
+#include <stdint.h>
 
 #ifdef USE_MTFTP
 #include <netlib/mtftp.h>

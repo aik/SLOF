@@ -13,7 +13,7 @@
 #ifndef _TCP_H
 #define _TCP_H
 
-#include <types.h>
+#include <stdint.h>
 
 #define IPTYPE_TCP          6
 

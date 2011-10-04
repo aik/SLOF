@@ -14,7 +14,7 @@
 #ifndef _TFTP_H_
 #define _TFTP_H_
 
-#include <types.h>
+#include <stdint.h>
 //#include <netlib/ipv6.h>
 
 struct tftphdr {

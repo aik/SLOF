@@ -14,7 +14,7 @@
 #ifndef _IPV4_H_
 #define _IPV4_H_
 
-#include <types.h>
+#include <stdint.h>
 
 #define IPTYPE_ICMP         1
 

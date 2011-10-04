@@ -13,7 +13,7 @@
 #ifndef _ETHERNET_H
 #define _ETHERNET_H
 
-#include <types.h>
+#include <stdint.h>
 
 #define ETH_MTU_SIZE     1518   /**< Maximum Transfer Unit         */
 #define ETH_ALEN            6   /**< HW address length             */

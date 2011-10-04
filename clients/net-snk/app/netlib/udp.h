@@ -13,7 +13,7 @@
 #ifndef _UDP_H
 #define _UDP_H
 
-#include <types.h>
+#include <stdint.h>
 
 #define IPTYPE_UDP         17
 

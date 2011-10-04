@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include "types.h"
+#include <stdint.h>
 #include "netdriver_int.h"
 #include "libhvcall.h"
 
@@ -30,25 +30,25 @@ static unsigned int	g_reg;
  *     we -do- rely on the forth code to have enabled TCE bypass
  *     on our device !
  */
-#define vaddr_to_dma(vaddr)	((u64)vaddr)
+#define vaddr_to_dma(vaddr)	((uint64_t)vaddr)
 
 struct ibmveth_buf_desc_fields {
-	u32 flags_len;
+	uint32_t flags_len;
 #define IBMVETH_BUF_VALID	0x80000000
 #define IBMVETH_BUF_TOGGLE	0x40000000
 #define IBMVETH_BUF_NO_CSUM	0x02000000
 #define IBMVETH_BUF_CSUM_GOOD	0x01000000
 #define IBMVETH_BUF_LEN_MASK	0x00FFFFFF
-	u32 address;
+	uint32_t address;
 };
 
 union ibmveth_buf_desc {
-	u64 desc;
+	uint64_t desc;
 	struct ibmveth_buf_desc_fields fields;
 };
 
 struct ibmveth_rx_q_entry {
-	u32 flags_off;
+	uint32_t flags_off;
 #define IBMVETH_RXQ_TOGGLE		0x80000000
 #define IBMVETH_RXQ_TOGGLE_SHIFT	31
 #define IBMVETH_RXQ_VALID		0x40000000
@@ -56,16 +56,16 @@ struct ibmveth_rx_q_entry {
 #define IBMVETH_RXQ_CSUM_GOOD		0x01000000
 #define IBMVETH_RXQ_OFF_MASK		0x0000FFFF
 
-	u32 length;
-	u64 correlator;
+	uint32_t length;
+	uint64_t correlator;
 };
 
 static void *buffer_list; 
 static void *filter_list; 
-static u64 *rx_bufs;
-static u64 *rx_bufs_aligned;
-static u32 cur_rx_toggle;
-static u32 cur_rx_index;
+static uint64_t *rx_bufs;
+static uint64_t *rx_bufs_aligned;
+static uint32_t cur_rx_toggle;
+static uint32_t cur_rx_index;
 
 #define RX_QUEUE_SIZE	16
 #define RX_BUF_SIZE	2048
@@ -83,7 +83,7 @@ static char * memcpy( char *dest, const char *src, size_t n )
         return( ret );
 }
 
-static inline u64 *veth_get_rx_buf(unsigned int i)
+static inline uint64_t *veth_get_rx_buf(unsigned int i)
 {
 	return &rx_bufs_aligned[i * RX_BUF_MULT];
 }
@@ -114,7 +114,7 @@ static int veth_init(void)
 		printk("veth: Failed to allocate memory !\n");
 		goto fail;
 	}
-	rx_bufs_aligned = (u64 *)(((u64)rx_bufs | 3) + 1);
+	rx_bufs_aligned = (uint64_t *)(((uint64_t)rx_bufs | 3) + 1);
 	rxq_desc.fields.address = vaddr_to_dma(rx_queue);
 	rxq_desc.fields.flags_len = IBMVETH_BUF_VALID | rx_queue_len;
 
@@ -122,15 +122,15 @@ static int veth_init(void)
 				    vaddr_to_dma(buffer_list),
 				    rxq_desc.desc,
 				    vaddr_to_dma(filter_list),
-				    (*(u64 *)mac_addr) >> 16);
+				    (*(uint64_t *)mac_addr) >> 16);
 	if (rc != H_SUCCESS) {
 		printk("veth: Error %ld registering interface !\n", rc);
 		goto fail;
 	}
 	for (i = 0; i < RX_QUEUE_SIZE; i++) {
-		u64 *buf = veth_get_rx_buf(i);
+		uint64_t *buf = veth_get_rx_buf(i);
 		union ibmveth_buf_desc desc;
-		*buf = (u64)buf;
+		*buf = (uint64_t)buf;
 		desc.fields.address = vaddr_to_dma(buf);
 		desc.fields.flags_len = IBMVETH_BUF_VALID | RX_BUF_SIZE;
 		h_add_logical_lan_buffer(g_reg, desc.desc);
