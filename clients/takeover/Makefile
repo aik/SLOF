@@ -49,7 +49,7 @@ takeover.elf32: takeover.elf64
 	$(OBJCOPY) --input-target=binary --binary-architecture=powerpc -O elf32-powerpc takeover.tmp $@
 
 ppc32wrap.o: ppc32wrap.S
-	$(CROSS)gcc -m32 -a32 $(CFLAGS) -c $< -o $@
+	$(CROSS)gcc -m32 $(CFLAGS) -c $< -o $@
 
 clean distclean:
 	$(MAKE) -C $(LIBCMNDIR) $@

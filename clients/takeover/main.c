@@ -144,11 +144,11 @@ main(int argc, char *argv[])
 	unsigned long slaveMask;
 	extern int slaveLoop[];
 	extern int slaveLoopNoTakeover[];
-	int rcode;
 	int index = 0;
 	int delay = 100;
 	unsigned long reg;
 	unsigned long msr;
+
 	asm volatile ("mfmsr %0":"=r" (msr));
 	if (msr & 0x1000000000000000)
 		takeoverFlag = 0;
@@ -191,7 +191,7 @@ main(int argc, char *argv[])
 	while (delay--)
 		doWait();
 	if (takeoverFlag)
-		rcode = takeover();
+		takeover();
 
 	memcpy((void*)TAKEOVERBASEADDRESS, &boot_rom_bin_start, &boot_rom_bin_end - &boot_rom_bin_start);
 	flush_cache((void *)TAKEOVERBASEADDRESS, &boot_rom_bin_end - &boot_rom_bin_start);
