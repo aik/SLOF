@@ -101,10 +101,15 @@ CREATE $catpad 100 allot
 ;
 
 
+: 2CONSTANT    CREATE , , DOES> [ here ] 2@ ;
 
-: 2CONSTANT    CREATE , , DOES> 2@ ;
+\ Save XT of 2CONSTANT, put on the stack by "[ here ]" :
+CONSTANT <2constant>
+
 : $2CONSTANT  $CREATE , , DOES> 2@ ;
+
 : 2VARIABLE    CREATE 0 , 0 ,  DOES> ;
+
 
 : (is-user-word) ( name-str name-len xt -- ) -rot $CREATE , DOES> @ execute ;
 

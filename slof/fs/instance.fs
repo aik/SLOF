@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -34,12 +34,17 @@
 
 VOCABULARY instance-words  ALSO instance-words DEFINITIONS
 
-: VARIABLE  0 create-instance-var DOES> @ >instance ;
-: VALUE       create-instance-var DOES> @ >instance @ ;
-: DEFER     0 create-instance-var DOES> @ >instance @ execute ;
+: VARIABLE  0 create-instance-var DOES> [ here ] @ >instance ;
+: VALUE       create-instance-var DOES> [ here ] @ >instance @ ;
+: DEFER     0 create-instance-var DOES> [ here ] @ >instance @ execute ;
 \ No support for BUFFER: yet.
 
 PREVIOUS DEFINITIONS
+
+\ Save XTs of the above instance-words (put on the stack with "[ here ]")
+CONSTANT <instancedefer>
+CONSTANT <instancevalue>
+CONSTANT <instancevariable>
 
 \ check whether a value or a defer word is an
 \ instance word: It must be a CREATE word and

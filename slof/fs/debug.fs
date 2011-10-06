@@ -10,28 +10,6 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-false constant <debug-dummy>
-
-12 34 2constant (2constant) ' (2constant) cell+ @
-\ fake device node
-here 0
-dup , dup , dup , dup , dup ,
-over 7 cells + ,
-dup , dup , dup , dup , dup ,
-dup , drop
-current-node ! \ FAKE!
-12 instance value (instancevalue) ' (instancevalue) cell+ @
-instance variable (instancevariable) ' (instancevariable) cell+ @
-instance defer (instancedefer) ' (instancedefer) cell+ @
-0 current-node !
-
-forget <debug-dummy>
-
-constant <instancedefer>
-constant <instancevariable>
-constant <instancevalue>
-constant <2constant>
-
 
 \ Get the name of Forth command whose execution token is xt
 
