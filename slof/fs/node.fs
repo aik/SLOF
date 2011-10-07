@@ -30,6 +30,7 @@ STRUCT
   cell FIELD node>addr1
   cell FIELD node>addr2
   cell FIELD node>addr3
+  cell FIELD node>extending?
 END-STRUCT
 
 : find-method ( str len phandle -- false | xt true )
@@ -42,9 +43,17 @@ END-STRUCT
 3000000 CONSTANT space-code-mask
 
 : create-node ( parent -- new )
-  max-instance-size alloc-mem dup max-instance-size erase >r
-  align wordlist >r wordlist >r
-  here 0 , swap , 0 , r> , r> , r> , /instance-header , 0 , 0 , 0 , 0 , ;
+   max-instance-size alloc-mem        ( parent instance-mem )
+   dup max-instance-size erase >r     ( parent  R: instance-mem )
+   align wordlist >r wordlist >r      ( parent  R: instance-mem wl wl )
+   here                               ( parent new  R: instance-mem wl wl )
+   0 , swap , 0 ,                     \ Set node>peer, node>parent & node>child
+   r> , r> ,                          \ Set node>properties & node>words to wl
+   r> , /instance-header ,            \ Set node>instance & node>instance-size
+   FALSE , 0 ,                        \ Set node>space? and node>space
+   0 , 0 , 0 ,                        \ Set node>addr*
+   TRUE ,                             \ Set node>extending?
+;
 
 : peer    node>peer   @ ;
 : parent  node>parent @ ;
@@ -146,15 +155,24 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
                                       1 > IF r@ node>addr1 @ THEN r> drop ;
 : >unit     dup >r >address r> >space ;
 
+: (my-phandle)  ( -- phandle )
+   my-self ?dup IF
+      ihandle>phandle
+   ELSE
+      get-node dup 0= ABORT" no active node"
+   THEN
+;
+
 : my-space ( -- phys.hi )
-   my-self ihandle>phandle >space ;
-: my-address  my-self ihandle>phandle >address ;
-: my-unit     my-self ihandle>phandle >unit ;
+   (my-phandle) >space
+;
+: my-address  (my-phandle) >address ;
+: my-unit     (my-phandle) >unit ;
 
 \ Return lower 64 bit of address
 : my-unit-64 ( -- phys.lo+1|phys.lo )
    my-unit                                ( phys.lo ... phys.hi )
-   my-self ihandle>phandle #address-cells ( phys.lo ... phys.hi #ad-cells )
+   (my-phandle) #address-cells            ( phys.lo ... phys.hi #ad-cells )
    CASE
       1   OF EXIT ENDOF
       2   OF lxjoin EXIT ENDOF
@@ -323,9 +341,12 @@ VARIABLE interpose-node
 : new-device ( -- )
   my-self new-node node>instance @ dup to my-self instance>parent !
   get-node my-self instance>node ! ;
+
 : finish-device ( -- )
-  ( check for "name" property here, delete this node if not there )
-  finish-node my-parent my-self max-instance-size free-mem to my-self ;
+   FALSE get-node node>extending? !
+   ( check for "name" property here, delete this node if not there )
+   finish-node my-parent my-self max-instance-size free-mem to my-self
+;
 
 : split ( str len char -- left len right len )
   >r 2dup r> findchar IF >r over r@ 2swap r> 1+ /string ELSE 0 0 THEN ;

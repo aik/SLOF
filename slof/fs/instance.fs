@@ -22,6 +22,8 @@
 
 : (create-instance-var) ( initial-value -- )
    get-node ?dup 0= ABORT" Instance word outside device context!"
+   dup node>extending? @ 0=
+   my-self 0<> AND ABORT" INSTANCE word can not be used while node is opened!"
    dup node>instance @      ( iv phandle tmp-ihandle )
    swap node>instance-size dup @     ( iv tmp-ih *instance-size instance-size )
    dup ,                             \ compile current instance ptr
