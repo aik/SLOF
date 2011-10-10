@@ -43,6 +43,7 @@ $SVN co svn://coreboot.org/repository/coreboot-v3/util/x86emu -r $REV
 
 echo "Copying files..."
 
+mkdir -p include/x86emu
 cp -v x86emu/x86emu/*.c .
 cp -v x86emu/x86emu/*.h include/x86emu
 cp -v x86emu/include/x86emu/*.h include/x86emu
