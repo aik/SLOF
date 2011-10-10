@@ -19,6 +19,7 @@
 #include <takeover.h>
 
 extern void call_client_interface(of_arg_t *);
+extern void m_sync(void);
 
 #define boot_rom_bin_start _binary_______boot_rom_bin_start
 #define boot_rom_bin_end   _binary_______boot_rom_bin_end
@@ -106,7 +107,8 @@ doWait(void)
 	static const char *wheel = "|/-\\";
 	static int i = 0;
 	volatile int dly = 0xf0000;
-	while (dly--);
+	while (dly--)
+		asm volatile (" nop ");
 	printf("\b%c", wheel[i++]);
 	i &= 0x3;
 }
@@ -198,10 +200,12 @@ main(int argc, char *argv[])
 	index = 0;
 
 	while (slaveMask) {
+		m_sync();
 		unsigned long shifter = 0x1 << index;
 		if (shifter & slaveMask) {
 			slaveQuitt = index;
-			while (slaveQuitt);
+			while (slaveQuitt)
+				m_sync();
 			slaveMask &= ~shifter;
 		}
 		index++;

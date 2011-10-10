@@ -19,10 +19,10 @@
 
 _wrapclient:
 	bcl	20,31,over	# branch after pointer table
-base:	
+base:
 	.align  3
 .LCgot:		.quad   _got-base+0x8000
-over:	
+over:
 	mflr	r8		# gpr 8 is the base
 	ld	r2, .LCgot-base(r8)	# load got pointer
 	add	r2, r2, r8		# add base
@@ -40,7 +40,7 @@ over:
 1:
 	stdu 15,8(14)
 	bdnz	1b
-		
+
 	bl ._entry
 
 
@@ -71,8 +71,8 @@ slaveLoopNoTakeover:
     .globl slaveLoop
 slaveLoop:
 	mr 28,3
-    	li r3, 0x5124
-    	li r0, -1; .long 0x44000022
+	li r3, 0x5124
+	li r0, -1; .long 0x44000022
 	
 	li	14,0
 	oris	14, 14, slaveQuitt@h
@@ -91,3 +91,9 @@ slaveLoop:
 	mtctr	r3
 	bctr
 
+
+C_ENTRY(m_sync)
+	isync
+	sync
+	nop
+	blr
