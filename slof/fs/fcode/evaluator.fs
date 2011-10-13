@@ -101,6 +101,7 @@ include tokens.fs
 ;
 
 : execute-rom-fcode ( addr len | false -- )
+	reset-fcode-end
 	?dup IF
 		diagnostic-mode? IF ." , executing ..." cr THEN
 		dup >r r@ alloc-mem dup >r swap rmove
