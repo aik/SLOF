@@ -15,6 +15,15 @@
 \ See the documentation at http://www.amd.com ; the datasheet for this chip is
 \ document #24674.
 
+\ Config space access functions - we're touching multiple device numbers and
+\ device functions below, so we've got to add our own my-space base here:
+: config-b@  dup 1000 < IF my-space + THEN config-b@ ;
+: config-w@  dup 1000 < IF my-space + THEN config-w@ ;
+: config-l@  dup 1000 < IF my-space + THEN config-l@ ;
+: config-b!  dup 1000 < IF my-space + THEN config-b! ;
+: config-w!  dup 1000 < IF my-space + THEN config-w! ;
+: config-l!  dup 1000 < IF my-space + THEN config-l! ;
+
 \ First, some master config.  Not all of this logically belongs to just
 \ one function, and certainly not to the LPC bridge; also, we'll
 \ initialize all functions in "downstream" order, and this code has to be
