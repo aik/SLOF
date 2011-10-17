@@ -20,7 +20,7 @@
 
 : ?bigendian ( -- true|false )
   deadbeef fcode-num !
-  fcode-num ?arch64 IF 4 + THEN 
+  fcode-num ?arch64 IF 4 + THEN
   c@ de =
   ;
 
@@ -57,12 +57,12 @@
   fcode-end @          eva-debug? IF ." saved fcode-end "    dup . cr THEN
   fcode-offset         eva-debug? IF ." saved fcode-offset " dup . cr THEN
 \ local fcodes are currently NOT saved!
-  fcode-spread         eva-debug? IF ." saved fcode-spread " dup . cr THEN  
+  fcode-spread         eva-debug? IF ." saved fcode-spread " dup . cr THEN
   ['] fcode@ behavior  eva-debug? IF ." saved fcode@ "       dup . cr THEN
   ;
 
 : restore-evaluator-state
-  eva-debug? IF ." restored fcode@ "       dup . cr THEN  to fcode@            
+  eva-debug? IF ." restored fcode@ "       dup . cr THEN  to fcode@
   eva-debug? IF ." restored fcode-spread " dup . cr THEN  to fcode-spread
 \ local fcodes are currently NOT restored!
   eva-debug? IF ." restored fcode-offset " dup . cr THEN  to fcode-offset
@@ -99,25 +99,24 @@
   token-table-index @ split-immediate
   ;
 
--1 VALUE break-fcode-addr 
-  
+-1 VALUE break-fcode-addr
+
 : exec ( FCode# -- )
-    
    eva-debug? IF
       dup
       get-ip 8 u.r ." : "
       ." [" 3 u.r ." ] "
    THEN
    get-ip break-fcode-addr = IF
-	TRUE fcode-end ! drop EXIT
+      TRUE fcode-end ! drop EXIT
    THEN
-   
+
    get-token 0= IF  \ imm == 0 == false
       ?compile-mode IF
-	  compile,
+         compile,
       ELSE
-	  eva-debug? IF dup xt>name type space THEN	  
-	  execute
+         eva-debug? IF dup xt>name type space THEN
+         execute
       THEN
   ELSE \ immediate
       eva-debug? IF dup xt>name type space THEN
@@ -140,8 +139,8 @@
 
 : read-header ( adr -- )
   next-ip read-byte        drop
-  next-ip read-fcode-num16 drop 
-  next-ip read-fcode-num32 drop 
+  next-ip read-fcode-num16 drop
+  next-ip read-fcode-num32 drop
   ;
 
 : read-fcode-string ( -- str len )
@@ -160,10 +159,10 @@
   ;
 
 : step-fcode ( -- )
-  break-fcode-addr >r -1 to break-fcode-addr      
+  break-fcode-addr >r -1 to break-fcode-addr
   fcode@ exec next-ip
-  r> to break-fcode-addr   
-;    
-    
-  
+  r> to break-fcode-addr
+;
+
+
 ( ---------------------------------------------------- )

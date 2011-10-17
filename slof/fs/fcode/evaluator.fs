@@ -10,12 +10,6 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-( eva - gordons fcode bytecode evaluator )
-
-hex
-
--1 constant true
- 0 constant false
 
 variable ip
 variable fcode-end 
@@ -101,12 +95,12 @@ include tokens.fs
 ;
 
 : execute-rom-fcode ( addr len | false -- )
-	reset-fcode-end
-	?dup IF
-		diagnostic-mode? IF ." , executing ..." cr THEN
-		dup >r r@ alloc-mem dup >r swap rmove
-		r@ set-ip evaluate-fcode
-		diagnostic-mode? IF ." Done." cr THEN
-		r> r> free-mem
-	THEN
+   reset-fcode-end
+   ?dup IF
+      diagnostic-mode? IF ." , executing ..." cr THEN
+      dup >r r@ alloc-mem dup >r swap rmove
+      r@ set-ip evaluate-fcode
+      diagnostic-mode? IF ." Done." cr THEN
+      r> r> free-mem
+   THEN
 ;

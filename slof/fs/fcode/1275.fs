@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,18 +10,6 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-0 value function-type    ' function-type @ constant <value>
-  variable function-type ' function-type @ constant <variable>
-0 constant function-type ' function-type @ constant <constant>
-: function-type ;        ' function-type @ constant <colon>
-create function-type     ' function-type @ constant <create>
-defer function-type      ' function-type @ constant <defer>
-
-\ variable tmp-buf-current
-\ variable orig-here
-\ create tmp-buf 10000 allot
-
-( ---------------------------------------------------- )
 
 : fcode-revision ( -- n )
   00030000 \ major * 65536 + minor
@@ -51,7 +39,7 @@ defer function-type      ' function-type @ constant <defer>
 
 : dest-on-top
   0 >r BEGIN dup @ 0= WHILE >r REPEAT
-       BEGIN r> dup WHILE swap REPEAT 
+       BEGIN r> dup WHILE swap REPEAT
   drop
   ;
 
@@ -64,29 +52,39 @@ defer function-type      ' function-type @ constant <defer>
   ;
 
 : b?branch ( flag -- )
-  ?compile-mode IF  
-                    read-fcode-offset ?negative IF   dest-on-top postpone until
-                                                ELSE postpone if
-												THEN
-                ELSE
-					?branch IF   2 jump-n-ip
-							ELSE read-fcode-offset
-								 ?jump-direction 2- jump-n-ip
-							THEN
-                THEN
-  ; immediate
+   ?compile-mode IF
+      read-fcode-offset ?negative IF
+         dest-on-top postpone until
+      ELSE
+         postpone if
+      THEN
+   ELSE
+      ?branch IF
+         2 jump-n-ip
+      ELSE
+         read-fcode-offset
+         ?jump-direction 2- jump-n-ip
+      THEN
+   THEN
+; immediate
 
 : bbranch ( -- )
-  ?compile-mode IF 
-                     read-fcode-offset
-					 ?negative IF   dest-on-top postpone again
-							   ELSE postpone else
-                     get-ip next-ip fcode@ B2 = IF drop ELSE set-ip THEN
-							   THEN
-				ELSE  
-                     read-fcode-offset ?jump-direction 2- jump-n-ip
-                THEN
-  ; immediate
+   ?compile-mode IF
+      read-fcode-offset
+      ?negative IF
+         dest-on-top postpone again
+      ELSE
+         postpone else
+         get-ip next-ip fcode@ B2 = IF
+            drop
+         ELSE
+            set-ip
+         THEN
+      THEN
+   ELSE
+      read-fcode-offset ?jump-direction 2- jump-n-ip
+   THEN
+; immediate
 
 : b(<mark) ( -- )
   ?compile-mode IF postpone begin THEN
@@ -126,7 +124,7 @@ defer function-type      ' function-type @ constant <defer>
 
 : b1(;) ( -- )
 ." b1(;)" cr
-  rpop set-ip 
+  rpop set-ip
 ;
 
 \ : b1(:) ( -- )
@@ -136,7 +134,7 @@ defer function-type      ' function-type @ constant <defer>
 \   ; immediate
 
 : b(;) ( -- )
-  postpone exit reveal postpone [ 
+  postpone exit reveal postpone [
   ; immediate
 
 : b(:) ( -- )
@@ -158,27 +156,27 @@ defer function-type      ' function-type @ constant <defer>
 
 : b(endof)
   postpone endof
-  read-fcode-offset drop   
+  read-fcode-offset drop
   ; immediate
 
 : b(do)
   postpone do
-  read-fcode-offset drop   
+  read-fcode-offset drop
   ; immediate
 
 : b(?do)
   postpone ?do
-  read-fcode-offset drop   
+  read-fcode-offset drop
   ; immediate
 
 : b(loop)
   postpone loop
-  read-fcode-offset drop   
+  read-fcode-offset drop
   ; immediate
 
 : b(+loop)
   postpone +loop
-  read-fcode-offset drop   
+  read-fcode-offset drop
   ; immediate
 
 : b(leave)
@@ -189,7 +187,7 @@ defer function-type      ' function-type @ constant <defer>
   align here next-ip read-fcode# 0 swap set-token
   ;
 
-: external-token ( -- )  \ named local fcode function 
+: external-token ( -- )  \ named local fcode function
   next-ip read-fcode-string
   header         ( str len -- )  \ create a header in the current dictionary entry
   new-token
@@ -226,7 +224,7 @@ defer function-type      ' function-type @ constant <defer>
   ;
 
 : undefined-defer
-  cr cr ." Unititialized defer word has been executed!" cr cr 
+  cr cr ." Unititialized defer word has been executed!" cr cr
   true fcode-end !
   ;
 
@@ -236,7 +234,7 @@ defer function-type      ' function-type @ constant <defer>
   ;
 
 : b(create)
-  <variable> , 
+  <variable> ,
   postpone noop reveal
   ;
 
@@ -269,13 +267,13 @@ defer function-type      ' function-type @ constant <defer>
   offset16
   read-header
   ;
-  
+
 : start1 ( -- )
   1 to fcode-spread
   offset16
   read-header
   ;
-    
+
 : start2 ( -- )
   2 to fcode-spread
   offset16
@@ -288,12 +286,12 @@ defer function-type      ' function-type @ constant <defer>
   read-header
   ;
 
-: end0 ( -- ) 
-  true fcode-end ! 
+: end0 ( -- )
+  true fcode-end !
   ;
 
-: end1 ( -- ) 
-  end0 
+: end1 ( -- )
+  end0
   ;
 
 : ferror ( -- )
@@ -309,7 +307,7 @@ defer function-type      ' function-type @ constant <defer>
   ;
 
 : byte-load ( addr xt -- )
-  >r >r 
+  >r >r
   save-evaluator-state
   r> r>
   reset-fcode-end
@@ -319,19 +317,21 @@ defer function-type      ' function-type @ constant <defer>
   reset-local-fcodes
   depth >r
   evaluate-fcode
-  r> depth 1- <> IF   clear end0 
-                      cr ." Ambiguous stack depth after byte-load!"
-                      cr ." FCode evaluation aborted." cr cr
-				 ELSE restore-evaluator-state 
-				 THEN
-  ['] c@ to fcode-rb@                
+  r> depth 1- <> IF
+      clear end0
+      cr ." Ambiguous stack depth after byte-load!"
+      cr ." FCode evaluation aborted." cr cr
+  ELSE
+      restore-evaluator-state
+  THEN
+  ['] c@ to fcode-rb@
   ;
 
 create byte-load-test-fcode
 f1 c, 08 c, 18 c, 69 c, 00 c, 00 c, 00 c, 68 c,
-12 c, 16 c, 62 c, 79 c, 74 c, 65 c, 2d c, 6c c, 
-6f c, 61 c, 64 c, 2d c, 74 c, 65 c, 73 c, 74 c, 
-2d c, 66 c, 63 c, 6f c, 64 c, 65 c, 21 c, 21 c, 
+12 c, 16 c, 62 c, 79 c, 74 c, 65 c, 2d c, 6c c,
+6f c, 61 c, 64 c, 2d c, 74 c, 65 c, 73 c, 74 c,
+2d c, 66 c, 63 c, 6f c, 64 c, 65 c, 21 c, 21 c,
 90 c, 92 c, ( a6 c, a7 c, 2e c, ) 00 c,
 
 : byte-load-test
@@ -347,7 +347,7 @@ f1 c, 08 c, 18 c, 69 c, 00 c, 00 c, 00 c, 68 c,
     drop true
   ELSE
     false
-  THEN    
+  THEN
   ;
 
 ( ---------------------------------------------------- )
