@@ -183,12 +183,19 @@
   postpone leave
   ; immediate
 
+
+0 VALUE fc-instance?
+: fc-instance  ( -- )   \ Mark next defining word as instance-specific.
+   TRUE TO fc-instance?
+;
+
 : new-token  \ unnamed local fcode function
   align here next-ip read-fcode# 0 swap set-token
   ;
 
 : external-token ( -- )  \ named local fcode function
   next-ip read-fcode-string
+  \ fc-instance? IF cr ." ext instance token: " 2dup type ."  in " pwd cr THEN
   header         ( str len -- )  \ create a header in the current dictionary entry
   new-token
   ;
@@ -204,34 +211,85 @@
   fcode-debug? IF new-token ELSE external-token THEN
   ;
 
-: b(to) ( x -- )
-  next-ip read-fcode#
-  get-token drop
-  >body cell -
-  ?compile-mode IF literal, postpone !  ELSE !  THEN
-  ; immediate
+: b(to) ( val -- )
+   next-ip read-fcode#
+   get-token drop                           ( val xt )
+   dup @                                    ( val xt @xt )
+   dup <value> =  over <defer> = OR IF
+      \ Destination is value or defer
+      drop
+      >body cell -
+      ( val addr )
+      ?compile-mode IF
+         literal, postpone !
+      ELSE
+         !
+      THEN
+   ELSE
+      <create> <> IF                         ( val xt )
+         TRUE ABORT" Invalid destination for FCODE b(to)"
+      THEN
+      dup cell+ @                           ( val xt @xt+1cell )
+      dup <instancevalue> <>  swap <instancedefer> <> AND IF
+         TRUE ABORT" Invalid destination for FCODE b(to)"
+      THEN
+      \ Destination is instance-value or instance-defer
+      >body @                               ( val instance-offset )
+      ?compile-mode IF
+         literal,  postpone >instance  postpone !
+      ELSE
+         >instance !
+      THEN
+      ELSE
+   THEN
+; immediate
 
 : b(value)
-  <value> , , reveal
-  ;
+   fc-instance? IF
+      <create> ,                \ Needed for "(instance?)" for example
+      <instancevalue> ,
+      (create-instance-var)
+      reveal
+      FALSE TO fc-instance?
+   ELSE
+      <value> , , reveal
+   THEN
+;
 
 : b(variable)
-  <variable> , 0 , reveal
-  ;
+   fc-instance? IF
+      <create> ,                \ Needed for "(instance?)"
+      <instancevariable> ,
+      0 (create-instance-var)
+      reveal
+      FALSE TO fc-instance?
+   ELSE
+      <variable> , 0 , reveal
+   THEN
+;
 
 : b(constant)
   <constant> , , reveal
   ;
 
 : undefined-defer
-  cr cr ." Unititialized defer word has been executed!" cr cr
+  cr cr ." Uninitialized defer word has been executed!" cr cr
   true fcode-end !
   ;
 
 : b(defer)
-  <defer> , reveal
-  postpone undefined-defer
-  ;
+   fc-instance? IF
+      <create> ,                \ Needed for "(instance?)"
+      <instancedefer> ,
+      ['] undefined-defer (create-instance-var)
+      reveal
+      FALSE TO fc-instance?
+      ." INSTANCE b(defer)!" cr
+   ELSE
+      <defer> , reveal
+      postpone undefined-defer
+   THEN
+;
 
 : b(create)
   <variable> ,
@@ -245,8 +303,12 @@
   ;
 
 : b(buffer:) ( E: -- a-addr) ( F: size -- )
-  <variable> , allot
-  ;
+   fc-instance? IF
+      cr ." INSTANCE b(buffer:) not supported yet!" cr
+      FALSE TO fc-instance?
+   THEN
+   <variable> , allot
+;
 
 : suspend-fcode ( -- )
   noop        \ has to be implemented more efficiently ;-)

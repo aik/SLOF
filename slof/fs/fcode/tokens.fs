@@ -205,11 +205,7 @@ reset-token-table
 \ ' ferror      0 B4 set-token 
 ' new-token   0 B5 set-token 
 ' named-token 0 B6 set-token
-\ fcode-debug? IF
 ' b(:)        1 B7 set-token
-\ ELSE
-\ ' b(:)        1 B7 set-token
-\ THEN
 ' b(value)    1 B8 set-token 
 ' b(variable) 1 B9 set-token 
 ' b(constant) 1 BA set-token 
@@ -218,14 +214,9 @@ reset-token-table
 ' b(buffer:)  1 BD set-token 
 ' b(field)    1 BE set-token 
 \ ' ferror      0 BF set-token 
-' INSTANCE     0 C0 set-token 
-\ ' noop        1 C0 set-token
+' fc-instance 1 C0 set-token 
 \ ' ferror      0 C1 set-token
-\ fcode-debug? IF
 ' b(;)        1 C2 set-token
-\ ELSE
-\ ' b(;)        1 C2 set-token
-\ THEN
 ' b(to)       1 C3 set-token 
 ' b(case)     1 C4 set-token
 ' b(endcase)  1 C5 set-token
