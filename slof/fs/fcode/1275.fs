@@ -133,9 +133,10 @@
 \ ffwto;
 \   ; immediate
 
-: b(;) ( -- )
-  postpone exit reveal postpone [
-  ; immediate
+: b(;)
+   <semicolon> compile, reveal
+   postpone [
+; immediate
 
 : b(:) ( -- )
   <colon> compile, ]
