@@ -202,15 +202,22 @@
   ;
 
 : new-token
-	eva-debug? IF
-		s" x" get-ip >r next-ip read-fcode# r> set-ip (u.) $cat strdup
-		header
-	THEN new-token
+   eva-debug? IF
+      s" x" get-ip >r next-ip read-fcode# r> set-ip (u.) $cat strdup
+      header
+   THEN
+   new-token
 ;
 
-: named-token  \ decide wether or not to give a new token an own name in the dictionary
-  fcode-debug? IF new-token ELSE external-token THEN
-  ;
+\ decide wether or not to give a new token an own name in the dictionary
+: named-token
+   fcode-debug? IF
+      external-token
+   ELSE
+      next-ip read-fcode-string 2drop       \ Forget about the name
+      new-token
+   THEN
+;
 
 : b(to) ( val -- )
    next-ip read-fcode#

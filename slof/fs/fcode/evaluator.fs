@@ -17,7 +17,7 @@ variable fcode-num
  1 value fcode-spread
 16 value fcode-offset
 false value eva-debug?
-false value fcode-debug?
+true value fcode-debug?
 defer fcode-rb@
 defer fcode@
 
