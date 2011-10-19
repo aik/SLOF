@@ -70,15 +70,19 @@ VARIABLE see-my-type-column
          \ blank causes overflow: just enforce new line with next call
          2drop see-my-type-column !
       ELSE
-         rot drop                      ( indent limit xt str len )
-         2 pick (u.) dup -rot cr type  ( indent limit xt str len xt-len )
-         " :" type 1+                  ( indent limit xt str len prefix-len )
-         5 pick dup spaces +           ( indent limit xt str len prefix-len )
-         over + see-my-type-column !   ( indent limit xt str len )
+         rot drop                     ( indent limit xt str len )
+         \ Need to copy string since we use (u.) again (kills internal buffer):
+         pocket swap 2dup >r >r       ( indent limit xt str pk len  R: len pk )
+         move r> r>                   ( indent limit xt pk len )
+         2 pick (u.) dup -rot
+         cr type                      ( indent limit xt pk len xt-len )
+         " :" type 1+                 ( indent limit xt pk len prefix-len )
+         5 pick dup spaces +          ( indent limit xt pk len prefix-len )
+         over + see-my-type-column !  ( indent limit xt pk len )
          type
-      THEN                          ( indent limit xt )
+      THEN                            ( indent limit xt )
    ELSE
-      see-my-type-column ! type     ( indent limit xt )
+      see-my-type-column ! type       ( indent limit xt )
    THEN
 ;
 
