@@ -483,11 +483,33 @@ VARIABLE interpose-node
 \ The /packages node.
 0 VALUE packages
 
-\ We can't use the standard find-node stuff, as we are required to find the
-\ newest (i.e., last in our tree) matching package, not just any.
+\ Find a support package (or arbitrary nodes when name is absolute)
 : find-package  ( name len -- false | phandle true )
-  0 >r packages child BEGIN dup WHILE dup >r node>name 2over string=ci r> swap
-  IF r> drop dup >r THEN peer REPEAT 3drop r> dup IF true THEN ;
+   dup 0 <= IF
+      2drop FALSE EXIT
+   THEN
+   \ According to IEEE 1275 Proposal 215 (Extensible Client Services Package),
+   \ the find-package method can be used to get the phandle of arbitrary nodes
+   \ (i.e. not only support packages) when the name starts with a slash.
+   \ Some FCODE programs depend on this behavior so let's support this, too!
+   over c@ [char] / = IF
+      find-node dup IF TRUE THEN EXIT
+   THEN
+   \ Ok, let's look for support packages instead. We can't use the standard
+   \ find-node stuff, as we are required to find the newest (i.e., last in our
+   \ tree) matching package, not just any.
+    0 >r packages child
+    BEGIN
+       dup
+    WHILE
+       dup >r node>name 2over string=ci r> swap IF
+          r> drop dup >r
+       THEN
+       peer
+    REPEAT
+    3drop
+    r> dup IF true THEN
+;
 
 : open-package ( arg len phandle -- ihandle | 0 )  open-node ;
 : close-package ( ihandle -- )  close-node ;
