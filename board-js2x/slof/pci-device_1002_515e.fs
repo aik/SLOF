@@ -32,15 +32,12 @@ my-space pci-set-irq-line
 -1 value regs-addr
 false value is_installed
 
-: >rn [ 18 config-l@ -10 and ] LITERAL + ;
-: rn! >rn rl!-le ;
-: rn@ >rn rl@-le ;
-: reg-rl@ rn@ ;
-: reg-rl! rn! ;
-: map-in        " map-in"       $call-parent ;
-: map-out       " map-out"      $call-parent ;
-: pc@ ( offset -- byte ) >rn rb@ ;
-: pc! ( byte offset -- ) >rn rb! ;
+: reg-rl@ regs-addr + rl@-le ;
+: reg-rl! regs-addr + rl!-le ;
+: map-in   " map-in"   $call-parent ;
+: map-out  " map-out"  $call-parent ;
+: pc@ ( offset -- byte ) regs-addr + rb@ ;
+: pc! ( byte offset -- ) regs-addr + rb! ;
 
 0 value phys_low
 0 value phys_mid
@@ -206,8 +203,8 @@ dup l@ swap la1+
 ;
 
 : andorset  ( reg and or -- )
-   2 pick regs-addr + dup rn@
-   3 pick AND 2 pick OR swap rn! 3drop
+   2 pick dup reg-rl@
+   3 pick AND 2 pick OR swap reg-rl! 3drop
 ;
 
 : INIT1

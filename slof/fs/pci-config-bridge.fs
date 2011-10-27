@@ -56,9 +56,24 @@
         THEN                            \ FI
 ;
 
-: map-in ( phys.lo ... phys.hi size -- virt )
+: map-in ( phys.lo phys.mid phys.hi size -- virt )
    \ ." map-in called: " .s cr
-   2drop drop
+   \ Ignore the size, phys.lo and phys.mid, get BAR from config space
+   drop nip nip                         ( phys.hi )
+   \ Sanity check whether config address is in expected range:
+   dup FF AND 10 28 WITHIN NOT IF
+      cr ." phys.hi = " . cr
+      ABORT" map-in with illegal config space address"
+   THEN
+   00FFFFFF AND                         \ Need only bus-dev-fn+register bits
+   dup config-l@                        ( phys.hi' bar.lo )
+   dup 7 AND 4 = IF                     \ Is it a 64-bit BAR?
+      swap 4 + config-l@ lxjoin         \ Add upper part of 64-bit BAR
+   ELSE
+      nip
+   THEN
+   F NOT AND                            \ Clear indicator bits
+   \ TODO: Use translate-address here!
 ;
 
 : map-out ( virt size -- )
