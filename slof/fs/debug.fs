@@ -121,6 +121,8 @@ VARIABLE see-my-type-column
                     "  " (see-my-type) ENDOF
 	 <doloop>   OF cell+ dup @ (u.) (see-my-type)
                     "  " (see-my-type) ENDOF
+	 <do+loop>  OF cell+ dup @ (u.) (see-my-type)
+                    "  " (see-my-type) ENDOF
 	 <doleave>  OF cell+ dup @ over + cell+ (u.)
                     (see-my-type) "  " (see-my-type) ENDOF
 	 <do?leave> OF cell+ dup @ over + cell+ (u.)
