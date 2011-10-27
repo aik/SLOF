@@ -50,7 +50,10 @@ ioasa ioarcb 34 + l!  200 ioarcb 38 + w!
 
 \ ioa config data (max. 16 devices)
 CREATE ioacfg 404 allot  ioacfg 404 erase
-CREATE setsupbuff  2c allot  setsupbuff 2c erase 2c setsupbuff w! 1 setsupbuff + 3 c!
+CREATE setsupbuff  2c allot
+   setsupbuff 2c erase
+   2c setsupbuff w!
+   1 setsupbuff 3 + c!
 
 : wait-ready ( -- )
 	82800000 214 ioa!
