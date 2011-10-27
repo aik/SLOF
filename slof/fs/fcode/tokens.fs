@@ -16,6 +16,29 @@
 
 : parse-1hex 1 hex-decode-unit ;
 
+\ Adjust functions for accessing MMIO registers. According to IEEE 1275,
+\ a bus device can substitute bus-specific implementations of r*@ and r*!
+\ for use by its children, e.g. with respect to byte-order. Since PCI is
+\ little endian by default, we've got to use the little endian accessor
+\ functions for the PCI bus (some FCODE programs are expecting this behavior).
+: fc-set-pci-mmio-tokens  ( -- )
+   ['] rw@-le  0 232 set-token
+   ['] rw!-le  0 233 set-token
+   ['] rl@-le  0 234 set-token
+   ['] rl!-le  0 235 set-token
+   ['] rx@-le  0 22E set-token
+   ['] rx!-le  0 22F set-token
+;
+
+\ Set normal MMIO access token behavior:
+: fc-set-normal-mmio-tokens  ( -- )
+   ['] rw@  0 232 set-token
+   ['] rw!  0 233 set-token
+   ['] rl@  0 234 set-token
+   ['] rl!  0 235 set-token
+   ['] rx@  0 22E set-token
+   ['] rx!  0 22F set-token
+;
 
 : reset-token-table
   FFF 0 DO ['] ferror 0 i set-token LOOP
@@ -349,14 +372,11 @@ reset-token-table
 ' lwflip            0 226 set-token 
 ' lbflip            0 227 set-token 
 ' lbflips           0 228 set-token
-' rx@               0 22E set-token
-' rx!               0 22F set-token
+
 ' rb@               0 230 set-token
 ' rb!               0 231 set-token
-' rw@               0 232 set-token 
-' rw!               0 233 set-token 
-' rl@               0 234 set-token 
-' rl!               0 235 set-token 
+fc-set-normal-mmio-tokens             \ Set rw@, rw!, rl@, rl!, rx@ and rx!
+
 ' wbflips           0 236 set-token 
 ' lwflips           0 237 set-token 
 \ ' probe           0 238 set-token
@@ -368,6 +388,8 @@ reset-token-table
 ' byte-load         0 23E set-token
 ' set-args          0 23F set-token
 ' left-parse-string 0 240 set-token
+
+\ 64-bit extension tokens:
 ' bxjoin            0 241 set-token
 ' <l@               0 242 set-token
 ' lxjoin            0 243 set-token
@@ -388,7 +410,8 @@ reset-token-table
 ' xwflip            0 252 set-token
 ' xwflips           0 253 set-token
 ' xwsplit           0 254 set-token
-\                    0 254 RESERVED FCODES 
+
+\                    0 255 RESERVED FCODES 
 \                    ...
 \                    0 5FF RESERVED FCODES 
 

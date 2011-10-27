@@ -37,7 +37,19 @@ include tokens.fs
 ' read-fcode# to fcode@
 
 : step next-ip fcode@ exec ; immediate
+
 ( ---------------------------------------------------- )
+
+: execute-rom-fcode ( addr len | false -- )
+   reset-fcode-end
+   ?dup IF
+      diagnostic-mode? IF ." , executing ..." cr THEN
+      dup >r r@ alloc-mem dup >r swap rmove
+      r@ set-ip evaluate-fcode
+      diagnostic-mode? IF ." Done." cr THEN
+      r> r> free-mem
+   THEN
+;
 
 : rom-code-ignored  ( image-addr name len -- image-addr )
    diagnostic-mode? IF
@@ -94,13 +106,17 @@ include tokens.fs
    REPEAT
 ;
 
-: execute-rom-fcode ( addr len | false -- )
-   reset-fcode-end
-   ?dup IF
-      diagnostic-mode? IF ." , executing ..." cr THEN
-      dup >r r@ alloc-mem dup >r swap rmove
-      r@ set-ip evaluate-fcode
-      diagnostic-mode? IF ." Done." cr THEN
-      r> r> free-mem
+
+\ Prepare and run a FCODE program from a PCI Option ROM.
+: pci-execute-fcode  ( baseaddr -- )
+   pci-find-fcode dup 0= IF
+      2drop EXIT
+   THEN                                 ( addr len )
+   fc-set-pci-mmio-tokens               \ Prepare PCI access functions
+   \ Now run the FCODE:
+   ['] execute-rom-fcode CATCH IF
+      cr ." FCODE failed!" cr
+      2drop
    THEN
+   fc-set-normal-mmio-tokens            \ Restore normal MMIO access functions
 ;

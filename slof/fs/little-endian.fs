@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -22,6 +22,9 @@ here c@ ef = CONSTANT ?littleendian
 
 : w!-le  >r wbflip r> w! ;
 : w@-le  w@ wbflip ;
+
+: rx!-le  >r xbflip r> rx! ;
+: rx@-le  rx@ xbflip ;
 
 : rl!-le  >r lbflip r> rl! ;
 : rl@-le  rl@ lbflip ;
@@ -50,6 +53,9 @@ here c@ ef = CONSTANT ?littleendian
 : w!-le  w! ;
 : w@-le  w@ ;
 
+: rx!-le  rx! ;
+: rx@-le  rx@ ;
+
 : rl!-le  rl! ;
 : rl@-le  rl@ ;
 
@@ -69,4 +75,3 @@ here c@ ef = CONSTANT ?littleendian
 : rw@-be  rw@ wbflip ;
 
 [THEN]
-
