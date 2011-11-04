@@ -332,13 +332,18 @@ check-for-nvramrc
 #include "elf.fs"
 #include <loaders.fs>
 
+8a8 cp
+
 \ check wether a VGA device was found during pci scan, if it was
 \ try to initialize it and create the needed device-nodes
 0 value biosemu-vmem
 100000 value biosemu-vmem-size
 0 value screen-info
 
-vga-device-node? 0<> use-biosemu? AND IF
+: init-vga-devices  ( -- )
+   vga-device-node? 0= use-biosemu? 0= OR IF
+      EXIT
+   THEN
    s" VGA Device found: " type vga-device-node? node>path type s"  initializing..." type cr
    \ claim virtual memory for biosemu of 1MB
    biosemu-vmem-size 4 claim to biosemu-vmem
@@ -360,7 +365,11 @@ vga-device-node? 0<> use-biosemu? AND IF
       20 char-cat biosemu-debug $cathex \ add biosemu-debug as param
       ( paramstr+path+biosemu-debug len )
    THEN
-   .(client-exec) drop
+   .(client-exec) IF
+      ." biosemu client exec failed!" cr
+      set-node                          \ restore old current-node
+      EXIT
+   THEN
    \ s" Time after biosemu:" type .date cr
    s" VGA initialization: detecting displays..." type cr
    \ try to get info for two monitors
@@ -387,9 +396,9 @@ vga-device-node? 0<> use-biosemu? AND IF
       2swap $cat ( paramstr+path len )
       20 char-cat
       screen-info $cathex
-      .(client-exec) drop
+      .(client-exec) 0=
       \ s" Time after client exec:" type .date cr
-      screen-info c@ 0<> IF
+      screen-info c@ 0<> AND IF
         s"   display " type i . s" found..." type 
         \ screen found
         \ create device entry
@@ -408,7 +417,9 @@ vga-device-node? 0<> use-biosemu? AND IF
    biosemu-vmem biosemu-vmem-size release
 
    s" VGA initialization done." type cr
-THEN \ vga-device-node?
+;
+
+init-vga-devices
 
 : enable-framebuffer-output  ( -- )
 \ enable output on framebuffer
