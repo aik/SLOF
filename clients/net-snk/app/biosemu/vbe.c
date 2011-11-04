@@ -488,7 +488,11 @@ uint32_t
 vbe_get_info(uint8_t argc, char ** argv)
 {
 	uint8_t rval;
+	static const uint8_t valid_edid_sig[] = {
+		0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00
+	};
 	uint32_t i;
+
 	if (argc < 4) {
 		printf
 		    ("Usage %s <vmem_base> <device_path> <address of screen_info_t>\n",
@@ -592,10 +596,8 @@ vbe_get_info(uint8_t argc, char ** argv)
 		     sizeof(ddc_info.edid_block_zero));
 	}
 #endif
-	if (*((uint64_t *) ddc_info.edid_block_zero) !=
-	    (uint64_t) 0x00FFFFFFFFFFFF00) {
+	if (memcmp(ddc_info.edid_block_zero, valid_edid_sig, 8) != 0) {
 		// invalid EDID signature... probably no monitor
-
 		output->display_type = 0x0;
 		return 0;
 	} else if ((ddc_info.edid_block_zero[20] & 0x80) != 0) {
