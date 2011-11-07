@@ -256,6 +256,11 @@ CREATE "pad 100 allot
    THEN                              \ in temp buffer
 ; immediate
 
+
+\ Output the carriage-return character
+: (cr carret emit ;
+
+
 \ Remove command old-name and all subsequent definitions
 
 : $forget ( str len -- )

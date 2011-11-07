@@ -180,8 +180,7 @@ reset-token-table
 ' key         0 8E set-token 
 ' emit        0 8F set-token 
 ' type        0 90 set-token 
-' cr          0 91 set-token \ should be (cr but terminal support is not
-                             \ available
+' (cr         0 91 set-token
 ' cr          0 92 set-token 
 \ ' #out      0 93 set-token 
 \ ' #line     0 94 set-token 
