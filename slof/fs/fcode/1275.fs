@@ -305,10 +305,12 @@
   ;
 
 : b(field) ( E: addr -- addr+offset ) ( F: offset size -- offset+size )
-  <colon> , over literal,
-  postpone + postpone exit
-  +
-  ;
+   <colon> , over literal,
+   postpone +
+   <semicolon> compile,
+   reveal
+   +
+;
 
 : b(buffer:) ( E: -- a-addr) ( F: size -- )
    fc-instance? IF
@@ -316,6 +318,7 @@
       FALSE TO fc-instance?
    THEN
    <variable> , allot
+   reveal
 ;
 
 : suspend-fcode ( -- )
