@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -49,15 +49,6 @@ reset-token-table
 ' end0 0        00 set-token
 
 \ 01...0F beginning code of 2-byte FCode sequences
-
-\ ' ferror      1 08 set-token
-\ ' ferror      1 09 set-token
-\ ' ferror      1 0a set-token
-\ ' ferror      1 0b set-token
-\ ' ferror      1 0c set-token
-\ ' ferror      1 0d set-token
-\ ' ferror      1 0e set-token
-\ ' ferror      1 0f set-token
 
 ' b(lit)      1 10 set-token
 
@@ -175,7 +166,7 @@ reset-token-table
 ' wbflip      0 80 set-token 
 ' upc         0 81 set-token 
 ' lcc         0 82 set-token 
-' pack      0 83 set-token 
+' pack        0 83 set-token 
 ' count       0 84 set-token 
 ' body>       0 85 set-token 
 ' >body       0 86 set-token 
@@ -183,8 +174,8 @@ reset-token-table
 ' span        0 88 set-token 
 ' unloop      0 89 set-token 
 ' expect      0 8A set-token 
-' alloc-mem   0 8B set-token \ alloc-mem  
-' free-mem    0 8C set-token \ free-mem 
+' alloc-mem   0 8B set-token
+' free-mem    0 8C set-token
 ' key?        0 8D set-token 
 ' key         0 8E set-token 
 ' emit        0 8F set-token 
@@ -206,7 +197,7 @@ reset-token-table
 ' .r          0 9E set-token 
 ' .s          0 9F set-token 
 ' base        0 A0 set-token 
-\ ' convert     0  A1 set-token 
+\ ' convert   0 A1 set-token            \ historical, not supported
 ' $number     0 A2 set-token 
 ' digit       0 A3 set-token 
 ' -1          0 A4 set-token
@@ -224,8 +215,8 @@ reset-token-table
 ' bwjoin      0 B0 set-token 
 ' b(<mark)    1 B1 set-token
 ' b(>resolve) 1 B2 set-token
-\ ' ferror      0 B3 set-token 
-\ ' ferror      0 B4 set-token 
+\ ' set-token-table   0 B3 set-token    \ historical, not supported
+\ ' set-table 0 B4 set-token            \ historical, not supported
 ' new-token   0 B5 set-token 
 ' named-token 0 B6 set-token
 ' b(:)        1 B7 set-token
@@ -236,9 +227,9 @@ reset-token-table
 ' b(defer)    1 BC set-token 
 ' b(buffer:)  1 BD set-token 
 ' b(field)    1 BE set-token 
-\ ' ferror      0 BF set-token 
+\ ' b(code)   0 BF set-token            \ historical, not supported
 ' fc-instance 1 C0 set-token 
-\ ' ferror      0 C1 set-token
+\ ' ferror    0 C1 set-token            \ Reserved
 ' b(;)        1 C2 set-token
 ' b(to)       1 C3 set-token 
 ' b(case)     1 C4 set-token
@@ -269,20 +260,32 @@ reset-token-table
 ' compile,    0  DD set-token
 ' behavior    0  DE set-token 
 
-' start0             0  F0 set-token
-' start1             0  F1 set-token
-' start2             0  F2 set-token
-' start4             0  F3 set-token
+\ Tokens 0xDF to 0xEF are reserved
 
-' ferror             0  FC set-token
-' version1           0  FD set-token
+' start0            0  F0 set-token
+' start1            0  F1 set-token
+' start2            0  F2 set-token
+' start4            0  F3 set-token
 
-\ ' 4-byte-id        0  FE set-token    \ Historical
-' end1               0  FF set-token
+\ Tokens 0xF4 to 0xFB are reserved
 
-\ ' dma-alloc   0 101 set-token 
+' ferror            0  FC set-token
+' version1          0  FD set-token
+
+\ ' 4-byte-id       0  FE set-token    \ Historical, not supported
+' end1              0  FF set-token
+
+\                   0 100 set-token    \ reserved
+\ ' dma-alloc       0 101 set-token    \ Obsolete
 ' my-address        0 102 set-token 
 ' my-space          0 103 set-token
+\ ' memmap          0 104 set-token    \ Obsolete
+\ ' free-virtual    0 105 set-token    \ TODO
+\ ' >physical       0 106 set-token    \ Obsolete
+
+\ Tokens 0x107 to 0x10e are reserved
+
+\ ' my-params       0 10f set-token    \ Obsolete
 ' property          0 110 set-token
 ' encode-int        0 111 set-token
 ' encode+           0 112 set-token
@@ -290,7 +293,9 @@ reset-token-table
 ' encode-string     0 114 set-token
 ' encode-bytes      0 115 set-token
 ' reg               0 116 set-token
-' model             0 119 set-token    
+\ ' intr            0 117 set-token    \ Obsolete
+\ ' driver          0 118 set-token    \ Obsolete
+' model             0 119 set-token
 ' device-type       0 11A set-token
 ' parse-2int        0 11B set-token
 ' is-install        0 11C set-token
@@ -298,19 +303,31 @@ reset-token-table
 ' is-selftest       0 11E set-token
 ' new-device        0 11F set-token
 ' diagnostic-mode?  0 120 set-token
+\ ' display-status  0 121 set-token    \ TODO
 ' memory-test-suite 0 122 set-token
+\ ' group-code      0 123 set-token    \ Obsolete
 ' mask              0 124 set-token
 ' get-msecs         0 125 set-token
 ' ms                0 126 set-token
 ' finish-device     0 127 set-token
 ' decode-phys       0 128 set-token
+\ ' push-package    0 129 set-token    \ TODO - from proposal 215
+\ ' pop-package     0 12A set-token    \ TODO - from proposal 215
+
+\ Tokens 0x12B to 0x12F are reserved
+
+\ ' map-low         0 130 set-token    \ TODO
+\ ' sbus-intr>cpu   0 131 set-token    \ TODO
+
+\ Tokens 0x132 to 0x14f are reserved
+
 ' #lines            0 150 set-token
 ' #columns          0 151 set-token
 ' line#             0 152 set-token
 ' column#           0 153 set-token
 ' inverse?          0 154 set-token
 ' inverse-screen?   0 155 set-token
-
+\ ' frame-buffer-busy? 0 156 set-token  \ Historical, not supported
 ' draw-character    0 157 set-token
 ' reset-screen      0 158 set-token
 ' toggle-cursor     0 159 set-token
@@ -328,6 +345,8 @@ reset-token-table
 ' window-top        0 165 set-token
 ' window-left       0 166 set-token
 
+\ Tokens 0x167 to 0x169 are reserved
+
 ' default-font      0 16A set-token
 ' set-font          0 16B set-token
 ' char-height       0 16C set-token
@@ -335,7 +354,33 @@ reset-token-table
 ' >font             0 16E set-token
 ' fontbytes         0 16F set-token
 
+\ Tokens 0x170 to 0x17C are obsolete fb1 functions
+\ Tokens 0x17D to 0x17F are reserved
+
+\ ' fb8-draw-character 0 180 set-token    \ TODO
+\ ' fb8-reset-screen   0 181 set-token    \ TODO
+\ ' fb8-toggle-cursor  0 182 set-token    \ TODO
+\ ' fb8-erase-screen   0 183 set-token    \ TODO
+\ ' fb8-blink-screen   0 184 set-token    \ TODO
+\ ' fb8-invert-screen  0 185 set-token    \ TODO
+\ ' fb8-insert-characters 0 186 set-token \ TODO
+\ ' fb8-delete-characters 0 187 set-token \ TODO
+\ ' fb8-insert-lines   0 188 set-token    \ TODO
+\ ' fb8-delete-lines   0 189 set-token    \ TODO
+\ ' fb8-draw-logo      0 18A set-token    \ TODO
 ' fb8-install       0 18B set-token
+
+\ Tokens 0x18C to 0x18F are reserved
+\ Tokens 0x190 to 0x196 are obsolete VMEbus tokens
+\ Tokens 0x197 to 0x19F are reserved
+
+\ ' return-buffer   0 1A0 set-token       \ Historical, not supported
+\ ' xmit-packet     0 1A1 set-token       \ Historical, not supported
+\ ' poll-packet     0 1A2 set-token       \ Historical, not supported
+\                   0 1A3 set-token       \ reserved
+\ ' mac-address     0 1A4 set-token       \ TODO
+
+\ Tokens 0x1A5 to 0x200 are reserved
 
 ' device-name       0 201 set-token
 ' my-args           0 202 set-token
@@ -348,15 +393,20 @@ reset-token-table
 ' $call-parent      0 209 set-token
 ' my-parent         0 20A set-token
 ' ihandle>phandle   0 20B set-token
+\                   0 20C set-token       \ reserved
 ' my-unit           0 20D set-token
 ' $call-method      0 20E set-token
 ' $open-package     0 20F set-token
+\ ' processor-type  0 210 set-token       \ Obsolete
+\ ' firmware-version 0 211 set-token      \ Obsolete
+\ ' fcode-version   0 212 set-token       \ Obsolete
+\ ' alarm           0 213 set-token       \ TODO
 ' (is-user-word)    0 214 set-token
 ' suspend-fcode     0 215 set-token
-\ ' abort             0 216 set-token
-' fc-abort             0 216 set-token
+' fc-abort          0 216 set-token
 ' catch             0 217 set-token
 ' throw             0 218 set-token
+\ ' user-abort      0 219 set-token       \ TODO
 ' get-my-property   0 21A set-token
 ' decode-int        0 21B set-token
 ' decode-string     0 21C set-token
@@ -372,15 +422,18 @@ reset-token-table
 ' lwflip            0 226 set-token 
 ' lbflip            0 227 set-token 
 ' lbflips           0 228 set-token
+\ ' adr-mask        0 229 set-token       \ Historical, not supported
+
+\ Tokens 0x22A to 0x22F are reserved
 
 ' rb@               0 230 set-token
 ' rb!               0 231 set-token
-fc-set-normal-mmio-tokens             \ Set rw@, rw!, rl@, rl!, rx@ and rx!
+fc-set-normal-mmio-tokens                 \ Set rw@, rw!, rl@, rl!, rx@ and rx!
 
 ' wbflips           0 236 set-token 
 ' lwflips           0 237 set-token 
-\ ' probe           0 238 set-token
-\ ' probe-virtual   0 239 set-token
+\ ' probe           0 238 set-token       \ Obsolete
+\ ' probe-virtual   0 239 set-token       \ Obsolete
 \                   0 23A reserved
 ' child             0 23B set-token
 ' peer              0 23C set-token
