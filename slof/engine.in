@@ -266,7 +266,7 @@ col(SPACES 0 DO?DO(3) SPACE DOLOOP(-3))
 
 // Text manipulation.
 col(COUNT DUP CHAR+ SWAP C@)
-col(PACK DUP >R SWAP MOVE R>)
+col(PACK DUP >R 1+ SWAP DUP R@ C! MOVE R>)
 col(UPC DUP LIT('a') LIT('z') BETWEEN 0BRANCH(3) LIT(0x20) - )
 col(LCC DUP LIT('A') LIT('Z') BETWEEN 0BRANCH(3) LIT(0x20) + )
 
