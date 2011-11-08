@@ -398,29 +398,4 @@
       restore-evaluator-state
   THEN
   ['] c@ to fcode-rb@
-  ;
-
-create byte-load-test-fcode
-f1 c, 08 c, 18 c, 69 c, 00 c, 00 c, 00 c, 68 c,
-12 c, 16 c, 62 c, 79 c, 74 c, 65 c, 2d c, 6c c,
-6f c, 61 c, 64 c, 2d c, 74 c, 65 c, 73 c, 74 c,
-2d c, 66 c, 63 c, 6f c, 64 c, 65 c, 21 c, 21 c,
-90 c, 92 c, ( a6 c, a7 c, 2e c, ) 00 c,
-
-: byte-load-test
-  byte-load-test-fcode ['] w@
-  ; immediate
-
-: fcode-ms
-    s" ms" $find IF 0= IF compile, ELSE execute THEN THEN ; immediate
-
-: fcode-$find
-  $find
-  IF
-    drop true
-  ELSE
-    false
-  THEN
-  ;
-
-( ---------------------------------------------------- )
+;
