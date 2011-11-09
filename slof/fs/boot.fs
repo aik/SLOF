@@ -190,6 +190,17 @@ defer go ( -- )
 ' no-go to go
 
 : (go-and-catch)  ( -- )
+   \ Recommended Practice: Forth Source Support (scripts starting with comment)
+   load-base c@ 5c =  load-base 1+ c@ 20 = AND IF
+      load-size alloc-mem            ( allocated-addr )
+      ?dup 0= IF ." alloc-mem failed." cr EXIT THEN
+      load-size >r >r                ( R: allocate-addr load-size )
+      load-base r@ load-size move    \ Move away from load-base
+      r@ load-size evaluate          \ Run the script
+      r> r> free-mem
+      EXIT
+   THEN
+   \ Assume it's a normal executable, use "go" to run it:
    ['] go behavior CATCH IF -69 boot-exception-handler THEN
 ;
 
