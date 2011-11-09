@@ -399,3 +399,76 @@
   THEN
   ['] c@ to fcode-rb@
 ;
+
+\ Destroy virtual mapping (should maybe also update "address" property here?)
+: free-virtual  ( virt size -- )
+   s" map-out" $call-parent
+;
+
+\ Map the specified region, return virtual address
+: map-low  ( phys.lo ... size -- virt )
+    my-space swap s" map-in" $call-parent
+;
+
+\ Get MAC address
+: mac-address  ( -- mac-str mac-len )
+   s" local-mac-address" get-my-property IF
+      0 0
+   THEN
+;
+
+\ Output line and column number - not used yet
+VARIABLE #line
+0 #line !
+VARIABLE #out
+0 #out !
+
+\ Display device status
+: display-status  ( n -- )
+   ." Device status: " . cr
+;
+
+\ Obsolete variables:
+VARIABLE group-code
+0 group-code !
+
+\ Obsolete: Allocate memory for DMA
+: dma-alloc  ( byte -- virtual )
+   s" dma-alloc" $call-parent
+;
+
+\ Obsolete: Get params property
+: my-params  ( -- addr len )
+   s" params" get-my-property IF
+      0 0
+   THEN
+;
+
+\ Obsolete: Convert SBus interrupt level to CPU interrupt level
+: sbus-intr>cpu  ( sbus-intr# -- cpu-intr# )
+;
+
+\ Obsolete: Set "intr" property
+: intr  ( interrupt# vector -- )
+   >r sbus-intr>cpu encode-int r> encode-int+ s" intr" property
+;
+
+\ Obsolete: Create the "name" property
+: driver  ( addr len -- )
+   encode-string s" name" property
+;
+
+\ Obsolete: Return type of CPU
+: processor-type  ( -- cpu-type )
+   0
+;
+
+\ Obsolete: Return firmware version
+: firmware-version  ( -- n )
+   10000                          \ Just a dummy value
+;
+
+\ Obsolete: Return fcode-version
+: fcode-version  ( -- n )
+   fcode-revision
+;

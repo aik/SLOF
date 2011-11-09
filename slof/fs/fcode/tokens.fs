@@ -182,8 +182,8 @@ reset-token-table
 ' type        0 90 set-token 
 ' (cr         0 91 set-token
 ' cr          0 92 set-token 
-\ ' #out      0 93 set-token 
-\ ' #line     0 94 set-token 
+' #out        0 93 set-token
+' #line       0 94 set-token
 ' hold        0 95 set-token 
 ' <#          0 96 set-token 
 ' u#>         0 97 set-token 
@@ -275,16 +275,16 @@ reset-token-table
 ' end1              0  FF set-token
 
 \                   0 100 set-token    \ reserved
-\ ' dma-alloc       0 101 set-token    \ Obsolete
+' dma-alloc         0 101 set-token    \ Obsolete
 ' my-address        0 102 set-token 
 ' my-space          0 103 set-token
 \ ' memmap          0 104 set-token    \ Obsolete
-\ ' free-virtual    0 105 set-token    \ TODO
+' free-virtual      0 105 set-token
 \ ' >physical       0 106 set-token    \ Obsolete
 
 \ Tokens 0x107 to 0x10e are reserved
 
-\ ' my-params       0 10f set-token    \ Obsolete
+' my-params         0 10f set-token    \ Obsolete
 ' property          0 110 set-token
 ' encode-int        0 111 set-token
 ' encode+           0 112 set-token
@@ -292,8 +292,8 @@ reset-token-table
 ' encode-string     0 114 set-token
 ' encode-bytes      0 115 set-token
 ' reg               0 116 set-token
-\ ' intr            0 117 set-token    \ Obsolete
-\ ' driver          0 118 set-token    \ Obsolete
+' intr              0 117 set-token    \ Obsolete
+' driver            0 118 set-token    \ Obsolete
 ' model             0 119 set-token
 ' device-type       0 11A set-token
 ' parse-2int        0 11B set-token
@@ -302,9 +302,9 @@ reset-token-table
 ' is-selftest       0 11E set-token
 ' new-device        0 11F set-token
 ' diagnostic-mode?  0 120 set-token
-\ ' display-status  0 121 set-token    \ TODO
+' display-status    0 121 set-token    \ Maybe obsolete
 ' memory-test-suite 0 122 set-token
-\ ' group-code      0 123 set-token    \ Obsolete
+' group-code        0 123 set-token    \ Obsolete
 ' mask              0 124 set-token
 ' get-msecs         0 125 set-token
 ' ms                0 126 set-token
@@ -315,8 +315,8 @@ reset-token-table
 
 \ Tokens 0x12B to 0x12F are reserved
 
-\ ' map-low         0 130 set-token    \ TODO
-\ ' sbus-intr>cpu   0 131 set-token    \ TODO
+' map-low           0 130 set-token
+' sbus-intr>cpu     0 131 set-token    \ Obsolete
 
 \ Tokens 0x132 to 0x14f are reserved
 
@@ -377,7 +377,7 @@ reset-token-table
 \ ' xmit-packet     0 1A1 set-token       \ Historical, not supported
 \ ' poll-packet     0 1A2 set-token       \ Historical, not supported
 \                   0 1A3 set-token       \ reserved
-\ ' mac-address     0 1A4 set-token       \ TODO
+' mac-address       0 1A4 set-token
 
 \ Tokens 0x1A5 to 0x200 are reserved
 
@@ -396,9 +396,9 @@ reset-token-table
 ' my-unit           0 20D set-token
 ' $call-method      0 20E set-token
 ' $open-package     0 20F set-token
-\ ' processor-type  0 210 set-token       \ Obsolete
-\ ' firmware-version 0 211 set-token      \ Obsolete
-\ ' fcode-version   0 212 set-token       \ Obsolete
+' processor-type    0 210 set-token       \ Obsolete
+' firmware-version  0 211 set-token       \ Obsolete
+' fcode-version     0 212 set-token       \ Obsolete
 \ ' alarm           0 213 set-token       \ TODO
 ' (is-user-word)    0 214 set-token
 ' suspend-fcode     0 215 set-token
