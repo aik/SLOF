@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2011 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -12,9 +12,11 @@
 s" ext2-files" device-name
 
 INSTANCE VARIABLE first-block
+INSTANCE VARIABLE inode-size
 INSTANCE VARIABLE block-size
 INSTANCE VARIABLE inodes/group
 
+INSTANCE VARIABLE group-desc-size
 INSTANCE VARIABLE group-descriptors
 
 : seek  s" seek" $call-parent ;
@@ -22,6 +24,8 @@ INSTANCE VARIABLE group-descriptors
 
 INSTANCE VARIABLE data
 INSTANCE VARIABLE #data
+INSTANCE VARIABLE indirect-block
+INSTANCE VARIABLE dindirect-block
 
 : free-data
   data @ ?dup IF #data @ free-mem  0 data ! THEN ;
@@ -44,12 +48,31 @@ INSTANCE VARIABLE #blocks-left
   read-block data @ data off
   dup #blocks-left @ 4 * block-size @ min dup >r ^blocks @ swap move
   r> 2 rshift blocks-read block-size @ free-mem ;
+
 : read-double-indirect-blocks ( double-indirect-block# -- )
-\ TBD
+   \ Resolve one level of indirection and call read-indirect-block
+   read-block data @ indirect-block ! data off
+   BEGIN
+      indirect-block @ l@-le dup 0 <>
+   WHILE
+      read-indirect-blocks
+      4 indirect-block +!       \ point to next indirect block
+   REPEAT
+   drop                         \ drop 0, the invalid block number
 ;
+
 : read-triple-indirect-blocks ( triple-indirect-block# -- )
-\ TBD
+   \ Resolve one level of indirection and call double-indirect-block
+   read-block data @ dindirect-block ! data off
+   BEGIN
+      dindirect-block @ l@-le dup 0 <>
+   WHILE
+      read-double-indirect-blocks
+      4 dindirect-block +!      \ point to next double indirect block
+   REPEAT
+   drop                         \ drop 0, the invalid block number
 ;
+
 : read-block#s ( -- )
   blocks @ ?dup IF #blocks @ 4 * free-mem THEN
   inode @ 4 + l@-le file-len !
@@ -64,7 +87,8 @@ INSTANCE VARIABLE #blocks-left
 : read-inode ( inode# -- )
   1- inodes/group @ u/mod \ # in group, group #
   20 * group-descriptors @ + 8 + l@-le block-size @ * \ # in group, inode table
-  swap 80 * + xlsplit seek drop  inode @ 80 read drop ;
+  swap inode-size @ * + xlsplit seek drop  inode @ inode-size @ read drop
+;
 
 : .rwx ( bits last-char-if-special special? -- )
   rot dup 4 and IF ." r" ELSE ." -" THEN
@@ -91,7 +115,23 @@ CREATE mode-chars 10 allot s" ?pc?d?b?-?l?s???" mode-chars swap move
   data @ 14 + l@-le first-block !
   400 data @ 18 + l@-le lshift block-size !
   data @ 28 + l@-le inodes/group !
-  first-block @ 1+ read-block data @ group-descriptors ! data off ;
+  \ Check revision level... in revision 0, the inode size is always 128
+  data @ 4c + l@-le 0= IF
+     80 inode-size !
+  ELSE
+     data @ 58 + w@-le inode-size !
+  THEN
+  data @ 20 + l@-le group-desc-size !
+
+  \ Read the group descriptor table:
+  first-block @ 1+ block-size @ *
+  group-desc-size @
+  read-data
+  data @ group-descriptors !
+
+  \ We keep the group-descriptor memory area, so clear data pointer:
+  data off
+;
 
 INSTANCE VARIABLE current-pos
 
@@ -131,10 +171,18 @@ INSTANCE VARIABLE current-pos
   2r> 2drop false ."  not found " EXIT THEN
   r@ 0<> IF 2r> ."  more... " RECURSE EXIT THEN
   2r> 2drop ."  got it " ;
-: close ;
+
+: close
+   inode @ inode-size @ free-mem
+   group-descriptors @ group-desc-size @ free-mem
+   free-data
+   blocks @ ?dup IF #blocks @ 4 * free-mem THEN
+;
+
 : open
+  0 data ! 0 blocks ! 0 #blocks !
   do-super
-  80 alloc-mem inode !
+  inode-size @ alloc-mem inode !
   my-args nip 0= IF 0 0 ELSE
   2 my-args find-path ?dup 0= IF close false EXIT THEN THEN
   read-inode read-block#s 0 0 seek 0= ;
