@@ -77,7 +77,7 @@ CONSTANT /partition-entry
 \ Defined by IEEE 1275-1994 (3.8.1)
 
 : offset ( d.rel -- d.abs )
-   part-offset 0 d+
+   part-offset xlsplit d+
 ;
 
 : seek  ( pos.lo pos.hi -- status )
@@ -509,7 +509,7 @@ CONSTANT /partition-entry
    ELSE
       partition IF
          0 0 seek drop
-         200000 read
+         max-prep-partition-blocks 200 *  read
       ELSE
          has-iso9660-filesystem IF
              dup load-chrp-boot-file ?dup 0 > IF nip EXIT THEN
