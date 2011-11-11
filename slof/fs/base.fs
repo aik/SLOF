@@ -69,15 +69,6 @@ VARIABLE huge-tftp-load 1 huge-tftp-load !
    1- 2log 1+
 ;
 
-\ Standard compliant $find
-: $find ( str len -- xt true | str len false )
-    2dup $find
-    IF
-	drop nip nip TRUE
-    ELSE
-	FALSE
-    THEN
-;
 
 CREATE $catpad 100 allot
 : $cat ( str1 len1 str2 len2 -- str3 len3 )
