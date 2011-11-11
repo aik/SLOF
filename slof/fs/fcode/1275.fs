@@ -400,6 +400,29 @@
   ['] c@ to fcode-rb@
 ;
 
+\ Functions for accessing memory ... since some FCODE programs use the normal
+\ memory access functions for accessing MMIO memory, too, we got to use a little
+\ hack to support them: When address is bigger than MIN-RAM-SIZE, assume the
+\ FCODE is trying to access MMIO memory and use the register based access
+\ functions instead!
+: fc-c@   ( addr -- byte )   dup MIN-RAM-SIZE > IF rb@ ELSE c@ THEN ;
+: fc-w@   ( addr -- word )   dup MIN-RAM-SIZE > IF rw@ ELSE w@ THEN ;
+: fc-<w@  ( addr -- word )   fc-w@ dup 8000 >= IF 10000 - THEN ;
+: fc-l@   ( addr -- long )   dup MIN-RAM-SIZE > IF rl@ ELSE l@ THEN ;
+: fc-<l@  ( addr -- long )   fc-l@ signed ;
+: fc-x@   ( addr -- dlong )  dup MIN-RAM-SIZE > IF rx@ ELSE x@ THEN ;
+: fc-c!   ( byte addr -- )   dup MIN-RAM-SIZE > IF rb! ELSE c! THEN ;
+: fc-w!   ( word addr -- )   dup MIN-RAM-SIZE > IF rw! ELSE w! THEN ;
+: fc-l!   ( long addr -- )   dup MIN-RAM-SIZE > IF rl! ELSE l! THEN ;
+: fc-x!   ( dlong addr -- )  dup MIN-RAM-SIZE > IF rx! ELSE x! THEN ;
+
+: fc-fill ( add len byte -- )  2 pick MIN-RAM-SIZE > IF rfill ELSE fill THEN ;
+: fc-move ( src dst len -- )
+   2 pick MIN-RAM-SIZE >        \ Check src
+   2 pick MIN-RAM-SIZE >        \ Check dst
+   OR IF rmove ELSE move THEN
+;
+
 \ Destroy virtual mapping (should maybe also update "address" property here?)
 : free-virtual  ( virt size -- )
    s" map-out" $call-parent

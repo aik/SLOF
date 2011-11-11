@@ -18,9 +18,10 @@
    epapr-ima-size IF
       epapr-ima-size
    ELSE
-      10000000         \ assumed minimal memory size
+      20000000         \ assumed minimal memory size
    THEN
 ;
+MIN-RAM-SIZE CONSTANT MIN-RAM-SIZE
 
 \ \\\\\\\\\\\\\\ Structures
 \ +
