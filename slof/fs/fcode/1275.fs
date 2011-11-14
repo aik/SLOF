@@ -43,10 +43,6 @@
   drop
   ;
 
-: ?branch
-  true =
-  ;
-
 : read-fcode-offset \ ELSE needs to be fixed!
   ?offset16 IF next-ip read-fcode-num16 ELSE THEN
   ;
@@ -59,7 +55,7 @@
          postpone if
       THEN
    ELSE
-      ?branch IF
+      ( flag ) IF
          2 jump-n-ip
       ELSE
          read-fcode-offset
