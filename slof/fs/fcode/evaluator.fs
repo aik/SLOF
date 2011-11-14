@@ -32,11 +32,7 @@ include tokens.fs
 0 value buff
 0 value buff-size
 
-( ---------------------------------------------------- )
-
 ' read-fcode# to fcode@
-
-: step next-ip fcode@ exec ; immediate
 
 ( ---------------------------------------------------- )
 

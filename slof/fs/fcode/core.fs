@@ -99,32 +99,6 @@
   token-table-index @ split-immediate
   ;
 
--1 VALUE break-fcode-addr
-
-: exec ( FCode# -- )
-   eva-debug? IF
-      dup
-      get-ip 8 u.r ." : "
-      ." [" 3 u.r ." ] "
-   THEN
-   get-ip break-fcode-addr = IF
-      TRUE fcode-end ! drop EXIT
-   THEN
-
-   get-token 0= IF  \ imm == 0 == false
-      ?compile-mode IF
-         compile,
-      ELSE
-         eva-debug? IF dup xt>name type space THEN
-         execute
-      THEN
-  ELSE \ immediate
-      eva-debug? IF dup xt>name type space THEN
-      execute
-  THEN
-  eva-debug? IF .s cr THEN
-  ;
-
 ( ---------------------------------------------------- )
 
 0 ?bigendian INCLUDE? big.fs
@@ -150,19 +124,51 @@
   dup 1- jump-n-ip     \ jump to the end of the string in FCode
   ;
 
-: evaluate-fcode ( -- )
-  fcode@ exec              \ read start code
-  BEGIN
-       next-ip fcode@ exec
-       fcode-end @
-  UNTIL
-  ;
 
-: step-fcode ( -- )
-  break-fcode-addr >r -1 to break-fcode-addr
-  fcode@ exec next-ip
-  r> to break-fcode-addr
+-1 VALUE break-fcode-addr
+0 VALUE break-fcode-steps
+
+: evaluate-fcode ( -- )
+   BEGIN
+      get-ip break-fcode-addr = IF
+         TRUE fcode-end !
+      THEN
+      fcode-end @ 0=
+   WHILE
+      fcode@                               ( fcode# )
+      eva-debug? IF
+         dup
+         get-ip 8 u.r ." : "
+         ." [" 3 u.r ." ] "
+      THEN
+      \ When it is not immediate and in compile-mode, then compile
+      get-token 0= ?compile-mode AND IF    ( xt )
+         compile,
+      ELSE                                 \ immediate or "interpretation" mode
+         eva-debug? IF dup xt>name type space THEN
+         execute
+      THEN
+      eva-debug? IF .s cr THEN
+      break-fcode-steps IF
+         break-fcode-steps 1- TO break-fcode-steps
+         break-fcode-steps 0= IF
+            TRUE fcode-end !
+         THEN
+      THEN
+      next-ip
+   REPEAT
 ;
 
+\ Run FCODE for n steps
+: steps-fcode  ( n -- )
+   to break-fcode-steps
+   break-fcode-addr >r -1 to break-fcode-addr
+   reset-fcode-end
+   evaluate-fcode
+   r> to break-fcode-addr
+;
 
-( ---------------------------------------------------- )
+\ Step through one FCODE instruction
+: step-fcode  ( -- )
+   1 steps-fcode
+;
