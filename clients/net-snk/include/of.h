@@ -36,7 +36,8 @@ phandle_t of_child (phandle_t);
 phandle_t of_parent (phandle_t);
 int of_getprop (phandle_t, const char *, void *, int);
 void * of_call_method_3 (const char *, ihandle_t, int);
-
+int of_test(const char *name);
+int of_interpret_1(void *s, void *ret);
 
 ihandle_t of_open (const char *);
 void of_close(ihandle_t);

@@ -21,7 +21,9 @@
 #include <pci.h>
 #include "modules.h"
 
-extern snk_module_t of_module;
+snk_module_t * cimod_check_and_install(void);
+
+extern snk_module_t of_module, ci_module;
 
 extern char __client_start[];
 
@@ -139,6 +141,14 @@ modules_init(void)
 	/* Load all modules */
 	for(i=0; modules[i].name; ++i) {
 		load_module(modules[i].name);
+	}
+
+	/* Try to init client-interface module (it's built-in, not loadable) */
+	for(i=0; i<MODULES_MAX; ++i) {
+		if(snk_modules[i] == 0) {
+			snk_modules[i] = cimod_check_and_install();
+			break;
+		}
 	}
 }
 
