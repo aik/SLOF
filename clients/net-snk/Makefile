@@ -24,9 +24,11 @@ all:	.depend subdirs
 
 client : $(OBJS) $(CLIENTLIBS)
 	$(LD) $(LDFLAGS) -o $@ -Tclient.lds $(OBJS) $(CLIENTLIBS)
-	$(OBJDUMP) -DSsx $@ > $@.dis
 	cp $@ $@.unstripped
 	$(STRIP) --strip-unneeded $@
+
+client.dis: client
+	$(OBJDUMP) -DSsx client.unstripped > $@
 
 sec-client : subdirs $(OBJS) $(LIBCMNDIR)/libc.a
 	$(LD) $(LDFLAGS) -o $@ -Tsec-client.lds $(OBJS) $(LIBCMNDIR)/libc.a
