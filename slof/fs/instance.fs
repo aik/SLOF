@@ -139,6 +139,19 @@ CONSTANT <instancevariable>
 \  cr ." call for " 3dup -rot type ."  on node " .
    find-method IF execute ELSE -1 throw THEN
 ;
-: $call-my-method  ( str len -- ) my-self ihandle>phandle $call-static ;
-: $call-method  push-my-self $call-my-method pop-my-self ;
-: $call-parent  my-parent $call-method ;
+
+: $call-my-method  ( str len -- )
+   my-self ihandle>phandle $call-static
+;
+
+: $call-method  ( str len ihandle -- )
+   push-my-self $call-my-method pop-my-self
+;
+
+0 VALUE calling-child
+
+: $call-parent
+   my-self TO calling-child
+   my-parent $call-method
+   0 TO calling-child
+;
