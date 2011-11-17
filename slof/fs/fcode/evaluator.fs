@@ -25,9 +25,9 @@ defer fcode@
 
 create token-table 2000 cells allot    \ 1000h = 4096d
 
-include core.fs
-include 1275.fs
-include tokens.fs
+#include "core.fs"
+#include "1275.fs"
+#include "tokens.fs"
 
 0 value buff
 0 value buff-size

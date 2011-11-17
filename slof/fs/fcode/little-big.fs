@@ -10,9 +10,11 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-\ big-endian
+\ little- and big-endian FCODE IP access functions
 
-( ---------------------------------------------------- )
+
+?bigendian [IF]                       \ Big endian access functions first
+
 
 : read-fcode-num16 ( -- n )
    0 fcode-num !
@@ -50,4 +52,45 @@
    fcode-num @
 ;
 
-( ---------------------------------------------------- )
+
+[ELSE]                                \ Now the little endian access functions
+
+
+: read-fcode-num16 ( -- n )
+   0 fcode-num !
+   ?arch64 IF
+      read-byte fcode-num 7 + C!
+      next-ip
+      read-byte fcode-num 6 + C!
+   ELSE
+      read-byte fcode-num 1 + C!
+      next-ip
+      read-byte fcode-num 0 + C!
+   THEN
+   fcode-num @
+;
+
+: read-fcode-num32 ( adr -- n )
+   0 fcode-num !
+   ?arch64 IF
+      read-byte fcode-num 7 + C!
+      next-ip
+      read-byte fcode-num 6 + C!
+      next-ip
+      read-byte fcode-num 5 + C!
+      next-ip
+      read-byte fcode-num 4 + C!
+   ELSE
+      read-byte fcode-num 3 + C!
+      next-ip
+      read-byte fcode-num 2 + C!
+      next-ip
+      read-byte fcode-num 1 + C!
+      next-ip
+      read-byte fcode-num 0 + C!
+   THEN
+   fcode-num @
+;
+
+
+[THEN]

@@ -101,8 +101,7 @@
 
 ( ---------------------------------------------------- )
 
-0 ?bigendian INCLUDE? big.fs
-0 ?bigendian NOT INCLUDE? little.fs
+#include "little-big.fs"
 
 ( ---------------------------------------------------- )
 

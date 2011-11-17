@@ -36,15 +36,6 @@ include $(SLOFCMNDIR)/Makefile.inc
 
 FPPINCLUDES = -I. -I$(SLOFCMNDIR)/fs -I$(SLOFCMNDIR)
 
-# FCode Evaluator files for the ROM fs:
-FCODE_FFS_FILES = \
-       $(SLOFCMNDIR)/fs/fcode/core.fs \
-       $(SLOFCMNDIR)/fs/fcode/evaluator.fs \
-       $(SLOFCMNDIR)/fs/fcode/big.fs \
-       $(SLOFCMNDIR)/fs/fcode/tokens.fs \
-       $(SLOFCMNDIR)/fs/fcode/1275.fs
-
-
 USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/devices/pci-class_0c.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-ohci.fs \
@@ -93,8 +84,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-device_10de_0141.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-class_02.fs \
-	$(SLOFBRDDIR)/default-font.bin \
-	$(FCODE_FFS_FILES)
+	$(SLOFBRDDIR)/default-font.bin
 
 # Uncomment the following line to enable the USB code:
 OF_FFS_FILES += $(USB_FFS_FILES)
