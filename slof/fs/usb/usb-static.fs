@@ -116,6 +116,36 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
     r> [char] 0 + swap c!            ( str len  R: )
 ;
 
+: ohci-scan-node  ( str len -- )
+   2dup find-node ?dup IF
+      ( str len phandle )
+      dup set-node
+      dup child ?dup IF
+         delete-node s" Deleting node" usb-debug-print
+      THEN
+      \ Check whether usb-ohci.fs has already been included:
+      s" enumerate" rot find-method IF
+         drop
+         \ Create instance for enumeration:
+         open-dev dup to my-self
+         s" enumerate" 2 pick $call-method   \ Scan host controller
+         close-dev  0 to my-self
+         0 set-node
+      ELSE
+         2drop get-node
+         dup parent node>path select-dev     \ Open parent
+         extend-device
+         s" usb-ohci.fs" included
+         s" open" $call-my-method 0= ABORT" OHCI open failed"
+         s" enumerate" $call-my-method
+         s" close" $call-my-method
+         finish-device
+         unselect-dev
+      THEN                             ( str len  R: num )
+   ELSE
+      2drop
+   THEN
+;
 
 \ Scan all USB OHCI host controllers for attached devices:
 : ohci-scan
@@ -139,23 +169,7 @@ FALSE VALUE ext-disk-alias    \ first external disk: not yet assigned
       usb-debug-flag IF
          ." * Scanning hub " 2dup type ." ..." cr
       THEN
-      2dup find-node ?dup IF              ( str len phandle  R: num )
-         dup set-node
-         dup child ?dup IF
-            delete-node s" Deleting node" usb-debug-print
-         THEN
-         \ Check whether usb-ohci.fs has already been included:
-         s" enumerate" rot find-method IF
-            drop
-         ELSE
-            s" usb-ohci.fs" included
-         THEN                             ( str len  R: num )
-         \ Create instance for enumeration:
-         open-dev dup to my-self
-         s" enumerate" 2 pick $call-method   \ Scan host controller
-         close-dev  0 to my-self
-         0 set-node
-      THEN                          ( R: num )
+      ohci-scan-node                ( R: num )
       r> 1+ >r                      ( R: num+1 )
    REPEAT
    r> drop

@@ -22,9 +22,10 @@ VARIABLE controlxfer-cmd
 
 : (ed-prepare) ( dir addr dlen setup-packet MPS ep-fun --
                  FALSE | dir addr dlen ed-ptr setup-ptr )
-   allocate-ed dup 0=  IF ( dir addr dlen setup-packet MPS ep-fun ed-ptr )
-      drop 3drop 2drop FALSE EXIT  ( FALSE )
-   THEN
+   allocate-ed ?dup 0= IF
+      s" allocate-ed failed!" usb-debug-print
+      4drop 2drop FALSE EXIT  ( FALSE )
+   THEN                   ( dir addr dlen setup-packet MPS ep-fun ed-ptr )
    TO temp1               ( dir addr dlen setup-packet MPS ep-fun )
    temp1 zero-out-an-ed-except-link ( dir addr dlen setup-packet MPS ep-fun )
    temp1 ed>eattr l@-le or temp1 ed>eattr l!-le ( dir addr dlen setup-ptr MPS )
