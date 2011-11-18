@@ -23,14 +23,13 @@ STRUCT
   cell FIELD node>child
   cell FIELD node>properties
   cell FIELD node>words
-  cell FIELD node>instance
+  cell FIELD node>instance-template
   cell FIELD node>instance-size
   cell FIELD node>space?
   cell FIELD node>space
   cell FIELD node>addr1
   cell FIELD node>addr2
   cell FIELD node>addr3
-  cell FIELD node>extending?
 END-STRUCT
 
 : find-method ( str len phandle -- false | xt true )
@@ -39,9 +38,6 @@ END-STRUCT
 \ Instances.
 #include "instance.fs"
 
-1000 CONSTANT max-instance-size
-3000000 CONSTANT space-code-mask
-
 : create-node ( parent -- new )
    max-instance-size alloc-mem        ( parent instance-mem )
    dup max-instance-size erase >r     ( parent  R: instance-mem )
@@ -49,10 +45,9 @@ END-STRUCT
    here                               ( parent new  R: instance-mem wl wl )
    0 , swap , 0 ,                     \ Set node>peer, node>parent & node>child
    r> , r> ,                          \ Set node>properties & node>words to wl
-   r> , /instance-header ,            \ Set node>instance & node>instance-size
+   r> , /instance-header ,            \ Set instance-template & instance-size
    FALSE , 0 ,                        \ Set node>space? and node>space
    0 , 0 , 0 ,                        \ Set node>addr*
-   TRUE ,                             \ Set node>extending?
 ;
 
 : peer    node>peer   @ ;
@@ -82,9 +77,9 @@ END-STRUCT
   tuck link-node dup set-node ;
 
 : finish-node ( -- )
-\ we should resize the instance template buffer, but that doesn't help with our
-\ current implementation of alloc-mem anyway, so never mind. XXX
-  get-node parent set-node ;
+   \ TODO: maybe resize the instance template buffer here (or in finish-device)?
+   get-node parent set-node
+;
 
 : device-end ( -- )  0 set-node ;
 
@@ -339,13 +334,27 @@ VARIABLE interpose-node
   r> to my-self ;
 
 : new-device ( -- )
-  my-self new-node node>instance @ dup to my-self instance>parent !
-  get-node my-self instance>node ! ;
+   my-self new-node                     ( parent-ihandle phandle )
+   node>instance-template @             ( parent-ihandle ihandle )
+   dup to my-self                       ( parent-ihanlde ihandle )
+   instance>parent !
+   get-node my-self instance>node !
+   max-instance-size my-self instance>size !
+;
 
 : finish-device ( -- )
-   FALSE get-node node>extending? !
    ( check for "name" property here, delete this node if not there )
-   finish-node my-parent my-self max-instance-size free-mem to my-self
+   finish-node my-parent to my-self
+;
+
+\ Set the instance template as current instance for extending it
+\ (i.e. to be able to declare new INSTANCE VARIABLEs etc. there)
+: extend-device  ( phandle -- )
+   my-self >r
+   dup set-node
+   node>instance-template @
+   dup to my-self
+   r> swap instance>parent !
 ;
 
 : split ( str len char -- left len right len )
@@ -419,6 +428,7 @@ VARIABLE interpose-node
 : find-node ( path len -- phandle|0 ) de-alias find-node ;
 
 : delete-node ( phandle -- )
+   dup node>instance-template @ max-instance-size free-mem
    dup node>parent @ node>child @ ( phandle 1st peer )
    2dup = IF
      node>peer @ swap node>parent @ node>child !
@@ -449,6 +459,7 @@ VARIABLE interpose-node
   r> r> get-node open-node to my-self
   my-self r> to my-self r> set-node ;
 : select-dev  open-dev dup to my-self ihandle>phandle set-node ;
+: unselect-dev  my-self close-dev  0 to my-self  device-end ;
 
 : find-device ( str len -- ) \ set as active node
   find-node dup 0= ABORT" No such device path" set-node ;

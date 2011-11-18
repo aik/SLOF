@@ -10,21 +10,31 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-
 \ Support for device node instances.
 
 0 VALUE my-self
 
-: >instance
+400 CONSTANT max-instance-size
+
+STRUCT
+   /n FIELD instance>node
+   /n FIELD instance>parent
+   /n FIELD instance>args
+   /n FIELD instance>args-len
+   /n FIELD instance>size
+CONSTANT /instance-header
+
+: >instance  ( offset -- myself+offset )
    my-self 0= ABORT" No instance!"
+   dup my-self instance>size @ >= ABORT" Instance access out of bounds!"
    my-self +
 ;
 
 : (create-instance-var) ( initial-value -- )
    get-node ?dup 0= ABORT" Instance word outside device context!"
-   dup node>extending? @ 0=
-   my-self 0<> AND ABORT" INSTANCE word can not be used while node is opened!"
-   dup node>instance @      ( iv phandle tmp-ihandle )
+   dup node>instance-size @ cell+ max-instance-size
+   >= ABORT" Instance is bigger than max-instance-size!"
+   dup node>instance-template @      ( iv phandle tmp-ih )
    swap node>instance-size dup @     ( iv tmp-ih *instance-size instance-size )
    dup ,                             \ compile current instance ptr
    swap 1 cells swap +!              ( iv tmp-ih instance-size )
@@ -83,24 +93,15 @@ CONSTANT <instancevariable>
 
 : INSTANCE  ALSO instance-words ;
 
-
-STRUCT
-/n FIELD instance>node
-/n FIELD instance>parent
-/n FIELD instance>args
-/n FIELD instance>args-len
-CONSTANT /instance-header
-
 : my-parent  my-self instance>parent @ ;
-: my-args    my-self instance>args 2@ ;
+: my-args    my-self instance>args 2@ swap ;
 
 \ copy args from original instance to new created
 : set-my-args   ( old-addr len -- )
    dup IF                             \ IF len > 0                    ( old-addr len )
       dup alloc-mem                   \ | allocate space for new args ( old-addr len new-addr )
-      swap 2dup                       \ | write the new address       ( old-addr new-addr len new-addr len )
-      my-self instance>args 2!        \ | into the instance table     ( old-addr new-addr len )
-      move                            \ | and copy the args           ( -- )
+      2dup my-self instance>args 2!   \ | write into instance struct  ( old-addr len new-addr )
+      swap move                       \ | and copy the args           ( )
    ELSE                               \ ELSE                          ( old-addr len )
       my-self instance>args 2!        \ | set new args to zero, too   ( )
    THEN                               \ FI
@@ -108,8 +109,11 @@ CONSTANT /instance-header
 
 \ Current node has already been set, when this is called.
 : create-instance-data ( -- instance )
-   get-node dup node>instance @ swap node>instance-size @  ( instance instance-size )
-   dup alloc-mem dup >r swap move r>
+   get-node dup node>instance-template @    ( phandle instance-template )
+   swap node>instance-size @                ( instance-template instance-size )
+   dup >r
+   dup alloc-mem dup >r swap move r>        ( instance )
+   dup instance>size r> swap !              \ Store size for destroy-instance
 ;
 : create-instance ( -- )
    my-self create-instance-data
@@ -118,7 +122,10 @@ CONSTANT /instance-header
 ;
 
 : destroy-instance ( instance -- )
-   dup @ node>instance-size @ free-mem
+   dup instance>args @ ?dup IF               \ Free instance args?
+      over instance>args-len @  free-mem
+   THEN
+   dup instance>size @  free-mem
 ;
 
 : ihandle>phandle ( ihandle -- phandle )
