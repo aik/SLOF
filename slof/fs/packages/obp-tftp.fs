@@ -56,9 +56,7 @@ INSTANCE VARIABLE ciregs-buffer
     r> r> over IF s" bootargs" set-chosen ELSE 2drop THEN
 
     \ Store BOOTP-REPLY packet as property
-    s" /chosen" select-dev
-    dup 6B8 encode-bytes s" bootp-response" property
-    device-end
+    dup 6B8 encode-bytes s" bootp-response" s" /chosen" find-node set-property
 
     \ free buffer
     6B8 free-mem

@@ -26,9 +26,11 @@ INSTANCE VARIABLE obp-tftp-package
    ELSE
        false
    THEN ;
+
 : close  ( -- )
-    s" close" obp-tftp-package @ $call-method
+    obp-tftp-package @ close-package
     close ;         \ disables PCI mem, io and Bus master
+
 : load  ( addr -- len )
     s" load" obp-tftp-package @ $call-method  ;
 
