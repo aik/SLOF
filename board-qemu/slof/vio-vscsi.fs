@@ -613,7 +613,9 @@ scsi-close
 : setup-alias
     " scsi" find-alias 0= IF
         " scsi" get-node node>path set-alias
-    ELSE THEN 
+    ELSE
+        drop
+    THEN 
 ;
 
 : vscsi-init-and-scan  ( -- )

@@ -26,7 +26,9 @@
 : setup-alias
     " hvterm" find-alias 0= IF
         " hvterm" get-node node>path set-alias
-    ELSE THEN 
+    ELSE
+        drop
+    THEN
 ;
 
 setup-alias

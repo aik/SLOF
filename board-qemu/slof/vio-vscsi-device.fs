@@ -28,7 +28,7 @@ VALUE is_cdrom
 
 2dup find-alias 0= IF
     get-node node>path set-alias
-ELSE 2drop THEN 
+ELSE 3drop THEN 
 
 s" block" device-type      
 
