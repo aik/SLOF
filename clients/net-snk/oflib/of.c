@@ -793,11 +793,12 @@ get_mac(char *mac)
 	int len;
 
 	phandle_t net = get_boot_device();
-
 	if (net == -1)
 		return;
 
 	len = of_getprop(net, "local-mac-address", localmac, 8);
+	if (len <= 0)
+		return;
 
 	if (len == 8) {
 		/* Some bad FDT nodes like veth use a 8-byte wide
