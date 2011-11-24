@@ -53,8 +53,6 @@ paflof-start 1 rshift fff not and to load-base
 	3drop 0
 ;
 
-080 cp
-
 100 cp
 
 \ Input line editing.
@@ -66,14 +64,16 @@ paflof-start 1 rshift fff not and to load-base
 
 cistack ciregs >r1 ! \ kernel wants a stack :-)
 
-#include "romfs.fs"
-
 140 cp
+
+#include "romfs.fs"
 
 200 cp
 
-201 cp
 #include <slof-logo.fs>
+
+201 cp
+
 #include <banner.fs>
 
 : .banner .slof-logo .banner ;
@@ -109,8 +109,6 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 #include <scsi-loader.fs>
 
-340 cp
-
 360 cp
 
 #include "fdt.fs"
@@ -123,6 +121,10 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 380 cp
 
 #include "pci-setup.fs"
+
+390 cp
+
+#include "virtio.fs"
 
 3f0 cp
 

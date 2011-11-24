@@ -13,7 +13,8 @@
 TOPCMNDIR ?= ../..
 
 ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
-CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) -I. -I../../include
+CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) \
+	   -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
 LDFLAGS = -nostdlib
 
 TARGET = ../libhvcall.a
@@ -21,6 +22,7 @@ TARGET = ../libhvcall.a
 
 all: $(TARGET)
 
+SRCS =  virtio.c virtio-blk.c
 SRCSS = hvcall.S
 
 
@@ -46,7 +48,7 @@ depend:
 	$(MAKE) Makefile.dep
 
 Makefile.dep: Makefile
-	$(CC) -MM $(CPPFLAGS) $(CFLAGS) $(SRCS) $(SRCSS) > Makefile.dep
+	$(CC) -M $(CPPFLAGS) $(CFLAGS) $(SRCS) $(SRCSS) > Makefile.dep
 
 # Include dependency file if available:
 -include Makefile.dep

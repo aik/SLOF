@@ -44,6 +44,11 @@ static inline void flush_cache(void* r, long n)
 		     :: "memory", "cc", "r0", "ctr");
 }
 
+static inline void
+eieio()
+{
+	asm volatile ("eieio":::"memory");
+}
 
 #endif /* __ASSEMBLER__ */
 
