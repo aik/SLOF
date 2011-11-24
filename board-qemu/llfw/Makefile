@@ -20,8 +20,10 @@ ASFLAGS         = $(BOOT) $(IOCONF) $(RELEASE)$(CPUARCHDEF)  -Wa,-mregnames
 LDFLAGS1	= -nostdlib -e__start -Tstage2.lds -N -Ttext=0x100
 
 
-STG1OBJ		 = startup.o boot_abort.o romfs.o io_generic.o board_io.o 
+STG1OBJ		 = startup.o version.o boot_abort.o romfs.o io_generic.o board_io.o 
 STG1OBJ		 += stage2_head.o stage2.o comlib.o romfs_wrap.o nvramlog.o
+
+.PHONY: version.S
 
 all: stage1.bin Cboot.o
 

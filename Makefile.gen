@@ -21,8 +21,12 @@ ifdef DRIVER
 RELEASE=$(shell cat ../VERSION)
 export DRIVER_NAME=$(shell cat ../VERSION | sed -e "s/-/./g" | awk -F . '{ printf("%s%02d%02d%1s%02s",$$1,$$2,$$3,$$4,$$5); }')
 else
+ifneq (,$(wildcard ../.git))
+RELEASE=git-$(shell git rev-parse --short=16 HEAD)
+else
 RELEASE="$(USER)@$(HOSTNAME)(private build)"
 export DRIVER_NAME=HEAD
+endif
 endif
 
 

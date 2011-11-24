@@ -14,11 +14,11 @@
  * Initial entry point
  */
 
-#include "termctrl.h"
-#include <product.h>
 #include <xvect.h>
 #include <cpu.h>
 #include <macros.h>
+
+.global print_version_done
 
 	/* qemu entry:
 	 *
@@ -113,23 +113,8 @@ _start:
 	li	r3,'F'
 	bl	putc
 
-	/* give live sign *****************************/
-	bl	0f
-	.ascii	TERM_CTRL_RESET
-	.ascii	TERM_CTRL_CRSOFF
-	.ascii  " **********************************************************************"
-	.ascii	"\r\n"
-	.ascii	TERM_CTRL_BRIGHT
-	.ascii	PRODUCT_NAME
-	.ascii  " Starting\r\n"
-	.ascii  TERM_CTRL_RESET
-	.ascii  " Build Date = ", __DATE__, " ", __TIME__
-	.ascii	"\r\n"
-	.ascii  " FW Version = " , RELEASE
-	.ascii	"\r\n\0"
-	.align	2
-0:	mflr	r3
-	bl	io_print
+	bl	print_version
+print_version_done:
 
 	/* go! */
 	li	r3,__startC@l
