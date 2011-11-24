@@ -28,8 +28,13 @@ typedef struct {
 	int type;
 } bar_t;
 
+typedef enum {
+	CONFIG_TYPE_PCI,
+	CONFIG_TYPE_VIO
+} mod_config_type;
 
 typedef struct {
+	mod_config_type config_type;
 	unsigned long long puid;
 	unsigned int bus;
 	unsigned int devfn;
@@ -42,7 +47,9 @@ typedef struct {
 } pci_config_t;
 
 typedef struct {
-	unsigned int reg;
+	mod_config_type config_type;
+	unsigned int reg_len;
+	unsigned int reg[12];
 	char	     compat[64];
 } vio_config_t;
 
@@ -180,18 +187,5 @@ typedef struct {
 		ioctl_ethtool_version_t version;
 	} data;
 } ioctl_net_data_t;
-
-/* paflof */
-enum {
-	PAFLOF_GDEPTH,
-	PAFLOF_GIO_BEHAVIOR,
-	PAFLOF_GSTATUS,
-	PAFLOF_POP,
-	PAFLOF_PUSH,
-};
-/*  - clint */
-enum {
-	CLINT_EXECUTE
-};
 
 #endif				/* _NETDRIVER_INT_H */

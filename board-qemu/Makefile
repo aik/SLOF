@@ -12,7 +12,8 @@
 
 BOARD_TARGETS = tools_build romfs_build clients_build netdrivers stage1 subdirs
 
-SUBDIRS = slof veth
+SUBDIRS = slof veth virtio-net
+
 COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall
 
 all: $(BOARD_TARGETS)

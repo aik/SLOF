@@ -254,13 +254,13 @@ static snk_module_t veth_interface = {
 
 static int check_driver(vio_config_t *conf)
 {
-	
-        if (snk_kernel_interface->strcmp(conf->compat, "IBM,l-lan")) {
-		printk( "veth: netdevice not supported\n" );
+	if (snk_kernel_interface->strcmp(conf->compat, "IBM,l-lan")) {
+		dprintk( "veth: netdevice not supported\n" );
 		return -1;
 	}
-	g_reg = conf->reg;
-	
+
+	g_reg = conf->reg[0];
+
 	return 0;
 }
 

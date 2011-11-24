@@ -20,3 +20,4 @@ bootinfo	board-qemu/llfw/Cboot.bin	0			0
 snk		clients/net-snk.client		0			0
 net_veth	board-qemu/veth/net_veth.elf	0			0
 net_e1000	drivers/e1k/net_e1k.elf		0			0
+net_virtio	board-qemu/virtio-net/net_virtio.elf 0			0

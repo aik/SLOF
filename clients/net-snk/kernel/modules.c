@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2004, 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -40,6 +40,7 @@ static const mod_descriptor_t modules[] = {
 	{ "net_e1000",  MOD_TYPE_NETWORK },
 	{ "net_bcm",    MOD_TYPE_NETWORK },
 	{ "net_veth",   MOD_TYPE_NETWORK },
+	{ "net_virtio", MOD_TYPE_NETWORK },
 	{ NULL,         0                }
 };
 

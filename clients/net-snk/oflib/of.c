@@ -728,7 +728,9 @@ get_puid(phandle_t node)
 
 static int set_vio_config(vio_config_t * vio_config, phandle_t net)
 {
-	of_getprop(net, "reg", &vio_config->reg, 4);
+	vio_config->config_type = CONFIG_TYPE_VIO;
+	vio_config->reg_len = of_getprop(net, "reg", vio_config->reg,
+					 sizeof(vio_config->reg));
 	of_getprop(net, "compatible", &vio_config->compat, 64);
 
 	return 0;
@@ -740,6 +742,8 @@ static int set_pci_config(pci_config_t * pci_config, phandle_t net)
 	unsigned char buf[400];
 	int len, bar_nr;
 	unsigned int *assigned_ptr;
+
+	pci_config->config_type = CONFIG_TYPE_PCI;
 
 	of_getprop(net, "vendor-id", &pci_config->vendor_id, 4);
 	of_getprop(net, "device-id", &pci_config->device_id, 4);
@@ -781,8 +785,11 @@ static int set_config(snk_kernel_t * snk_kernel_interface)
 
 	parent = of_parent(net);
 	of_getprop(parent, "compatible", compat, 64);
-	if (!strcmp(compat, "IBM,vdevice"))
+
+	if (strcmp(compat, "IBM,vdevice") == 0
+	    || strncmp(compat, "ibm,virtio", 10) == 0)
 		return set_vio_config(&snk_kernel_interface->vio_conf, net);
+
 	return set_pci_config(&snk_kernel_interface->pci_conf, net);
 }
 
