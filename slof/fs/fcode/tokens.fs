@@ -312,8 +312,9 @@ reset-token-table
 ' decode-phys       0 128 set-token
 \ ' push-package    0 129 set-token    \ TODO - from proposal 215
 \ ' pop-package     0 12A set-token    \ TODO - from proposal 215
+' interpose         0 12B set-token    \ Recommended practice: Interposition
 
-\ Tokens 0x12B to 0x12F are reserved
+\ Tokens 0x12C to 0x12F are reserved
 
 ' map-low           0 130 set-token
 ' sbus-intr>cpu     0 131 set-token    \ Obsolete
