@@ -151,7 +151,7 @@ CONSTANT <instancevariable>
 0 VALUE calling-child
 
 : $call-parent
-   my-self TO calling-child
+   my-self ihandle>phandle TO calling-child
    my-parent $call-method
    0 TO calling-child
 ;

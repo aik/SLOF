@@ -111,7 +111,7 @@ setup-puid
 \ in the PCI device node instead of the bus node, so we've got to use the
 \ "calling-child" variable here to get to the node that initiated the call.
 : (init-dma-window-vars)  ( -- )
-   s" ibm,dma-window" calling-child ihandle>phandle
+   s" ibm,dma-window" calling-child
    get-property ABORT" no dma-window property available"
    decode-int TO dma-window-liobn
    decode-64 TO dma-window-base

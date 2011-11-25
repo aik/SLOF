@@ -10,8 +10,10 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+get-node CONSTANT my-phandle
+
 \ get the PUID from the node above
-s" my-puid" get-node parent $call-static CONSTANT my-puid
+s" my-puid" my-phandle parent $call-static CONSTANT my-puid
 
 \ define the config reads
 : config-b@  puid >r my-puid TO puid my-space + rtas-config-b@ r> TO puid ;
@@ -54,19 +56,27 @@ s" my-puid" get-node parent $call-static CONSTANT my-puid
 
 \ DMA memory allocation functions
 : dma-alloc ( size -- virt )
-   s" dma-alloc" $call-parent
+   my-phandle TO calling-child
+   s" dma-alloc" my-phandle parent $call-static
+   0 TO calling-child
 ;
 
 : dma-free ( virt size -- )
-   s" dma-free" $call-parent
+   my-phandle TO calling-child
+   s" dma-free" my-phandle parent $call-static
+   0 TO calling-child
 ;
 
 : dma-map-in ( virt size cacheable? -- devaddr )
-   s" dma-map-in" $call-parent
+   my-phandle TO calling-child
+   s" dma-map-in" my-phandle parent $call-static
+   0 TO calling-child
 ;
 
 : dma-map-out ( virt devaddr size -- )
-   s" dma-map-out" $call-parent
+   my-phandle TO calling-child
+   s" dma-map-out" my-phandle parent $call-static
+   0 TO calling-child
 ;
 
 

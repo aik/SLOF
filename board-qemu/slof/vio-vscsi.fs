@@ -404,11 +404,9 @@ CREATE sector d# 512 allot
 
 \ Cleanup behind us
 : vscsi-cleanup
-    ." VSCSI: Cleaning up" cr
-
+    \ ." VSCSI: Cleaning up" cr
     crq-cleanup
-
-    \ Disable TCE bypass
+    \ Disable TCE bypass:
     vscsi-unit 0 rtas-set-tce-bypass
 ;
 
