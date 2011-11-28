@@ -25,15 +25,16 @@
 
 static char * response_buffer;
 
-void
+#if DEBUG
+static void
 print_ip(char *ip)
 {
 	printf("%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
 }
-
+#endif
 
 /* IP header checksum calculation */
-unsigned short
+static unsigned short
 checksum(unsigned short *packet, int words)
 {
 	unsigned long checksum;

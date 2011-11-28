@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <netapps/args.h>
+#include "netapps.h"
 
 struct ping_args {
 	union {
@@ -37,7 +38,7 @@ struct ping_args {
 };
 
 static void
-usage()
+usage(void)
 {
 	printf
 	    ("\nping device-path:[device-args,]server-ip,[client-ip],[gateway-ip][,timeout]\n");

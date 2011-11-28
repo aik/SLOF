@@ -10,19 +10,21 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
+#include <stdint.h>
+#include <stdarg.h>
+#include <string.h>
 #include <of.h>
 #include <systemcall.h>
-#include <stdarg.h>
 #include <netdriver_int.h>
-#include <string.h>
 #include <fileio.h>
+#include "modules.h"
 
-//extern ihandle_t fd_array[32];
-extern snk_module_t *get_module_by_type(int type);
 extern int vsprintf(char *, const char *, va_list);
 extern void _exit(int status);
 
+long _system_call(long arg0, long arg1, long arg2, long arg3, 
+		  long arg4, long arg5, long arg6, int nr);
+void exit(int status);
 int printk(const char*, ...);
 
 static int

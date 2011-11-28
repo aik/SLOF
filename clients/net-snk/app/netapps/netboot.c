@@ -24,6 +24,7 @@
 #include <netapps/args.h>
 #include <libbootmsg/libbootmsg.h>
 #include <of.h>
+#include "netapps.h"
 
 #define IP_INIT_DEFAULT 2
 #define IP_INIT_NONE    0

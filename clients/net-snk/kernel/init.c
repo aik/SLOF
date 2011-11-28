@@ -10,22 +10,22 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h> /* malloc */
 #include <of.h>
 #include <pci.h>
 #include <kernel.h>
-#include <stdint.h>
-#include <string.h>
 #include <cpu.h>
 #include <fileio.h>
-#include <stdlib.h> /* malloc */
 #include <ioctl.h> /* ioctl */
+#include "modules.h"
 
 /* Application entry point .*/
 extern int _start(unsigned char *arg_string, long len);
 extern int main(int, char**);
+int _start_kernel(unsigned long p0, unsigned long p1);
 void * malloc_aligned(size_t size, int align);
-extern snk_module_t *insmod_by_type(int);
-extern void rmmod_by_type(int);
 
 unsigned long exception_stack_frame;
 
@@ -33,8 +33,6 @@ snk_fileio_t fd_array[FILEIO_MAX];
 
 extern uint64_t tb_freq;
 
-void modules_init(void);
-void modules_term(void);
 int glue_init(snk_kernel_t *, unsigned int *, size_t, size_t);
 void glue_release(void);
 
@@ -74,7 +72,7 @@ malloc_aligned(size_t size, int align)
 }
 
 static void
-copy_exception_vectors()
+copy_exception_vectors(void)
 {
 	char *dest;
 	char *src;
@@ -92,7 +90,7 @@ copy_exception_vectors()
 }
 
 static void
-restore_exception_vectors()
+restore_exception_vectors(void)
 {
 	char *dest;
 	char *src;

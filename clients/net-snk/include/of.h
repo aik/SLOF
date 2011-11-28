@@ -10,9 +10,11 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
 #ifndef OF_H
 #define OF_H
+
+#include <stdint.h>
+
 #define p32 int
 #define p32cast (int) (unsigned long) (void*)
 
@@ -52,5 +54,10 @@ unsigned int romfs_lookup(const char *, void **);
 int vpd_read(unsigned int , unsigned int , char *);
 int vpd_write(unsigned int , unsigned int , char *);
 int write_mm_log(char *, unsigned int , unsigned short );
+
+void get_mac(char *mac);
+uint64_t get_puid(phandle_t node);
+void translate_address_dev(uint64_t *, phandle_t);
+void translate_address(unsigned long *addr);
 
 #endif

@@ -45,7 +45,7 @@ static inline void flush_cache(void* r, long n)
 }
 
 static inline void
-eieio()
+eieio(void)
 {
 	asm volatile ("eieio":::"memory");
 }

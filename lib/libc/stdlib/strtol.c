@@ -10,6 +10,8 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdlib.h>
+
 long int strtol(const char *S, char **PTR,int BASE)
 {
 	long rval = 0;

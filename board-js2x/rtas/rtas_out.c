@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <rtas.h>
 #include <hw.h>
 
@@ -35,7 +36,7 @@ io_init(void)
 	}
 }
 
-void
+static void
 display_char(char ch)
 {
 	volatile int i = 0;
@@ -52,7 +53,7 @@ display_char(char ch)
 	}
 }
 
-size_t
+ssize_t
 write(int fd __attribute((unused)), const void *buf, size_t cnt)
 {
 	while (cnt--) {

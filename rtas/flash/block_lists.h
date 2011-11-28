@@ -13,7 +13,7 @@
 extern int progress;
 extern unsigned char sig_org[];
 
-void print_progress(void);
+int print_progress(void);
 void print_hash(void);
 int get_block_list_version(unsigned char *);
 int image_check_crc(unsigned long *, int);

@@ -11,6 +11,7 @@
  *****************************************************************************/
 
 #include <stdint.h>
+#include "kernel.h"
 
 //*******************************************************************
 // variable "tb_freq" contains the frequency in Hz
@@ -39,7 +40,7 @@ uint64_t get_time(void)
 
 //-------------------------------------------------------------------
 // wait for ticks/scale timebase ticks
-void wait_ticks(uint64_t ticks)
+static void wait_ticks(uint64_t ticks)
 {
         uint64_t timeout = get_time() + ticks;
         while (get_time() < timeout) {

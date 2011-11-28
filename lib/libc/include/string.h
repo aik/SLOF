@@ -26,6 +26,7 @@ char *strchr(const char *s, int c);
 char *strrchr(const char *s, int c);
 size_t strlen(const char *s);
 char *strstr(const char *hay, const char *needle);
+char *strtok(char *src, const char *pattern);
 
 void *memset(void *s, int c, size_t n);
 void *memchr(const void *s, int c, size_t n);

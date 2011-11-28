@@ -28,6 +28,10 @@ int rtas_callcount[0x40] __attribute__((aligned (16)));
 long rtas_config;
 
 
+/* Prototype */
+void rtas_call (rtas_args_t *rtas_args);
+
+
 /* 
 Function: rtas_call
 	Input:

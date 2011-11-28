@@ -18,12 +18,9 @@
 #include <cpu.h> /* flush_cache */
 #include <unistd.h> /* open, close, read, write */
 #include <stdio.h>
+#include <pci.h>
+#include "modules.h"
 
-
-unsigned int read_io(void *, size_t);
-int write_io(void *, unsigned int, size_t);
-
-extern void get_mac(char *mac);
 extern snk_module_t of_module;
 
 extern char __client_start[];
@@ -146,7 +143,7 @@ modules_init(void)
 }
 
 void
-modules_term()
+modules_term(void)
 {
 	int i;
 

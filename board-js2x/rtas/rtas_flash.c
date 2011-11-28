@@ -216,7 +216,7 @@ write_flash(unsigned long offset, unsigned char *data)
 	clr_ci();
 }
 
-void
+static void
 write_flash_page(unsigned long offset, unsigned short *data)
 {
 	int i = 0;

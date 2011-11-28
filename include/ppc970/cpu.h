@@ -73,21 +73,21 @@
 #define EXPAND(x) STRINGIFY(x)
 
 static inline void
-set_ci()
+set_ci(void)
 {
 	unsigned long tmp;
 	asm volatile(EXPAND(SETCI(%0)) : "=r"(tmp) :: "memory", "cc");
 }
 
 static inline void
-clr_ci()
+clr_ci(void)
 {
 	unsigned long tmp;
 	asm volatile(EXPAND(CLRCI(%0)) : "=r"(tmp) :: "memory", "cc");
 }
 
 static inline void
-eieio()
+eieio(void)
 {
 	asm volatile ("eieio":::"memory");
 }

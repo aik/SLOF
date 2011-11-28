@@ -24,11 +24,11 @@ extern unsigned long tb_freq;
 /* setup the timer to start counting from the given parameter */
 void set_timer(int);
 /* read the current value from the decrementer */
-int get_timer();
+int get_timer(void);
 /* get the number of ticks for which the decrementer needs 1 second */
-int get_sec_ticks();
+int get_sec_ticks(void);
 /* get the number of ticks for which the decrementer needs 1 millisecond */
-int get_msec_ticks();
+int get_msec_ticks(void);
 
 #define TICKS_MSEC get_msec_ticks()
 #define TICKS_SEC get_sec_ticks()

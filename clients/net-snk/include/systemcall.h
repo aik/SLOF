@@ -14,7 +14,7 @@
 #ifndef SYSTEMCALL_H
 #define SYSTEMCALL_H
 
-extern inline int
+static inline int
 syscall (int nr)
 {
     register unsigned long r0 asm("r0") = nr;
@@ -24,7 +24,7 @@ syscall (int nr)
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_1 (int nr, long arg0)
 {
     register unsigned long r0 asm("r0") = nr;
@@ -34,7 +34,7 @@ syscall_1 (int nr, long arg0)
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_2 (int nr, long arg0, long arg1)
 {
     register unsigned long r0 asm("r0") = nr;
@@ -45,7 +45,7 @@ syscall_2 (int nr, long arg0, long arg1)
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_3 (int nr, long arg0, long arg1, long arg2)
 {
     register unsigned long r0 asm("r0") = nr;
@@ -57,7 +57,7 @@ syscall_3 (int nr, long arg0, long arg1, long arg2)
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_4 (int nr, long arg0, long arg1, long arg2, long arg3)
 {
     register unsigned long r0 asm("r0") = nr;
@@ -70,7 +70,7 @@ syscall_4 (int nr, long arg0, long arg1, long arg2, long arg3)
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_5 (int nr, long arg0, long arg1, long arg2, long arg3, 
 	   long arg4)
 {
@@ -86,7 +86,7 @@ syscall_5 (int nr, long arg0, long arg1, long arg2, long arg3,
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_6 (int nr, long arg0, long arg1, long arg2, long arg3, 
 	   long arg4, long arg5)
 {
@@ -103,7 +103,7 @@ syscall_6 (int nr, long arg0, long arg1, long arg2, long arg3,
     return r3;
 } 
 
-extern inline long
+static inline long
 syscall_7 (int nr, long arg0, long arg1, long arg2, long arg3, 
 	   long arg4, long arg5, long arg6)
 {

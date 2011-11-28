@@ -16,3 +16,5 @@
 #define FLASH SB_FLASH_adr
 #define BUFSIZE 4096
 #define FLASH_BLOCK_SIZE 0x20000
+
+void write_flash(unsigned long offset, unsigned char *data);

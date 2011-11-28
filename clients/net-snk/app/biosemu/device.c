@@ -15,6 +15,7 @@
 #include "rtas.h"
 #include <stdio.h>
 #include <string.h>
+#include <of.h>         // use translate_address_dev and get_puid from net-snk
 #include "debug.h"
 
 typedef struct {
@@ -25,10 +26,6 @@ typedef struct {
 	uint64_t address;
 	uint64_t size;
 } __attribute__ ((__packed__)) assigned_address_t;
-
-// use translate_address_dev and get_puid from net-snk's net_support.c
-void translate_address_dev(uint64_t *, phandle_t);
-uint64_t get_puid(phandle_t node);
 
 
 // scan all adresses assigned to the device ("assigned-addresses" and "reg")

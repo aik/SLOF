@@ -37,7 +37,7 @@ pInterruptFunc_t vectorTable[0x2E << 1];
 
 void c_memInit(uint64_t r3, uint64_t r4);
 
-void proceedInterrupt();
+void proceedInterrupt(void);
 
 void exception_forward(void)
 {

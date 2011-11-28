@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
+#include <ioctl.h>
 #include "systemcall.h"
 
 

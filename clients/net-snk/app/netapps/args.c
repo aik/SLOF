@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include "args.h"
 
 /**
  * Returns pointer of the n'th argument within a string.

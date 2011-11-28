@@ -10,6 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdint.h>
 #include <rtas.h>
 #include <of.h>
 #include <pci.h>

@@ -20,6 +20,8 @@
 #include <hw.h>
 
 void io_init(void);
+short reg_get_flashside(void);
+void rtas_init(void);
 
 typedef struct {
 	uint64_t r3;
@@ -29,7 +31,7 @@ typedef struct {
 
 volatile slave_t rtas_slave_interface;
 
-void
+static void
 rtas_slave_loop(volatile slave_t * pIface)
 {
 	uint64_t mask = pIface->id;
@@ -39,8 +41,8 @@ rtas_slave_loop(volatile slave_t * pIface)
 		while (dly--);
 	}
 	pIface->id = 0;
-	asm("  mr 3,%0 ; mtctr %1 ; bctr "::"r"(pIface->r3), "r"(pIface->addr));
-
+	asm volatile ("  mr 3,%0 ; mtctr %1 ; bctr "
+			::"r"(pIface->r3), "r"(pIface->addr));
 }
 
 void
@@ -162,7 +164,7 @@ rtas_get_blade_descr(rtas_args_t * pArgs)
 }
 
 // for JS20 cannot read blade descr
-uint32_t
+static uint32_t
 dummy_get_blade_descr(uint8_t *dst, uint32_t maxlen, uint32_t *len)
 {
 	// to not have a warning we need to do _something_ with *dst and maxlen...

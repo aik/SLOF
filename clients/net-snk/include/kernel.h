@@ -12,11 +12,15 @@
 
 #ifndef KERNEL_H
 #define KERNEL_H
+
 #include <stddef.h>
+#include <stdint.h>
 
 int printk(const char *, ...);
 void *memcpy(void *, const void *, size_t);
 void *memset(void *, int, size_t);
+
+uint64_t get_time(void);
 void udelay(unsigned int);
 void mdelay(unsigned int);
 int getchar(void);

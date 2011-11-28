@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <cpu.h>
+#include <pci.h>
 #include "device.h"
 #include "rtas.h"
 #include "debug.h"
@@ -20,9 +21,6 @@
 #include <x86emu/x86emu.h>
 #include <time.h>
 
-// those are defined in net-snk/oflib/pci.c
-extern unsigned int read_io(void *, size_t);
-extern int write_io(void *, unsigned int, size_t);
 
 //defined in net-snk/kernel/timer.c
 extern uint64_t get_time(void);

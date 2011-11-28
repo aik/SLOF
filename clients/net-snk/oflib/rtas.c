@@ -10,11 +10,11 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <rtas.h>
 #include <of.h>
-#include <stdint.h>
 #include <netdriver_int.h>
 #include "kernel.h"
 

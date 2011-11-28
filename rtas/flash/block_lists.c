@@ -12,6 +12,7 @@
 
 #include <product.h>
 #include <stdio.h>
+#include "block_lists.h"
 
 unsigned char sig_org[] = FLASHFS_PLATFORM_MAGIC;
 
@@ -25,7 +26,7 @@ void write_flash(unsigned long, unsigned short *);
 int progress = 0;
 
 int
-print_progress()
+print_progress(void)
 {
 	static int i = 3;
 	switch (i--) {
@@ -47,13 +48,13 @@ print_progress()
 }
 
 void
-print_hash()
+print_hash(void)
 {
 	printf("\b# ");
 }
 
 void
-print_writing()
+print_writing(void)
 {
 	int counter = 42;
 	printf("\nWriting Flash: |");

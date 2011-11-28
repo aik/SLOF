@@ -10,7 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
+#include <kernel.h>
 #include "time.h"
 
 int get_msec_ticks()
@@ -34,6 +34,3 @@ int get_timer()
         asm volatile ("mfdec %0":"=r" (val));
         return val;
 }
-
-
-

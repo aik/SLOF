@@ -30,14 +30,14 @@ typedef void (*thread_t) (int);
 
 int rtas_token(const char *);
 int rtas_call(int, int, int, int *, ...);
-void rtas_init();
+void rtas_init(void);
 int rtas_pci_config_read (long long, int, int, int, int);
 int rtas_pci_config_write (long long, int, int, int, int, int);
 int rtas_set_time_of_day(dtime *);
 int rtas_get_time_of_day(dtime *);
 int rtas_ibm_update_flash_64(long long, long long);
 int rtas_ibm_update_flash_64_and_reboot(long long, long long);
-int rtas_system_reboot();
+int rtas_system_reboot(void);
 int rtas_start_cpu (int, thread_t, int);
 int rtas_stop_self (void);
 int rtas_ibm_manage_flash(int);

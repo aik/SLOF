@@ -10,6 +10,8 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <unistd.h>
+
 #define HEAP_SIZE 0x200000
 
 

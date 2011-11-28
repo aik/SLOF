@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2008 IBM Corporation
+ * Copyright (c) 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,19 +10,8 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#ifndef _UNISTD_H
-#define _UNISTD_H
-
-#include <stddef.h>
-
-typedef long ssize_t;
-
-extern int open(const char *name, int flags);
-extern int close(int fd);
-extern ssize_t read(int fd, void *buf, size_t count);
-extern ssize_t write(int fd, const void *buf, size_t count);
-extern ssize_t lseek(int fd, long offset, int whence);
-
-extern void *sbrk(int increment);
-
-#endif
+extern void modules_init(void);
+extern void modules_term(void);
+extern snk_module_t *insmod_by_type(int);
+extern void rmmod_by_type(int);
+extern snk_module_t *get_module_by_type(int type);

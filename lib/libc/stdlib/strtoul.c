@@ -10,6 +10,8 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdlib.h>
+
 unsigned long int strtoul(const char *S, char **PTR,int BASE)
 {
 	unsigned long rval = 0;

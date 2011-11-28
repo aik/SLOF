@@ -22,6 +22,7 @@ extern int vbe_get_info(char argc, char**argv);
 #endif
 
 extern void _callback_entry(void);
+int callback(int argc, char *argv[]);
 
 
 int

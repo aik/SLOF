@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include "netapps.h"
 
 int netflash(int argc, char * argv[])
 {

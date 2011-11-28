@@ -10,13 +10,13 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
+#include <stdint.h>
 #include <of.h>
 #include <rtas.h>
 #include <string.h>
 #include <netdriver_int.h>
 #include <fileio.h>
-#include <stdint.h>
+#include <libbootmsg.h>
 
 extern void call_client_interface(of_arg_t *);
 
@@ -26,6 +26,9 @@ static int ofmod_open(snk_fileio_t*, const char* name, int flags);
 static int ofmod_read(char *buffer, int len);
 static int ofmod_write(char *buffer, int len);
 static int ofmod_ioctl(int request, void *data);
+
+int glue_init(snk_kernel_t *, unsigned int *, size_t, size_t);
+void glue_release(void);
 
 snk_module_t of_module = {
 	.version = 1,
@@ -45,7 +48,7 @@ static int claim_rc = 0;
 static void* client_start;
 static size_t client_size;
 
-extern inline int
+static inline int
 of_0_1(const char *serv)
 {
 	of_arg_t arg = {
@@ -59,7 +62,7 @@ of_0_1(const char *serv)
 	return arg.args[0];
 }
 
-extern inline void
+static inline void
 of_1_0(const char *serv, int arg0)
 {
 	of_arg_t arg = {
@@ -71,7 +74,7 @@ of_1_0(const char *serv, int arg0)
 	call_client_interface(&arg);
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_1_1(const char *serv, int arg0)
 {
 	of_arg_t arg = {
@@ -84,7 +87,7 @@ of_1_1(const char *serv, int arg0)
 	return arg.args[1];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_1_2(const char *serv, int arg0, int *ret0)
 {
         of_arg_t arg = {
@@ -98,7 +101,7 @@ of_1_2(const char *serv, int arg0, int *ret0)
         return arg.args[1];
 }
 
-extern inline void
+static inline void
 of_2_0(const char *serv, int arg0, int arg1)
 {
 	of_arg_t arg = {
@@ -110,7 +113,7 @@ of_2_0(const char *serv, int arg0, int arg1)
 	call_client_interface(&arg);
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_2_1(const char *serv, int arg0, int arg1)
 {
 	of_arg_t arg = {
@@ -123,7 +126,7 @@ of_2_1(const char *serv, int arg0, int arg1)
 	return arg.args[2];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_2_2(const char *serv, int arg0, int arg1, int *ret0)
 {
 	of_arg_t arg = {
@@ -137,7 +140,7 @@ of_2_2(const char *serv, int arg0, int arg1, int *ret0)
 	return arg.args[2];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_2_3(const char *serv, int arg0, int arg1, int *ret0, int *ret1)
 {
 	of_arg_t arg = {
@@ -152,7 +155,7 @@ of_2_3(const char *serv, int arg0, int arg1, int *ret0, int *ret1)
 	return arg.args[2];
 }
 
-extern inline void
+static inline void
 of_3_0(const char *serv, int arg0, int arg1, int arg2)
 {
 	of_arg_t arg = {
@@ -165,7 +168,7 @@ of_3_0(const char *serv, int arg0, int arg1, int arg2)
 	return;
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_3_1(const char *serv, int arg0, int arg1, int arg2)
 {
 	of_arg_t arg = {
@@ -178,7 +181,7 @@ of_3_1(const char *serv, int arg0, int arg1, int arg2)
 	return arg.args[3];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_3_2(const char *serv, int arg0, int arg1, int arg2, int *ret0)
 {
 	of_arg_t arg = {
@@ -192,7 +195,7 @@ of_3_2(const char *serv, int arg0, int arg1, int arg2, int *ret0)
 	return arg.args[3];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_3_3(const char *serv, int arg0, int arg1, int arg2, int *ret0, int *ret1)
 {
 	of_arg_t arg = {
@@ -207,7 +210,7 @@ of_3_3(const char *serv, int arg0, int arg1, int arg2, int *ret0, int *ret1)
 	return arg.args[3];
 }
 
-extern inline unsigned int
+static inline unsigned int
 of_4_1(const char *serv, int arg0, int arg1, int arg2, int arg3)
 {
 	of_arg_t arg = {

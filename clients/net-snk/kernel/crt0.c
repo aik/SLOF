@@ -10,14 +10,18 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-
 #include <stdlib.h>
 #include <string.h>
+
 extern int main (int, char**);
 extern int callback (int, char **);
 
+int _start(char *arg_string, long len);
+unsigned long callback_entry(void *base, unsigned long len);
+
+
 #define MAX_ARGV 10
-int
+static int
 gen_argv(const char *arg_string, int len, char* argv[])
 {
   const char *str, *str_end, *arg_string_end = arg_string + len;
