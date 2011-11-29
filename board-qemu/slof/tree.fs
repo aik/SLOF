@@ -158,6 +158,16 @@ s" /mmu" open-dev encode-int s" mmu" set-chosen
 
 #include <term-io.fs>
 
-" hvterm" find-alias IF drop
-  " hvterm" io
-THEN
+: set-default-console
+    s" linux,stdout-path" get-chosen IF
+        decode-string
+        ." Using default console: " 2dup type cr
+        io
+        2drop
+    ELSE
+        " hvterm" find-alias IF drop
+            " hvterm" io
+        THEN
+    THEN
+;
+set-default-console
