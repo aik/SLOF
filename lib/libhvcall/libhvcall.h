@@ -21,9 +21,9 @@
 
 extern long hv_generic(unsigned long opcode, ...);
 
-extern void hv_putchar(char c);
-extern char hv_getchar(void);
-extern char hv_haschar(void);
+extern void hv_putchar(char c, int hvtermno);
+extern char hv_getchar(int hvtermno);
+extern char hv_haschar(int hvtermno);
 
 extern int hv_send_crq(unsigned int unit, uint64_t *msgaddr);
 

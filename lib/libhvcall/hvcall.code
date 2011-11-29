@@ -14,22 +14,21 @@
 #include <virtio.h>
 #include <virtio-blk.h>
 
-// : hv-putchar ( char -- )
+// : hv-putchar ( hvtermno char -- )
 PRIM(hv_X2d_putchar)
 	char c = TOS.n; POP;
-	hv_putchar(c);
+	int hvtermno = TOS.n; POP;
+	hv_putchar(c, hvtermno);
 MIRP
 
-// : hv-getchar ( -- char )
+// : hv-getchar ( hvtermno -- char )
 PRIM(hv_X2d_getchar)
-	PUSH;
-	TOS.n = hv_getchar();
+	TOS.n = hv_getchar(TOS.n);
 MIRP
 
-// : hv-haschar ( -- res )
+// : hv-haschar ( hvtermno -- res )
 PRIM(hv_X2d_haschar)
-	PUSH;
-	TOS.n = hv_haschar();
+	TOS.n = hv_haschar(TOS.n);
 MIRP
 
 // : hv-reg-crq ( unit qaddr qsize -- res )

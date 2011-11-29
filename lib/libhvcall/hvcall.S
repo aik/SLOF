@@ -12,14 +12,15 @@ ENTRY(hv_generic)
 	HVCALL
 	blr
 
+/* r3 = char, r4 = hvtermno */
 ENTRY(hv_putchar)
 	sldi	r6,r3,(24+32)
 	li	r3,H_PUT_TERM_CHAR
-	li	r4,0
 	li	r5,1
 	HVCALL
 	blr
 
+/* r3 = hvtermno */
 ENTRY(hv_getchar)
 	mflr	r10
 	bl	.hv_haschar
@@ -34,7 +35,9 @@ ENTRY(hv_getchar)
 	stw	r4,20(r9)
 	blr
 
+/* r3 = hvtermno */
 ENTRY(hv_haschar)
+	mr	r4,r3
 	li	r3,-1
 	lis	r9,inbuf@h
 	ori	r9,r9,inbuf@l
@@ -43,7 +46,6 @@ ENTRY(hv_haschar)
 	cmplw	cr0,r5,r6
 	bnelr
 	li	r3,H_GET_TERM_CHAR
-	li	r4,0
 	HVCALL
 	lis	r9,inbuf@h
 	ori	r9,r9,inbuf@l

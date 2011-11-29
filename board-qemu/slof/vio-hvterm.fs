@@ -15,12 +15,19 @@
 : open true ;
 : close ;
 
-: write ( adr len -- actual )  tuck type ;
+: write ( adr len -- actual )
+   tuck
+   0 ?DO
+       dup c@ my-unit SWAP hv-putchar
+       1 +
+   LOOP
+   drop
+;
 
 : read  ( adr len -- actual )
    0= IF drop 0 EXIT THEN
-   hvterm-key? 0= IF 0 swap c! -2 EXIT THEN
-   hvterm-key swap c! 1
+   my-unit hv-haschar 0= IF 0 swap c! -2 EXIT THEN
+   my-unit hv-getchar swap c! 1
 ;
 
 : setup-alias

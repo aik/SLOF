@@ -12,9 +12,11 @@
 
 \ PAPR hvterm console.  Enabled very early.
 
-: hvterm-emit  hv-putchar ;
-: hvterm-key?  hv-haschar ;
-: hvterm-key   BEGIN hvterm-key? UNTIL hv-getchar ;
+0 CONSTANT default-hvtermno
+
+: hvterm-emit  default-hvtermno SWAP hv-putchar ;
+: hvterm-key?  default-hvtermno hv-haschar ;
+: hvterm-key   BEGIN hvterm-key? UNTIL default-hvtermno hv-getchar ;
 
 ' hvterm-emit to emit
 ' hvterm-key  to key
