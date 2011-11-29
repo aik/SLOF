@@ -119,6 +119,23 @@ fdt-check-header
 : fdt-create-dec  s" decode-unit" $CREATE , DOES> @ hex-decode-unit ;
 : fdt-create-enc  s" encode-unit" $CREATE , DOES> @ hex-encode-unit ;
 
+\ Check whether array contains an zero-terminated ASCII string:
+: fdt-prop-is-string?  ( addr len -- string? )
+   dup 1 < IF 2drop FALSE EXIT THEN                \ Check for valid length
+   1-
+   2dup + c@ 0<> IF 2drop FALSE EXIT THEN          \ Check zero-termination
+   test-string
+;
+
+\ Encode fdt property to OF property
+: fdt-encode-prop  ( addr len -- )
+   2dup fdt-prop-is-string? IF
+      1- encode-string
+   ELSE
+      encode-bytes
+   THEN
+;
+
 \ Method to unflatten a node
 : fdt-unflatten-node ( start -- end )
   \ this can and will recurse
@@ -159,8 +176,8 @@ fdt-check-header
       drop dup			( drop tag, dup addr     : a1 a1 )
       dup l@ dup rot 4 +	( fetch size, stack is   : a1 s s a2)
       dup l@ swap 4 +		( fetch nameid, stack is : a1 s s i a3 )
-      rot                       ( we now have: a1 s i a3 s )
-      encode-bytes rot		( a1 s pa ps i)
+      rot			( we now have: a1 s i a3 s )
+      fdt-encode-prop rot	( a1 s pa ps i)
       fdt-fetch-string		( a1 s pa ps na ns )
       2dup s" reg" str= IF
           2swap 2dup fdt-reg-unit 2swap

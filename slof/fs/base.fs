@@ -121,6 +121,16 @@ CONSTANT <2constant>
 : str= ( str1 len1 str2 len2 -- equal? )
   rot over <> IF 3drop false ELSE comp 0= THEN ;
 
+: test-string ( param len -- true | false )
+   0 ?DO
+      dup i + c@                     \ Get character / byte at current index
+      dup 20 <  swap 7e >  OR IF     \ Is it out of range 32 to 126 (=ASCII)
+         drop FALSE UNLOOP EXIT      \ FALSE means: No ASCII string
+      THEN
+   LOOP
+   drop TRUE    \ Only ASCII found --> it is a string
+;
+
 : #aligned ( adr alignment -- adr' ) negate swap negate and negate ;
 : #join  ( lo hi #bits -- x )  lshift or ;
 : #split ( x #bits -- lo hi )  2dup rshift dup >r swap lshift xor r> ;

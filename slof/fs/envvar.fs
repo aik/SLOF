@@ -73,16 +73,6 @@ wordlist CONSTANT envvars
 : test-int ( param len -- true | false )
   drop c@ isdigit if true else false then ;
 
-: test-string ( param len -- true | false )
-   0 ?DO
-      dup i + c@                     \ Get character / byte at current index
-      dup 20 <  swap 7e >  OR IF     \ Is it out of range 32 to 126 (=ASCII)
-         drop FALSE UNLOOP EXIT      \ FALSE means: No ASCII string
-      THEN
-   LOOP
-   drop TRUE    \ Only ASCII found --> it is a string
-;
-
 : findtype ( param len name len -- param len name len type )
    2dup findenv dup 0= \ try to find type of envvar
    IF             \ no type found
