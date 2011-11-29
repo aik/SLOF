@@ -31,7 +31,7 @@ CONSTANT /instance-header
 ;
 
 : (create-instance-var) ( initial-value -- )
-   get-node ?dup 0= ABORT" Instance word outside device context!"
+   get-node
    dup node>instance-size @ cell+ max-instance-size
    >= ABORT" Instance is bigger than max-instance-size!"
    dup node>instance-template @      ( iv phandle tmp-ih )
@@ -42,18 +42,35 @@ CONSTANT /instance-header
 ;
 
 : create-instance-var ( "name" initial-value -- )
-  CREATE (create-instance-var) PREVIOUS ;
+   CREATE (create-instance-var) PREVIOUS
+;
+
+: (create-instance-buf) ( buffersize -- )
+   aligned                               \ align size to multiples of cells
+   dup get-node node>instance-size @ +   ( buffersize' newinstancesize )
+   max-instance-size > ABORT" Instance is bigger than max-instance-size!"
+   get-node node>instance-template @  get-node node>instance-size @ +
+   over erase                            \ clear according to IEEE 1275
+   get-node node>instance-size @         ( buffersize' old-instance-size )
+   dup ,                                 \ compile current instance ptr
+   + get-node node>instance-size !       \ store new size
+;
+
+: create-instance-buf ( "name" buffersize -- )
+   CREATE (create-instance-buf) PREVIOUS
+;
 
 VOCABULARY instance-words  ALSO instance-words DEFINITIONS
 
 : VARIABLE  0 create-instance-var DOES> [ here ] @ >instance ;
 : VALUE       create-instance-var DOES> [ here ] @ >instance @ ;
 : DEFER     0 create-instance-var DOES> [ here ] @ >instance @ execute ;
-\ No support for BUFFER: yet.
+: BUFFER:     create-instance-buf DOES> [ here ] @ >instance ;
 
 PREVIOUS DEFINITIONS
 
 \ Save XTs of the above instance-words (put on the stack with "[ here ]")
+CONSTANT <instancebuffer>
 CONSTANT <instancedefer>
 CONSTANT <instancevalue>
 CONSTANT <instancevariable>

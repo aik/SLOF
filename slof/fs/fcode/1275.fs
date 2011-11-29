@@ -253,11 +253,11 @@
       <create> ,                \ Needed for "(instance?)" for example
       <instancevalue> ,
       (create-instance-var)
-      reveal
       FALSE TO fc-instance?
    ELSE
-      <value> , , reveal
+      <value> , ,
    THEN
+   reveal
 ;
 
 : b(variable)
@@ -265,11 +265,11 @@
       <create> ,                \ Needed for "(instance?)"
       <instancevariable> ,
       0 (create-instance-var)
-      reveal
       FALSE TO fc-instance?
    ELSE
-      <variable> , 0 , reveal
+      <variable> , 0 ,
    THEN
+   reveal
 ;
 
 : b(constant)
@@ -288,7 +288,6 @@
       ['] undefined-defer (create-instance-var)
       reveal
       FALSE TO fc-instance?
-      ." INSTANCE b(defer)!" cr
    ELSE
       <defer> , reveal
       postpone undefined-defer
@@ -310,10 +309,13 @@
 
 : b(buffer:) ( E: -- a-addr) ( F: size -- )
    fc-instance? IF
-      cr ." INSTANCE b(buffer:) not supported yet!" cr
+      <create> ,                \ Needed for "(instance?)"
+      <instancebuffer> ,
+      (create-instance-buf)
       FALSE TO fc-instance?
+   ELSE
+      <buffer:> , allot
    THEN
-   <variable> , allot
    reveal
 ;
 
