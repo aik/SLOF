@@ -295,13 +295,27 @@ defer find-node
 : +indent ( not-last? -- )
   IF s" |   " ELSE s"     " THEN $indent indent @ + swap move 4 indent +! ;
 : -indent ( -- )  -4 indent +! ;
+
+: ls-phandle ( node -- )  . ." :  " ;
+
 : ls-node ( node -- )
-  cr $indent indent @ type
-  dup peer IF ." |-- " ELSE ." +-- " THEN node>qname type ;
+   cr dup ls-phandle
+   $indent indent @ type
+   dup peer IF ." |-- " ELSE ." +-- " THEN
+   node>qname type
+;
+
 : (ls) ( node -- )
   child BEGIN dup WHILE dup ls-node dup child IF
   dup peer +indent dup recurse -indent THEN peer REPEAT drop ;
-: ls ( -- )  get-node dup cr node>path type (ls) 0 indent ! ;
+
+: ls ( -- )
+   get-node cr
+   dup ls-phandle
+   dup node>path type
+   (ls)
+   0 indent !
+;
 
 : show-devs ( {device-specifier}<eol> -- )
    skipws 0 parse dup IF de-alias ELSE 2drop s" /" THEN   ( str len )
