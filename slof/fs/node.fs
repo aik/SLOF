@@ -477,7 +477,7 @@ VARIABLE interpose-node
 
 : find-device ( str len -- ) \ set as active node
   find-node dup 0= ABORT" No such device path" set-node ;
-: dev  skipws 0 parse find-device ;
+: dev  parse-word find-device ;
 
 : (lsprop) ( node --)
 	dup cr $indent indent @ type ."     node: " node>qname type
