@@ -30,8 +30,11 @@
   ;
 
 : ?jump-direction ( n -- )
-  dup 8000 >= IF FFFF swap - negate 2- THEN
-  ;
+   dup 8000 >= IF
+      10000 -           \ Create cell-sized negative value
+   THEN
+   fcode-offset -       \ IP is already behind offset, so substract offset size
+;
 
 : ?negative
   8000 and
@@ -43,9 +46,15 @@
   drop
   ;
 
-: read-fcode-offset \ ELSE needs to be fixed!
-  ?offset16 IF next-ip read-fcode-num16 ELSE THEN
-  ;
+: read-fcode-offset
+   next-ip
+   ?offset16 IF
+      read-fcode-num16
+   ELSE
+      read-byte
+      dup 80 and IF FF00 or THEN       \ Fake 16-bit signed offset
+   THEN
+;
 
 : b?branch ( flag -- )
    ?compile-mode IF
@@ -56,10 +65,10 @@
       THEN
    ELSE
       ( flag ) IF
-         2 jump-n-ip
+         fcode-offset jump-n-ip       \ Skip over offset value
       ELSE
          read-fcode-offset
-         ?jump-direction 2- jump-n-ip
+         ?jump-direction jump-n-ip
       THEN
    THEN
 ; immediate
@@ -78,7 +87,7 @@
          THEN
       THEN
    ELSE
-      read-fcode-offset ?jump-direction 2- jump-n-ip
+      read-fcode-offset ?jump-direction jump-n-ip
    THEN
 ; immediate
 
@@ -324,12 +333,12 @@
   ;
 
 : offset16 ( -- )
-  16 to fcode-offset
+  2 to fcode-offset
   ;
 
 : version1 ( -- )
   1 to fcode-spread
-  8 to fcode-offset
+  1 to fcode-offset
   read-header
   ;
 

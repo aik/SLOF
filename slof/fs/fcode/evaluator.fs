@@ -15,7 +15,7 @@ variable ip
 variable fcode-end 
 variable fcode-num
  1 value fcode-spread
-16 value fcode-offset
+ 2 value fcode-offset
 false value eva-debug?
 true value fcode-debug?
 defer fcode-rb@
