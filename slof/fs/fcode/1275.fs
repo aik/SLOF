@@ -99,45 +99,6 @@
   ?compile-mode IF postpone then THEN
   ; immediate
 
-: ffwto; ( -- )
-	BEGIN fcode@ dup c2 <> WHILE
-." ffwto: skipping " dup . ." @ " get-ip . cr
-		CASE	10 OF ( lit ) read-fcode-num32 drop ENDOF
-			11 OF ( ' ) read-fcode# drop ENDOF
-			12 OF ( " ) read-fcode-string 2drop ENDOF
-			13 OF ( bbranch ) read-fcode-offset drop ENDOF
-			14 OF ( b?branch ) read-fcode-offset drop ENDOF
-			15 OF ( loop ) read-fcode-offset drop ENDOF
-			16 OF ( +loop ) read-fcode-offset drop ENDOF
-			17 OF ( do ) read-fcode-offset drop ENDOF
-			18 OF ( ?do ) read-fcode-offset drop ENDOF
-			1C OF ( of ) read-fcode-offset drop ENDOF
-			C6 OF ( endof ) read-fcode-offset drop ENDOF
-			C3 OF ( to ) read-fcode# drop ENDOF
-			dup OF next-ip ENDOF
-		ENDCASE
-	REPEAT next-ip
-;
-
-: rpush ( rparm -- ) \ push the rparm to be on top of return stack after exit
-	r> swap >r >r
-;
-
-: rpop ( -- rparm ) \ pop the rparm that was on top of return stack before this
-	r> r> swap >r
-;
-
-: b1(;) ( -- )
-." b1(;)" cr
-  rpop set-ip
-;
-
-\ : b1(:) ( -- )
-\ ." b1(:)" cr
-\ <colon> compile, get-ip 1+ literal ] get-ip rpush set-ip [
-\ ffwto;
-\   ; immediate
-
 : b(;)
    <semicolon> compile, reveal
    postpone [
