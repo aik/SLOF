@@ -108,6 +108,14 @@ CONSTANT <instancevariable>
    THEN
 ; IMMEDIATE
 
+: behavior  ( defer-xt -- contents-xt )
+   dup cell+ @ <instancedefer> = IF   \ Is defer-xt an INSTANCE DEFER ?
+      2 cells + @ >instance @
+   ELSE
+      behavior
+   THEN
+;
+
 : INSTANCE  ALSO instance-words ;
 
 : my-parent  my-self instance>parent @ ;
