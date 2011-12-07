@@ -62,7 +62,7 @@ setup-puid
    \ Ignore the size, phys.lo and phys.mid, get BAR from config space
    drop nip nip                         ( phys.hi )
    \ Sanity check whether config address is in expected range:
-   dup FF AND 10 28 WITHIN NOT IF
+   dup FF AND dup 10 28 WITHIN NOT swap 30 <> AND IF
       cr ." phys.hi = " . cr
       ABORT" map-in with illegal config space address"
    THEN
