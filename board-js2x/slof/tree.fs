@@ -15,7 +15,14 @@
 0 value puid
 
 : >conf-rtas ( config-addr  -- config-addr )
-   puid f2000000 >= IF dup ffff > IF 1000000 + THEN THEN puid +  ;
+   puid f2000000 >= IF
+      ffffff AND                        \ Mask away highest byte for normal PCI
+      dup ffff > IF
+         1000000 +
+      THEN
+   THEN
+   puid +
+;
 
 : rtas-config-b@ ( config-addr -- value ) >conf-rtas rb@ ;
 : rtas-config-b! ( value config-addr -- ) >conf-rtas rb! ;
