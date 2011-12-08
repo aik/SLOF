@@ -556,8 +556,14 @@ tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 		if(get_timer() <= 0) {
 			/* the server doesn't seem to retry let's help out a bit */
 			if (tftp_err->no_packets > 4 && port_number != -1
-				&& block > 1)
+			    && block > 1) {
 				send_ack(block, port_number);
+			}
+			else if (port_number == -1 && block == 0
+				 && (tftp_err->no_packets&3) == 3) {
+				printf("\nRepeating TFTP read request...\n");
+				send_rrq();
+			}
 			tftp_err->no_packets++;
 			set_timer(TICKS_SEC);
 		}
