@@ -56,17 +56,20 @@ true value encode-first?
   my-self ihandle>phandle get-property ;
 : get-parent-property ( str len -- true | data dlen false )
   my-parent ihandle>phandle get-property ;
+
 : get-inherited-property ( str len -- true | data dlen false )
-    my-self ihandle>phandle
-    BEGIN 3dup get-property 0=
-	IF  \ Property found
-	    rot drop rot drop rot drop false EXIT
-	THEN
-	  parent 0=
-	IF
-	    nip nip true EXIT
-	THEN
-    AGAIN ;
+   my-self ihandle>phandle
+   BEGIN
+      3dup get-property 0= IF
+         \ Property found
+         rot drop rot drop rot drop false EXIT
+      THEN
+      parent dup 0= IF
+         \ Root node has been reached, but property has not been found
+         3drop true EXIT
+      THEN
+   AGAIN
+;
 
 \ Print out properties.
 
