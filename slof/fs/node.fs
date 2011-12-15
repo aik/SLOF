@@ -329,8 +329,9 @@ VARIABLE interpose-node
 : open-node ( arg len phandle -- ihandle | 0 )
   current-node @ >r set-node create-instance set-my-args
   ( and set unit-addr )
-\ XXX: assume default of success for nodes without open method
-  s" open" ['] $call-my-method CATCH IF 2drop true THEN
+  \ Execute "open" method if available, and assume default of
+  \ success (=TRUE) for nodes without open method:
+  s" open" get-node find-method IF execute ELSE TRUE THEN
   0= IF my-self destroy-instance 0 to my-self THEN
   my-self my-parent to my-self r> set-node
   \ Handle interposition.
@@ -357,7 +358,12 @@ VARIABLE interpose-node
 ;
 
 : finish-device ( -- )
-   ( check for "name" property here, delete this node if not there )
+   \ Set unit address to first entry of reg property if it has not been set yet
+   get-node >space? 0= IF
+      s" reg" get-node get-property 0= IF
+         decode-int set-space 2drop
+      THEN
+   THEN
    finish-node my-parent to my-self
 ;
 
