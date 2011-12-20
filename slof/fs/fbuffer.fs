@@ -18,12 +18,31 @@
 0 VALUE frame-buffer-adr
 0 VALUE screen-height
 0 VALUE screen-width
+0 VALUE screen-depth
 0 VALUE window-top
 0 VALUE window-left
 
 0 VALUE .sc
-: screen-#rows .sc IF 18 ELSE true to .sc s" screen-#rows" eval false to .sc THEN ;
-: screen-#columns .sc IF 50 ELSE true to .sc s" screen-#columns" eval false to .sc THEN ;
+
+: screen-#rows  ( -- rows )
+   .sc IF
+      screen-height char-height /
+    ELSE
+      true to .sc
+      s" screen-#rows" eval
+      false to .sc
+    THEN
+;
+
+: screen-#columns ( -- columns )
+   .sc IF
+      screen-width char-width /
+   ELSE
+      true to .sc
+      s" screen-#columns" eval
+      false to .sc
+   THEN
+;
 
 \ \\\\\\\\\\\\\\ Structure/Implementation Dependent Methods
 
@@ -35,18 +54,18 @@
 : fb8-background inverse-screen? ;
 : fb8-foreground inverse? invert ;
 
-: fb8-lines2bytes ( #lines -- #bytes ) char-height * screen-width * ;
-: fb8-columns2bytes ( #columns -- #bytes ) char-width * ;
+: fb8-lines2bytes ( #lines -- #bytes ) char-height * screen-width * screen-depth * ;
+: fb8-columns2bytes ( #columns -- #bytes ) char-width * screen-depth * ;
 : fb8-line2addr ( line# -- addr )
-	char-height * window-top + screen-width *
-	frame-buffer-adr + window-left +
+	char-height * window-top + screen-width * screen-depth *
+	frame-buffer-adr + window-left screen-depth * +
 ;
 
 : fb8-erase-block ( addr len ) fb8-background rfill ;
 
 
 0 VALUE .ab
-CREATE bitmap-buffer 400 allot
+CREATE bitmap-buffer 400 4 * allot
 
 : active-bits ( -- new ) .ab dup 8 > IF 8 - to .ab 8 ELSE
 		char-width to .ab ?dup 0= IF recurse THEN
@@ -61,7 +80,8 @@ CREATE bitmap-buffer 400 allot
 	fontbytes * bounds ?DO
 		i c@ active-bits 0 ?DO
 			dup 80 and IF fb8-foreground ELSE fb8-background THEN
-			( fb-addr fbyte colr ) 2 pick ! 1 lshift swap 1+ swap
+			( fb-addr fbyte colr ) 2 pick ! 1 lshift
+			swap screen-depth + swap
 		LOOP drop
 	LOOP drop
 	bitmap-buffer
@@ -79,8 +99,8 @@ CREATE bitmap-buffer 400 allot
 : fb8-toggle-cursor ( -- )
 	line# fb8-line2addr column# fb8-columns2bytes +
 	char-height 0 ?DO
-		char-width 0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP
-		screen-width + char-width -
+		char-width screen-depth * 0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP
+		screen-width screen-depth * + char-width screen-depth * -
 	LOOP drop
 ;
 
@@ -89,8 +109,8 @@ CREATE bitmap-buffer 400 allot
 	2swap 3drop r> >font fb8-char2bitmap ( bitmap-buf )
 	line# fb8-line2addr column# fb8-columns2bytes + ( bitmap-buf fb-addr )
 	char-height 0 ?DO
-		2dup char-width mrmove
-		screen-width + >r char-width + r>
+		2dup char-width screen-depth * mrmove
+		screen-width screen-depth * + >r char-width screen-depth * + r>
 	LOOP 2drop
     ELSE 2drop r> 3drop THEN
 ;
@@ -140,11 +160,11 @@ CREATE bitmap-buffer 400 allot
 : fb8-reset-screen ( -- ) ( Left as no-op by design ) ;
 
 : fb8-erase-screen ( -- )
-	frame-buffer-adr screen-height screen-width * fb8-erase-block
+	frame-buffer-adr screen-height screen-width * screen-depth * fb8-erase-block
 ;
 
 : fb8-invert-screen ( -- )
-	frame-buffer-adr screen-height screen-width * 2dup /x / 0 ?DO
+	frame-buffer-adr screen-height screen-width * screen-depth * 2dup /x / 0 ?DO
 		dup rx@ -1 xor over rx! xa1+
 	LOOP 3drop
 ;
@@ -152,10 +172,12 @@ CREATE bitmap-buffer 400 allot
 : fb8-blink-screen ( -- ) fb8-invert-screen fb8-invert-screen ;
 
 : fb8-install ( width height #columns #lines -- )
+	1 to screen-depth
+	2swap  to screen-height  to screen-width
 	screen-#rows min to #lines
 	screen-#columns min to #columns
-	dup to screen-height char-height #lines * - 2/ to window-top
-	dup to screen-width char-width #columns * - 2/ to window-left
+	screen-height char-height #lines * - 2/ to window-top
+	screen-width char-width #columns * - 2/ to window-left
 	['] fb8-toggle-cursor to toggle-cursor
 	['] fb8-draw-character to draw-character
 	['] fb8-insert-lines to insert-lines
@@ -168,6 +190,13 @@ CREATE bitmap-buffer 400 allot
 	['] fb8-reset-screen to reset-screen
 	['] fb8-draw-logo to draw-logo
 ;
+
+: fb-install  ( width height #columns #lines depth -- )
+	>r
+	fb8-install
+	r> to screen-depth
+;
+
 
 \ Install display related FCODE evaluator tokens
 : fb8-set-tokens  ( -- )
@@ -221,10 +250,9 @@ CREATE bitmap-buffer 400 allot
 ;
 fb8-set-tokens
 
+
 \ \\\\\\\\\\\\ Debug Stuff \\\\\\\\\\\\\\\\
 
 : fb8-dump-bitmap cr char-height 0 ?do char-width 0 ?do dup c@ if ." @" else ." ." then 1+ loop cr loop drop ;
 
 : fb8-dump-char >font -b swap fb8-char2bitmap fb8-dump-bitmap ;
-
-
