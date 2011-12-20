@@ -151,6 +151,24 @@ check-for-nvramrc
 #include "elf.fs"
 #include <loaders.fs>
 
+8a8 cp
+
+: enable-framebuffer-output  ( -- )
+\ enable output on framebuffer
+   s" screen" find-alias ?dup  IF
+      \ we need to open/close the screen device once
+      \ before "ticking" display-emit to emit
+      open-dev close-node
+      s" display-emit" $find  IF 
+         to emit 
+      ELSE
+         2drop
+      THEN
+   THEN
+;
+
+enable-framebuffer-output
+
 8b0 cp
 
 \ Scan USB devices
@@ -160,6 +178,35 @@ usb-scan
 
 \ Claim remaining memory that is used by firmware:
 romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
+
+8d0 cp
+
+: set-default-console
+    s" linux,stdout-path" get-chosen IF
+        decode-string
+        ." Using default console: " 2dup type cr
+        io
+        2drop
+    ELSE
+        ." No console specified "
+        " screen" find-alias dup IF nip THEN
+        " keyboard" find-alias dup IF nip THEN
+	AND IF
+	  ." using screen & keyboard" cr
+	  " screen" output
+	  " keyboard" input
+        ELSE
+          " hvterm" find-alias IF
+	    drop
+	    ." using hvterm" cr
+            " hvterm" io
+	  ELSE
+	    ." and no default found" cr
+	  THEN
+        THEN
+    THEN
+;
+set-default-console
 
 8ff cp
 

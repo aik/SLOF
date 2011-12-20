@@ -53,6 +53,10 @@ device-end
 ;
 fixup-tbfreq
 
+4d0 cp
+
+include fbuffer.fs
+
 500 cp
 
 : populate-vios ( -- )
@@ -158,16 +162,3 @@ s" /mmu" open-dev encode-int s" mmu" set-chosen
 
 #include <term-io.fs>
 
-: set-default-console
-    s" linux,stdout-path" get-chosen IF
-        decode-string
-        ." Using default console: " 2dup type cr
-        io
-        2drop
-    ELSE
-        " hvterm" find-alias IF drop
-            " hvterm" io
-        THEN
-    THEN
-;
-set-default-console

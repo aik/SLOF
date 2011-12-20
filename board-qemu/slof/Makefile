@@ -76,7 +76,9 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFBRDDIR)/default-font.bin \
 	$(SLOFBRDDIR)/pci-phb.fs \
-	$(SLOFBRDDIR)/rtas.fs
+	$(SLOFBRDDIR)/rtas.fs \
+	$(SLOFBRDDIR)/pci-device_1234_1111.fs \
+	$(FCODE_FFS_FILES)
 
 # Uncomment the following line to enable the USB code:
 OF_FFS_FILES += $(USB_FFS_FILES)
