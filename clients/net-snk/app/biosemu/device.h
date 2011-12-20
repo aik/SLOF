@@ -121,7 +121,8 @@ static inline uint32_t
 in32le(void *addr)
 {
 	uint32_t val;
-	asm volatile ("lwbrx  %0, 0, %1":"=r" (val):"r"(addr));
+	const uint32_t *zaddr = addr;
+	asm volatile ("lwbrx %0, %y1" : "=r"(val) : "Z"(*zaddr));
 	return val;
 }
 
@@ -135,7 +136,8 @@ static inline uint16_t
 in16le(void *addr)
 {
 	uint16_t val;
-	asm volatile ("lhbrx %0, 0, %1":"=r" (val):"r"(addr));
+	const uint16_t *zaddr = addr;
+	asm volatile ("lhbrx %0, %y1" : "=r"(val) : "Z"(*zaddr));
 	return val;
 }
 
