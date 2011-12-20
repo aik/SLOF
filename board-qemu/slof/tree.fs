@@ -18,13 +18,13 @@
 \ The root of the device tree and some of its kids.
 " /" find-device
 
-" QEMU" encode-string s" model" property
+\ The following properties have been provided by the FDT from QEMU already,
+\ so we do not have to create them on our own:
 
-2 encode-int s" #address-cells" property
-2 encode-int s" #size-cells" property
-
-\ Yaboot is stupid.  Without this, it can't/won't find /etc/yaboot.conf.
-s" chrp" device-type
+\ " QEMU" encode-string s" model" property
+\ 2 encode-int s" #address-cells" property
+\ 2 encode-int s" #size-cells" property
+\ s" chrp" device-type
 
 480 cp
 
