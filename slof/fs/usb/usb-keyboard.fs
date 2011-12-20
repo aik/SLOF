@@ -25,6 +25,16 @@ s" EN" encode-string s" language" property
 2 constant CapsLk
 4 constant ScrLk
 
+TRUE VALUE use-interrupt-transfers?
+
+\ Check whether we're running on QEMU - in this case we disable the
+\ interrupt transfers since they are not working very well there yet.
+s" model" s" /" find-node get-property 0= IF
+   2dup s" qemu" find-substr = TO use-interrupt-transfers?
+   drop
+THEN
+
+
 00 value kbd-addr
 to kbd-addr                                \ save speed bit
 
@@ -120,6 +130,15 @@ s" usb-kbd-device-support.fs" included
       0 to kbd-scan                                         \ clear scan code buffer
    THEN
 ;
+
+: kbd-get-report  ( -- )
+   use-interrupt-transfers? IF
+      int-get-report
+   ELSE
+      ctl-get-report
+   THEN
+;
+
 
 : set-led ( led -- )
   dup to led-state
@@ -311,7 +330,7 @@ s" usb-kbd-device-support.fs" included
 	 63 of [char] . endof                      \ keypad .
 	 dup of ret endof                          \ other keys are no change
        endcase
-       to ret                                      \ overwirte new char
+       to ret                                      \ overwrite new char
      then
      ret                                           \ return char
 ;
@@ -321,10 +340,10 @@ s" usb-kbd-device-support.fs" included
       true \ multi scan code key was pressed... so key is available
       EXIT \ done
    THEN
-   kbd-scan 0 = IF \ if no kbd-scan code is currently available
-      int-get-report \ check for one using int-get-report
+   kbd-scan 0 = IF      \ if no kbd-scan code is currently available
+      kbd-get-report    \ check for new scan codes
    THEN
-   kbd-scan 0 <> \ if a kbd-scan is available, report true, else false
+   kbd-scan 0 <>        \ if a kbd-scan is available, report true, else false
 ;
 
 : usb-kread ( -- char|false )                     \ usb key read for control transfer
@@ -335,17 +354,14 @@ s" usb-kbd-device-support.fs" included
       \ check for new scan code only, if kbd-scan is not set, e.g.
       \ by a previous call to key-available?
       kbd-scan 0 = IF
-         \ if interrupt transfer
-         int-get-report                           \ read report (interrupt transfer)
-         \ else control transfer
-         \ ctl-get-report                         \ read report (control transfer)
-         \ end of interrupt/control switch
+         kbd-get-report                           \ read scan-code report
       THEN
       kbd-scan 0 <> if                            \ scan code exist?
          begin kbd-scan ff and dup 00 = while     \ get a last scancode in report buffer
             kbd-scan 8 rshift to kbd-scan         \ This algorithm is wrong --> must be fixed!
             drop                                  \ KBD doesn't set scancode in pressed order!!!
          repeat
+         ff and dup to kbd-scan                   \ we can only digest one key at a time
          dup key-old <> if                        \ if the scancode is new
             dup to key-old                        \ save current scan code
             get-ukbd-char                         \ translate scan code --> char
