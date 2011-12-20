@@ -78,51 +78,51 @@ s" usb-kbd-device-support.fs" included
 : control-cls-set-report ( reportvalue FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
-  2109000200000100 kbd-buf kb>setup-packet ! 
-  temp2 kbd-buf kb>data l!-le  
+  2109000200000100 kbd-buf kb>setup-packet !
+  temp2 kbd-buf kb>data l!-le
   1 kbd-buf kb>data 1 kbd-buf kb>setup-packet
-  DEFAULT-CONTROL-MPS temp1 controlxfer  
+  DEFAULT-CONTROL-MPS temp1 controlxfer
 ;
 
 : control-cls-get-report ( data-buffer data-len MPS FuncAddr -- TRUE|FALSE )
   to temp1
   to temp2
   to temp3
-  a101000100000000 kbd-buf kb>setup-packet ! 
-  temp3 kbd-buf kb>setup-packet 6 + w!-le  
+  a101000100000000 kbd-buf kb>setup-packet !
+  temp3 kbd-buf kb>setup-packet 6 + w!-le
   0 swap temp3 kbd-buf kb>setup-packet
-  temp2 temp1 controlxfer  
+  temp2 temp1 controlxfer
 ;
 
 : int-get-report ( -- )                                     \ get report for interrupt transfer
    0 2 int-in-toggle kbd-buf kb>report 8 mps-int-in
-   kbd-addr int-in-ep 7 lshift or rw-endpoint               \ get report 
+   kbd-addr int-in-ep 7 lshift or rw-endpoint               \ get report
    swap to int-in-toggle IF
       kbd-buf kb>report @
       ff00000000000000 and 38 rshift to kbd-shift           \ store shift status
       kbd-buf kb>report @
       0000ffffffffffff and to kbd-scan                      \ store scan codes
    ELSE
-      0 to kbd-shift                                        \ clear shift status 
+      0 to kbd-shift                                        \ clear shift status
       0 to kbd-scan                                         \ clear scan code buffer
    THEN
 ;
 
-: ctl-get-report ( -- )                                     \ get report for control transfer      
+: ctl-get-report ( -- )                                     \ get report for control transfer
    kbd-buf kb>report 8 8 kbd-addr
-   control-cls-get-report IF                                \ get report 
+   control-cls-get-report IF                                \ get report
       kbd-buf kb>report @
       ff00000000000000 and 38 rshift to kbd-shift           \ store shift status
       kbd-buf kb>report @
-      0000ffffffffffff and to kbd-scan                      \ store scan codes 
+      0000ffffffffffff and to kbd-scan                      \ store scan codes
    ELSE
-      0 to kbd-shift                                        \ clear shift status 
+      0 to kbd-shift                                        \ clear shift status
       0 to kbd-scan                                         \ clear scan code buffer
    THEN
 ;
 
-: set-led ( led -- ) 
-  dup to led-state  
+: set-led ( led -- )
+  dup to led-state
   kbd-addr control-cls-set-report drop
 ;
 
@@ -154,71 +154,71 @@ s" usb-kbd-device-support.fs" included
     is-ctrl if                                           \ ctrl is pressed?
 	is-alt if                                        \ alt is pressed?
 	    4c = if                                      \ del is pressed?
-		s" reboot.... " usb-debug-print 
+		s" reboot.... " usb-debug-print
 		\ reset-all                              \ reboot
 		drop false                               \ invalidate del key on top of stack
 	    then
 	    false                                        \ dummy for last drop
 	then
     then
-    drop                                                 \ clear stack 
+    drop                                                 \ clear stack
 ;
 
 : get-ukbd-char ( ScanCode -- char|false )
-    dup ctrl_alt_del_key                                 \ check ctrl+alt+del 
+    dup ctrl_alt_del_key                                 \ check ctrl+alt+del
     dup to scancode                                      \ store scan code
     case                                                 \ translate scan code --> char
-	 04 of [char] a endof 
-	 05 of [char] b endof 
-	 06 of [char] c endof 
-	 07 of [char] d endof 
-	 08 of [char] e endof 
-	 09 of [char] f endof 
- 	 0a of [char] g endof 
-	 0b of [char] h endof 
-	 0c of [char] i endof 
-	 0d of [char] j endof 
-	 0e of [char] k endof 
-	 0f of [char] l endof 
-	 10 of [char] m endof 
-	 11 of [char] n endof 
-	 12 of [char] o endof 
-	 13 of [char] p endof 
-	 14 of [char] q endof 
-	 15 of [char] r endof 
-	 16 of [char] s endof 
-	 17 of [char] t endof 
-	 18 of [char] u endof 
-	 19 of [char] v endof 
-	 1a of [char] w endof 
-	 1b of [char] x endof 
-	 1c of [char] y endof 
-	 1d of [char] z endof 
-	 1e of [char] 1 endof 
-	 1f of [char] 2 endof 
-	 20 of [char] 3 endof 
-	 21 of [char] 4 endof 
-	 22 of [char] 5 endof 
-	 23 of [char] 6 endof 
-	 24 of [char] 7 endof 
-	 25 of [char] 8 endof 
-	 26 of [char] 9 endof 
-	 27 of [char] 0 endof 
+	 04 of [char] a endof
+	 05 of [char] b endof
+	 06 of [char] c endof
+	 07 of [char] d endof
+	 08 of [char] e endof
+	 09 of [char] f endof
+	 0a of [char] g endof
+	 0b of [char] h endof
+	 0c of [char] i endof
+	 0d of [char] j endof
+	 0e of [char] k endof
+	 0f of [char] l endof
+	 10 of [char] m endof
+	 11 of [char] n endof
+	 12 of [char] o endof
+	 13 of [char] p endof
+	 14 of [char] q endof
+	 15 of [char] r endof
+	 16 of [char] s endof
+	 17 of [char] t endof
+	 18 of [char] u endof
+	 19 of [char] v endof
+	 1a of [char] w endof
+	 1b of [char] x endof
+	 1c of [char] y endof
+	 1d of [char] z endof
+	 1e of [char] 1 endof
+	 1f of [char] 2 endof
+	 20 of [char] 3 endof
+	 21 of [char] 4 endof
+	 22 of [char] 5 endof
+	 23 of [char] 6 endof
+	 24 of [char] 7 endof
+	 25 of [char] 8 endof
+	 26 of [char] 9 endof
+	 27 of [char] 0 endof
 	 28 of 0d endof                            \ Enter
-	 29 of 1b endof                            \ ESC 
-	 2a of 08 endof                            \ Backsace 
+	 29 of 1b endof                            \ ESC
+	 2a of 08 endof                            \ Backsace
 	 2b of 09 endof                            \ Tab
- 	 2c of 20 endof                            \ Space
- 	 2d of [char] - endof 
- 	 2e of [char] = endof 
- 	 2f of [char] [ endof 
- 	 30 of [char] ] endof 
- 	 31 of [char] \ endof 
- 	 33 of [char] ; endof 
-	 34 of [char] ' endof 
-	 35 of [char] ` endof 
-	 36 of [char] , endof 
-	 37 of [char] . endof 
+	 2c of 20 endof                            \ Space
+	 2d of [char] - endof
+	 2e of [char] = endof
+	 2f of [char] [ endof
+	 30 of [char] ] endof
+	 31 of [char] \ endof
+	 33 of [char] ; endof
+	 34 of [char] ' endof
+	 35 of [char] ` endof
+	 36 of [char] , endof
+	 37 of [char] . endof
 	 38 of [char] / endof
 	 39 of led-state CapsLk xor set-led false endof  \ CapsLk
 	 3a of 1b 7e31315b to multi-key endof      \ F1
@@ -245,12 +245,12 @@ s" usb-kbd-device-support.fs" included
 	 51 of 1b 425b to multi-key endof          \ D-arrow
 	 52 of 1b 415b to multi-key endof          \ U-arrow
 	 53 of led-state NumLk xor set-led false endof   \ NumLk
-	 54 of [char] / endof                      \ keypad / 
+	 54 of [char] / endof                      \ keypad /
 	 55 of [char] * endof                      \ keypad *
 	 56 of [char] - endof                      \ keypad -
 	 57 of [char] + endof                      \ keypad +
 	 58 of 0d endof                            \ keypad Enter
-	 89 of [char] \ endof	                   \ japanese yen
+	 89 of [char] \ endof                      \ japanese yen
 	 dup of false endof                        \ other keys are false
      endcase
      to ret                                        \ store char
@@ -291,12 +291,12 @@ s" usb-kbd-device-support.fs" included
 		     38 of [char] ? endof
 		     dup of ret endof              \ other keys are no change
 		 endcase
-		 to ret                            \ overwrite new char    
+		 to ret                            \ overwrite new char
 	     then
 	 then
      then
      led-state NumLk and 0 <> if                   \ if NumLk is on
-       scancode 
+       scancode
        case                                        \ translate scan code --> char
 	 59 of [char] 1 endof
 	 5a of [char] 2 endof
@@ -317,53 +317,53 @@ s" usb-kbd-device-support.fs" included
 ;
 
 : key-available? ( -- true|false )
-   multi-key 0 <> IF 
+   multi-key 0 <> IF
       true \ multi scan code key was pressed... so key is available
       EXIT \ done
    THEN
-   kbd-scan 0 = IF \ if no kbd-scan code is currently available 
-      int-get-report \ check for one using int-get-report 
+   kbd-scan 0 = IF \ if no kbd-scan code is currently available
+      int-get-report \ check for one using int-get-report
    THEN
    kbd-scan 0 <> \ if a kbd-scan is available, report true, else false
 ;
 
-: usb-kread ( -- char|false )                            \ usb key read for control transfer
-    multi-key 0 <> if                                    \ if multi scan code key is pressed
-	multi-key ff and                                 \ read one byte from buffer
-	multi-key 8 rshift to multi-key                  \ move to next byte 
-    else                                                 \ normal key check
-    \ check for new scan code only, if kbd-scan is not set, e.g.
-    \ by a previous call to key-available?
-   kbd-scan 0 = IF
-	\ if interrupt transfer
-	int-get-report                                   \ read report (interrupt transfer)
-	\ else control transfer
-	\ ctl-get-report                                 \ read report (control transfer)
-	\ end of interrupt/control switch
-   THEN
- 	kbd-scan 0 <> if                                 \ scan code exist?
-	    begin kbd-scan ff and dup 00 = while         \ get a last scancode in report buffer
-		    kbd-scan 8 rshift to kbd-scan        \ This algorithm is wrong --> must be fixed!
-		    drop                                 \ KBD doesn't set scancode in pressed order!!!
-	    repeat
-	    dup key-old <> if                            \ if the scancode is new
-	    	dup to key-old                           \ save current scan code
-	    	get-ukbd-char                            \ translate scan code --> char
-	    	milliseconds fa + to expire-ms           \ set typematic delay 250ms
-	    else                                         \ scan code is not changed
-	    	milliseconds expire-ms > if              \ if timer is expired ... should be considered timer carry over
-	    	    get-ukbd-char                        \ translate scan code --> char
-	    	    milliseconds 21 + to expire-ms       \ set typematic rate 30cps
-	    	else                                     \ timer is not expired 
-	    	    drop false                           \ do nothing
-	    	then
-	    then
-       kbd-scan 8 rshift to kbd-scan \ handled scan-code
- 	else
-	    0 to key-old                                 \ clear privious key
-	    false                                        \ no scan code --> return false
- 	then
-    then
+: usb-kread ( -- char|false )                     \ usb key read for control transfer
+   multi-key 0 <> if                              \ if multi scan code key is pressed
+      multi-key ff and                            \ read one byte from buffer
+      multi-key 8 rshift to multi-key             \ move to next byte
+   else                                           \ normal key check
+      \ check for new scan code only, if kbd-scan is not set, e.g.
+      \ by a previous call to key-available?
+      kbd-scan 0 = IF
+         \ if interrupt transfer
+         int-get-report                           \ read report (interrupt transfer)
+         \ else control transfer
+         \ ctl-get-report                         \ read report (control transfer)
+         \ end of interrupt/control switch
+      THEN
+      kbd-scan 0 <> if                            \ scan code exist?
+         begin kbd-scan ff and dup 00 = while     \ get a last scancode in report buffer
+            kbd-scan 8 rshift to kbd-scan         \ This algorithm is wrong --> must be fixed!
+            drop                                  \ KBD doesn't set scancode in pressed order!!!
+         repeat
+         dup key-old <> if                        \ if the scancode is new
+            dup to key-old                        \ save current scan code
+            get-ukbd-char                         \ translate scan code --> char
+            milliseconds fa + to expire-ms        \ set typematic delay 250ms
+         else                                     \ scan code is not changed
+            milliseconds expire-ms > if           \ if timer is expired ... should be considered timer carry over
+               get-ukbd-char                      \ translate scan code --> char
+               milliseconds 21 + to expire-ms     \ set typematic rate 30cps
+            else                                  \ timer is not expired
+               drop false                         \ do nothing
+            then
+         then
+         kbd-scan 8 rshift to kbd-scan            \ handled scan-code
+      else
+         0 to key-old                             \ clear privious key
+         false                                    \ no scan code --> return false
+      then
+   then
 ;
 
 
