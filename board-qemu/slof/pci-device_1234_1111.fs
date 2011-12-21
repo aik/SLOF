@@ -255,18 +255,18 @@ a CONSTANT VBE_DISPI_INDEX_NB
 ;
 
 : display-install ( -- )
-   is-installed? NOT IF
-      disp-depth 8 = IF
+    is-installed? NOT IF
         ." Installing QEMU fb" cr
         fb-base to frame-buffer-adr
         clear-screen
         default-font 
         set-font
-        disp-width disp-height disp-width char-width / disp-height char-height / ( width height #lines #cols )
-        fb8-install 
+        disp-width disp-height
+        disp-width char-width / disp-height char-height /
+        disp-depth 8 /                      ( width height #lines #cols depth )
+        fb-install
         true to is-installed?
-     THEN
-   THEN
+    THEN
 ;
 
 : dimensions ( -- width height )
@@ -274,14 +274,12 @@ a CONSTANT VBE_DISPI_INDEX_NB
 ;
 
 : set-alias
-  disp-depth 8 = IF
     s" screen" find-alias 0= IF
       \ no previous screen alias defined, define it...
       s" screen" get-node node>path set-alias
     ELSE
        drop
     THEN 
-  THEN
 ;
 
 
