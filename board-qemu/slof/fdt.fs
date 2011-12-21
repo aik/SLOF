@@ -323,7 +323,9 @@ fdt-claim-reserve
          s" phandle" delete-property
          s" linux,phandle" delete-property
       ELSE
-         cr ." Warning: Did not replace phandle in " r@ node>path type cr
+         diagnostic-mode? IF
+            cr ." Warning: Did not replace phandle in " r@ node>path type cr
+         THEN
       THEN
    THEN
    r> drop
