@@ -326,18 +326,28 @@ defer find-node
 VARIABLE interpose-node
 2VARIABLE interpose-args
 : interpose ( arg len phandle -- )  interpose-node ! interpose-args 2! ;
-: open-node ( arg len phandle -- ihandle | 0 )
-  current-node @ >r set-node create-instance set-my-args
-  ( and set unit-addr )
-  \ Execute "open" method if available, and assume default of
-  \ success (=TRUE) for nodes without open method:
-  s" open" get-node find-method IF execute ELSE TRUE THEN
-  0= IF my-self destroy-instance 0 to my-self THEN
-  my-self my-parent to my-self r> set-node
-  \ Handle interposition.
-  interpose-node @ IF my-self >r to my-self
-  interpose-args 2@ interpose-node @
-  interpose-node off recurse  r> to my-self THEN ;
+
+: open-node ( arg len phandle -- ihandle|0 )
+   current-node @ >r  my-self >r            \ Save current node and instance
+   \ TODO: also set a default unit-addr ?
+   set-node create-instance set-my-args
+   \ Execute "open" method if available, and assume default of
+   \ success (=TRUE) for nodes without open method:
+   s" open" get-node find-method IF execute ELSE TRUE THEN
+   0= IF
+      my-self destroy-instance 0 to my-self
+   THEN
+   my-self                                  ( ihandle|0 )
+   r> to my-self  r> set-node               \ Restore current node and instance
+   \ Handle interposition:
+   interpose-node @ IF
+      my-self >r to my-self
+      interpose-args 2@ interpose-node @
+      interpose-node off recurse
+      r> to my-self
+   THEN
+;
+
 : close-node ( ihandle -- )
   my-self >r to my-self
   s" close" ['] $call-my-method CATCH IF 2drop THEN
