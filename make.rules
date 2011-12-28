@@ -61,8 +61,9 @@ AR		?= $(CROSS)ar
 RANLIB		?= $(CROSS)ranlib
 CPP		?= $(CROSS)cpp
 
+WARNFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes
 CFLAGS ?= -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
-	  -mno-altivec -mabi=no-altivec -Wall -fno-stack-protector
+	  -mno-altivec -mabi=no-altivec -fno-stack-protector $(WARNFLAGS)
 
 export CC AS LD CLEAN OBJCOPY OBJDUMP STRIP AR RANLIB CFLAGS
 

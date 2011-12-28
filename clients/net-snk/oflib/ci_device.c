@@ -35,6 +35,7 @@
 
 extern snk_kernel_t snk_kernel_interface;
 
+snk_module_t * cimod_check_and_install(void);
 static int cimod_init(void);
 static int cimod_term(void);
 static int cimod_read(char *buffer, int len);

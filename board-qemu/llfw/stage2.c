@@ -35,11 +35,15 @@ typedef void (*pInterruptFunc_t) (void);
 
 pInterruptFunc_t vectorTable[0x2E << 1];
 
-void c_memInit(uint64_t r3, uint64_t r4);
+extern void proceedInterrupt(void);
 
-void proceedInterrupt(void);
+/* Prototypes for functions of this file */
+void c_interrupt(uint64_t vecNum);
+void set_exceptionVector(int num, void *func);
+void early_c_entry(uint64_t start_addr, uint64_t fdt_addr);
 
-void exception_forward(void)
+
+static void exception_forward(void)
 {
 	uint64_t val;
 
@@ -73,20 +77,6 @@ void c_interrupt(uint64_t vecNum)
 void set_exceptionVector(int num, void *func)
 {
 	vectorTable[num >> 7] = (pInterruptFunc_t) func;
-}
-
-uint64_t get_dec(void)
-{
-	return 0xdeadaffe;
-}
-
-void set_dec(uint64_t val)
-{
-}
-
-uint64_t tb_frequency(void)
-{
-	return 0;
 }
 
 static void load_file(uint64_t destAddr, char *name, uint64_t maxSize,

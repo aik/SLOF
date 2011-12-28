@@ -3355,9 +3355,9 @@ u4_start( eccerror_t *f_ecc_pt )
 
 #undef RND
 
+#if 0
 void
 u4_memtest(uint8_t argCnt, char *pArgs[], uint64_t flags)
-
 {
 	#define TEND			99
 	#define TCHK			100
@@ -3786,7 +3786,9 @@ mtend:
 
 	and32_ci( MCCR_R, ~( IBIT(6) | IBIT(7) ) );
 }
+#endif
 
+#if 0
 void
 u4_dump(uint8_t argCnt, char *pArgs[], uint64_t flags)
 {
@@ -3830,8 +3832,9 @@ u4_dump(uint8_t argCnt, char *pArgs[], uint64_t flags)
 	printf( "scrub start   (0x%04X): 0x%08X\r\n", (uint16_t) MSRSR_R, load32_ci( MSRSR_R ) );
 	printf( "scrub end     (0x%04X): 0x%08X\r\n", (uint16_t) MSRER_R, load32_ci( MSRER_R ) );
 }
+#endif
 
-int32_t
+static int32_t
 u4_memBegin( eccerror_t *f_ecc_pt )
 {
 	int32_t i;
@@ -3962,8 +3965,9 @@ u4_memBegin( eccerror_t *f_ecc_pt )
 	return RET_OK;
 }
 
-static int32_t scrubstarted = 0;
 
+#if 0
+static int32_t scrubstarted = 0;
 void
 u4_scrubStart(uint8_t argCnt, char *pArgs[], uint64_t flags )
 {
@@ -3990,7 +3994,9 @@ u4_scrubStart(uint8_t argCnt, char *pArgs[], uint64_t flags )
 	store32_ci( MSCR_R, IBIT(1) );
 	printf( "\r\nscrub started\r\n" );
 }
+#endif
 
+#if 0
 void
 u4_scrubEnd(uint8_t argCnt, char *pArgs[], uint64_t flags )
 {
@@ -3998,7 +4004,9 @@ u4_scrubEnd(uint8_t argCnt, char *pArgs[], uint64_t flags )
 	scrubstarted = 0;
 	printf( "\r\nscrub stopped\r\n" );
 }
+#endif
 
+#if 0
 void
 u4_memwr(uint8_t argCnt, char *pArgs[], uint64_t flags )
 {
@@ -4015,6 +4023,7 @@ u4_memwr(uint8_t argCnt, char *pArgs[], uint64_t flags )
 	}
 
 }
+#endif
 
 void
 u4memInit()
@@ -4053,10 +4062,4 @@ u4memInit()
 
 	} while( ret < RET_ERR );
 
-}
-
-void
-monitorDDR2( uint8_t argCnt, char *pArgs[], uint64_t flags )
-{
-	u4memInit();
 }

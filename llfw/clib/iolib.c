@@ -45,21 +45,3 @@ ssize_t write(int fd, const void *buf, size_t count)
 
 	return i;
 }
-
-
-/**
- * @brief C-routine to delay for a number of milliseconds.
- * @param delay interval in terms of ms
- */
-void delay_ms( unsigned int ms )
-{
-	uint32_t ticks_per_ms;
-	
-	ticks_per_ms = tb_frequency() / 1000;
-
-	while (0 < ms) {
-		set_dec(ticks_per_ms);
-		while( ((get_dec()) & 0x80000000) == 0 );
-		ms--;
-	}
-}

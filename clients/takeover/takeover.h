@@ -19,5 +19,5 @@
 #endif
 
 #ifndef __ASSEMBLER__
-int takeover();
+int takeover(void);
 #endif

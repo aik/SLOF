@@ -16,10 +16,13 @@
 #include <of.h>
 #include <pci.h>
 #include <cpu.h>
+#include <ioctl.h>
 #include <takeover.h>
 
 extern void call_client_interface(of_arg_t *);
 extern void m_sync(void);
+
+int callback(int argc, char *argv[]);
 
 #define boot_rom_bin_start _binary_______boot_rom_bin_start
 #define boot_rom_bin_end   _binary_______boot_rom_bin_end
@@ -101,7 +104,7 @@ sbrk(int incr)
 	return (void *) -1;
 }
 
-void
+static void
 doWait(void)
 {
 	static const char *wheel = "|/-\\";
@@ -113,7 +116,7 @@ doWait(void)
 	i &= 0x3;
 }
 
-void
+static void
 quiesce(void)
 {
 	of_arg_t arg = {
@@ -123,7 +126,7 @@ quiesce(void)
 	call_client_interface(&arg);
 }
 
-int
+static int
 startCpu(int num, int addr, int reg)
 {
 	of_arg_t arg = {

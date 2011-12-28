@@ -20,16 +20,7 @@
 
 extern void     halt_sys (unsigned int);
 
-extern uint32_t get_sb_version (void);
-
 extern void     uart_send_byte(unsigned char b);
 extern void     io_putchar(unsigned char);
-
-extern uint64_t tb_frequency(void);
-extern uint64_t be_frequency(void);
-
-extern uint32_t get_dec(void);
-extern void     set_dec(uint32_t);
-extern void     delay_ms( unsigned int ms );
 
 #endif

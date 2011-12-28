@@ -12,9 +12,11 @@
 #include <stdint.h>
 #include <rtas.h>
 #include <hw.h>
+#include "rtas_board.h"
 
-int
-rtas_ibm_read_pci_config (rtas_args_t *rtas_args) {
+void
+rtas_ibm_read_pci_config (rtas_args_t *rtas_args)
+{
 	int retVal = 0;
 	uint64_t addr = ((uint64_t) rtas_args->args[1]) << 32;  // high 32 bits of PHB UID
 	addr |= (rtas_args->args[2] & 0xFFFFFFFF); // low 32 bits of PHB UID
@@ -34,11 +36,12 @@ rtas_ibm_read_pci_config (rtas_args_t *rtas_args) {
 	else
 		retVal = -3;  /* Bad arguments */
 
-	return retVal;
+	rtas_args->args[4] = retVal;
 }
 
-int
-rtas_ibm_write_pci_config (rtas_args_t *rtas_args) {
+void
+rtas_ibm_write_pci_config (rtas_args_t *rtas_args)
+{
 	int retVal = 0;
 	uint64_t addr = ((uint64_t) rtas_args->args[1]) << 32;  // high 32 bits of PHB UID
 	addr |= (rtas_args->args[2] & 0xFFFFFFFF); // low 32 bits of PHB UID
@@ -60,11 +63,12 @@ rtas_ibm_write_pci_config (rtas_args_t *rtas_args) {
 	else
 		retVal = -3;  /* Bad arguments */
 
-	return retVal;
+	rtas_args->args[5] = retVal;
 }
 
-int
-rtas_read_pci_config (rtas_args_t *rtas_args) {
+void
+rtas_read_pci_config (rtas_args_t *rtas_args)
+{
 	int retVal = 0;
 	unsigned long addr = rtas_args->args[0];
 	unsigned int size = rtas_args->args[1];
@@ -83,11 +87,12 @@ rtas_read_pci_config (rtas_args_t *rtas_args) {
 	else
 		retVal = -3;  /* Bad arguments */
 
-	return retVal;
+	rtas_args->args[2] = retVal;
 }
 
-int
-rtas_write_pci_config (rtas_args_t *rtas_args) {
+void
+rtas_write_pci_config (rtas_args_t *rtas_args)
+{
 	int retVal = 0;
 	unsigned long addr = rtas_args->args[0];
 	unsigned int size = rtas_args->args[1];
@@ -107,5 +112,5 @@ rtas_write_pci_config (rtas_args_t *rtas_args) {
 	else
 		retVal = -3;  /* Bad arguments */
 
-	return retVal;
+	rtas_args->args[3] = retVal;
 }
