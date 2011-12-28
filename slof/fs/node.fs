@@ -190,21 +190,35 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
 \ Never ever use this in actual code, only when debugging interactively.
 \ Thank you.
 : set-args ( arg-str len unit-str len -- )
-           s" decode-unit" get-parent $call-static set-unit set-my-args ;
+   s" decode-unit" get-parent $call-static set-unit set-my-args
+;
 
-: $cat-unit  dup parent 0= IF drop EXIT THEN
-             dup >space? not IF drop EXIT THEN
-             dup >r >unit s" encode-unit" r> parent $call-static dup IF
-             dup >r here swap move s" @" $cat here r> $cat
-             ELSE 2drop THEN ;
+: $cat-unit
+   dup parent 0= IF drop EXIT THEN
+   dup >space? not IF drop EXIT THEN
+   dup >r >unit s" encode-unit" r> parent $call-static
+   dup IF
+      dup >r here swap move s" @" $cat here r> $cat
+   ELSE
+      2drop
+   THEN
+;
 
 \ Getting basic info about a node.
 : node>name  dup >r s" name" rot get-property IF r> (u.) ELSE 1- r> drop THEN ;
 : node>qname dup node>name rot ['] $cat-unit CATCH IF drop THEN ;
-: node>path  here 0 rot  BEGIN dup WHILE dup parent REPEAT 2drop
-             dup 0= IF [char] / c, THEN
-             BEGIN dup WHILE [char] / c, node>qname here over allot swap move
-	     REPEAT drop here 2dup - allot over - ;
+: node>path
+   here 0 rot
+   BEGIN dup WHILE dup parent REPEAT
+   2drop
+   dup 0= IF [char] / c, THEN
+   BEGIN
+      dup
+   WHILE
+      [char] / c, node>qname here over allot swap move
+   REPEAT
+   drop here 2dup - allot over -
+;
 
 : interposed? ( ihandle -- flag )
   \ We cannot actually detect if an instance is interposed; instead, we look
@@ -247,9 +261,10 @@ defer find-node
 ;
 
 : find-alias ( alias-name len -- false | dev-path len )
-    s" /aliases" find-node dup IF
-	get-property 0= IF 1- dup 0= IF nip THEN ELSE false THEN
-    THEN ;
+   s" /aliases" find-node dup IF
+      get-property 0= IF 1- dup 0= IF nip THEN ELSE false THEN
+   THEN
+;
 
 : .alias ( alias-name len -- )
     find-alias dup IF type ELSE ." no alias available" THEN ;
@@ -275,19 +290,28 @@ defer find-node
 \ sub-alias does a single iteration of an alias at the begining od dev path
 \ expression. de-alias will repeat this until all indirect alising is resolved
 : sub-alias ( arg-str arg-len -- arg' len' | false )
-	2dup
-	2dup [char] / findchar ?dup IF ELSE 2dup [char] : findchar THEN
-	( a l a l [p] -1|0 ) IF nip dup ELSE 2drop 0 THEN >r
-	( a l l p -- R:p | a l -- R:0 )
-	find-alias ?dup IF ( a l a' p' -- R:p | a' l' -- R:0 )
-		r@ IF 2swap r@ - swap r> + swap $cat strdup ( a" l-p+p' -- )
-		ELSE ( a' l' -- R:0 ) r> drop ( a' l' -- ) THEN
-	ELSE ( a l -- R:p | -- R:0 ) r> IF 2drop THEN false ( 0 -- ) THEN
+   2dup
+   2dup [char] / findchar ?dup IF ELSE 2dup [char] : findchar THEN
+   ( a l a l [p] -1|0 ) IF nip dup ELSE 2drop 0 THEN >r
+   ( a l l p -- R:p | a l -- R:0 )
+   find-alias ?dup IF ( a l a' p' -- R:p | a' l' -- R:0 )
+      r@ IF
+         2swap r@ - swap r> + swap $cat strdup ( a" l-p+p' -- )
+      ELSE
+         ( a' l' -- R:0 ) r> drop ( a' l' -- )
+      THEN
+   ELSE
+      ( a l -- R:p | -- R:0 ) r> IF 2drop THEN
+      false ( 0 -- )
+   THEN
 ;
 
 : de-alias ( arg-str arg-len -- arg' len' )
-	BEGIN over c@ [char] / <> dup IF drop 2dup sub-alias ?dup THEN
-	WHILE 2swap 2drop REPEAT
+   BEGIN
+      over c@ [char] / <> dup IF drop 2dup sub-alias ?dup THEN
+   WHILE
+      2swap 2drop
+   REPEAT
 ;
 
 
@@ -464,30 +488,45 @@ VARIABLE interpose-node
      node>peer @ swap node>parent @ node>child !
      EXIT
    THEN
-       dup node>peer @
-       BEGIN 2 pick 2dup <> WHILE
-	     drop
-        	nip dup node>peer @
-	   dup 0= IF 2drop drop unloop EXIT THEN
-      REPEAT
-         drop
-    node>peer @ 	swap node>peer !
+   dup node>peer @
+   BEGIN
+      2 pick 2dup <>
+   WHILE
       drop
+      nip dup node>peer @
+      dup 0= IF 2drop drop unloop EXIT THEN
+   REPEAT
+   drop
+   node>peer @  swap node>peer !
+   drop
 ;
 
 
 : open-dev ( path len -- ihandle|0 )
-  de-alias current-node @ >r
-  handle-leading-/ current-node @ 0= IF 2drop r> set-node 0 EXIT THEN
-  my-self >r 0 to my-self
-  0 0 >r >r BEGIN dup WHILE \ handle one component:
-  ( arg len ) r> r> get-node open-node to my-self
-  find-component ( path len args len node ) dup 0= IF
-  3drop 2drop my-self close-dev r> to my-self r> set-node 0 EXIT THEN
-  set-node >r >r REPEAT 2drop
+   de-alias current-node @ >r
+   handle-leading-/ current-node @ 0= IF 2drop r> set-node 0 EXIT THEN
+   my-self >r
+   0 to my-self
+   0 0 >r >r
+   BEGIN
+      dup
+   WHILE \ handle one component:
+     ( arg len ) r> r> get-node open-node to my-self
+     find-component ( path len args len node ) dup 0= IF
+        3drop 2drop my-self close-dev
+        r> to my-self
+        r> set-node
+        0 EXIT
+     THEN
+     set-node
+     >r >r
+  REPEAT
+  2drop
   \ open final node
   r> r> get-node open-node to my-self
-  my-self r> to my-self r> set-node ;
+  my-self r> to my-self r> set-node
+;
+
 : select-dev  open-dev dup to my-self ihandle>phandle set-node ;
 : unselect-dev  my-self close-dev  0 to my-self  device-end ;
 
@@ -496,17 +535,23 @@ VARIABLE interpose-node
 : dev  parse-word find-device ;
 
 : (lsprop) ( node --)
-	dup cr $indent indent @ type ."     node: " node>qname type
-	false +indent (.properties) cr -indent ;
+   dup cr $indent indent @ type ."     node: " node>qname type
+   false +indent (.properties) cr -indent
+;
 : (show-children) ( node -- )
-    child BEGIN dup WHILE
-	dup (lsprop) dup child IF false +indent dup recurse -indent THEN peer
-    REPEAT drop
+   child BEGIN
+      dup
+   WHILE
+      dup (lsprop) dup child IF false +indent dup recurse -indent THEN peer
+   REPEAT
+   drop
 ;
 : lsprop ( {device-specifier}<eol> -- )
    skipws 0 parse dup IF de-alias ELSE 2drop s" /" THEN
    find-device get-node dup dup
-   cr ." node: " node>path type (.properties) cr (show-children) 0 indent ! ;
+   cr ." node: " node>path type (.properties) cr (show-children)
+   0 indent !
+;
 
 
 \ node>path does not allot the memory, since it is internally only used
