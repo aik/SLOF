@@ -162,7 +162,19 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
    (my-phandle) >space
 ;
 : my-address  (my-phandle) >address ;
-: my-unit     (my-phandle) >unit ;
+
+\ my-unit returns the unit address of the current _instance_ - that means
+\ it returns the same values as my-space and my-address together _or_ it
+\ returns a unit address that has been set manually while opening the node.
+: my-unit
+   my-self instance>#units @ IF
+      0 my-self instance>#units @ 1- DO
+         my-self instance>unit1 i cells + @
+      -1 +LOOP
+   ELSE
+      my-self ihandle>phandle >unit
+   THEN
+;
 
 \ Return lower 64 bit of address
 : my-unit-64 ( -- phys.lo+1|phys.lo )
@@ -351,10 +363,25 @@ VARIABLE interpose-node
 2VARIABLE interpose-args
 : interpose ( arg len phandle -- )  interpose-node ! interpose-args 2! ;
 
+
+0 VALUE user-instance-#units
+CREATE user-instance-units 4 cells allot
+
+\ Copy the unit information (specified by the user) that we've found during
+\ "find-component" into the current instance data structure
+: copy-instance-unit  ( -- )
+   user-instance-#units IF
+      user-instance-#units my-self instance>#units !
+      user-instance-units my-self instance>unit1 user-instance-#units cells move
+      0 to user-instance-#units
+   THEN
+;
+
+
 : open-node ( arg len phandle -- ihandle|0 )
    current-node @ >r  my-self >r            \ Save current node and instance
-   \ TODO: also set a default unit-addr ?
    set-node create-instance set-my-args
+   copy-instance-unit
    \ Execute "open" method if available, and assume default of
    \ success (=TRUE) for nodes without open method:
    s" open" get-node find-method IF execute ELSE TRUE THEN
@@ -430,7 +457,10 @@ VARIABLE interpose-node
   over 0= IF 3drop true EXIT THEN
   s" name" rot get-property IF 2drop false EXIT THEN
   1- string=ci ; \ XXX should use decode-string
-0 VALUE #search-unit   CREATE search-unit 4 cells allot
+
+0 VALUE #search-unit
+CREATE search-unit 4 cells allot
+
 : match-unit ( node -- match? )
   node>space search-unit #search-unit 0 ?DO 2dup @ swap @ <> IF
   2drop false UNLOOP EXIT THEN cell+ swap cell+ swap LOOP 2drop true ;
@@ -444,12 +474,17 @@ VARIABLE interpose-node
     IF 2drop r> EXIT THEN r> peer >r REPEAT
     r> 3drop false
   THEN ;
+
 : set-search-unit ( unit len -- )
-  dup 0= IF to #search-unit drop EXIT THEN
-  s" #address-cells" get-node get-property THROW
-  decode-int to #search-unit 2drop
-  s" decode-unit" get-node $call-static
-  #search-unit 0 ?DO search-unit i cells + ! LOOP ;
+   0 to #search-unit
+   0 to user-instance-#units
+   dup 0= IF 2drop EXIT THEN
+   s" #address-cells" get-node get-property THROW
+   decode-int to #search-unit 2drop
+   s" decode-unit" get-node $call-static
+   #search-unit 0 ?DO search-unit i cells + ! LOOP
+;
+
 : resolve-relatives ( path len -- path' len' )
   \ handle ..
   2dup 2 = swap s" .." comp 0= and IF
@@ -463,12 +498,38 @@ VARIABLE interpose-node
   2dup 1 = swap c@ [CHAR] . = and IF
     drop -1
   THEN
-  ;
-: find-component ( path len -- path' len' args len node|0 )
-  [char] / split 2swap ( path'. component. )
-  [char] : split 2swap ( path'. args. node-addr. )
-  [char] @ split ['] set-search-unit CATCH IF 2drop 2drop 0 EXIT THEN
-  resolve-relatives find-kid ;
+;
+
+: set-instance-unit  ( unitaddr len -- )
+   dup 0= IF 2drop  0 to user-instance-#units  EXIT THEN
+   2dup 0 -rot bounds ?DO
+      i c@ [char] , = IF 1+ THEN      \ Count the commas
+   LOOP
+   1+ dup to user-instance-#units
+   hex-decode-unit
+   user-instance-#units 0 ?DO
+      user-instance-units i cells + !
+   LOOP
+;
+
+: split-component  ( path. -- path'. args. name. unit. )
+   [char] / split 2swap     ( path'. component. )
+   [char] : split 2swap     ( path'. args. name@unit. )
+   [char] @ split           ( path'. args. name. unit. )
+;
+
+: find-component  ( path len -- path' len' args len node|0 )
+   split-component           ( path'. args. name. unit. )
+   ['] set-search-unit CATCH IF
+      set-instance-unit
+   THEN
+   resolve-relatives find-kid        ( path' len' args len node|0 )
+   dup IF dup >space? user-instance-#units 0 > AND IF
+      \ User supplied a unit value, but node also has different physical unit
+      cr ." find-component with unit mismatch!" .s cr
+      drop 0
+   THEN THEN
+;
 
 : .find-node ( path len -- phandle|0 )
   current-node @ >r
@@ -501,8 +562,8 @@ VARIABLE interpose-node
    drop
 ;
 
-
 : open-dev ( path len -- ihandle|0 )
+   0 to user-instance-#units
    de-alias current-node @ >r
    handle-leading-/ current-node @ 0= IF 2drop r> set-node 0 EXIT THEN
    my-self >r

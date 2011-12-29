@@ -22,6 +22,11 @@ STRUCT
    /n FIELD instance>args
    /n FIELD instance>args-len
    /n FIELD instance>size
+   /n FIELD instance>#units
+   /n FIELD instance>unit1          \ For instance-specific "my-unit"
+   /n FIELD instance>unit2
+   /n FIELD instance>unit3
+   /n FIELD instance>unit4
 CONSTANT /instance-header
 
 : >instance  ( offset -- myself+offset )
@@ -139,6 +144,7 @@ CONSTANT <instancevariable>
    dup >r
    dup alloc-mem dup >r swap move r>        ( instance )
    dup instance>size r> swap !              \ Store size for destroy-instance
+   dup instance>#units 0 swap !             \ Use node unit by default
 ;
 : create-instance ( -- )
    my-self create-instance-data
