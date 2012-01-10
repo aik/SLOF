@@ -49,7 +49,8 @@ int virtio_get_qsize(struct virtio_device *dev, int queue)
 	int size = 0;
 
 	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT, cpu_to_le16(queue));
+		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+			    cpu_to_le16(queue));
 		eieio();
 		size = le16_to_cpu(ci_read_16(dev->base+VIRTIOHDR_QUEUE_SIZE));
 	}
@@ -69,10 +70,11 @@ struct vring_desc *virtio_get_vring_desc(struct virtio_device *dev, int queue)
 	struct vring_desc *desc = 0;
 
 	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT, cpu_to_le16(queue));
+		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+			    cpu_to_le16(queue));
 		eieio();
 		desc = (void*)(4096L *
-			  le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS)));
+		   le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS)));
 	}
 
 	return desc;
@@ -166,7 +168,6 @@ uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size)
 	 default:
 		return ~0ULL;
 	}
-
 	switch (size) {
 	 case 1:
 		val = ci_read_8(confbase+offset);
@@ -178,7 +179,12 @@ uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size)
 		val = ci_read_32(confbase+offset);
 		break;
 	 case 8:
-		val = ci_read_64(confbase+offset);
+		/* We don't support 8 bytes PIO accesses
+		 * in qemu and this is all PIO
+		 */
+		val = ci_read_32(confbase+offset);
+		val <<= 32;
+		val |= ci_read_32(confbase+offset+4);
 		break;
 	}
 
