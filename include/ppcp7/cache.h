@@ -20,30 +20,42 @@
 #define cache_inhibited_access(type,size) 				\
 	static inline type ci_read_##size(type * addr)			\
 	{								\
-		type val;						\
-		register int bytes asm ("r4") = size / 8;		\
-		register uint64_t _addr asm ("r5") = (long)addr;	\
-		asm volatile(" li 3, 0x3c \n" /* H_LOGICAL_CI_LOAD */	\
+		register uint64_t arg0 asm ("r3");			\
+		register uint64_t arg1 asm ("r4");			\
+		register uint64_t arg2 asm ("r5");			\
+									\
+		arg0 = 0x3c; /* H_LOGICAL_CI_LOAD*/			\
+		arg1 = size / 8;					\
+		arg2 = (uint64_t)addr;					\
+									\
+		asm volatile(						\
 			".long	0x44000022 \n"  /* HVCALL */		\
-			" cmpdi	cr0,3,0 \n"				\
-			" mr	%0,4 \n"				\
-			" beq	0f \n"					\
-			" li	%0,-1 \n"				\
-			"0:\n"						\
-			: "=r"(val)					\
-			: "r"(bytes), "r"(_addr)			\
-			: "r3", "memory", "cr0");			\
-		return val;						\
+			: "=&r" (arg0), "=&r"(arg1), "=&r"(arg2)	\
+			: "0"(arg0), "1"(arg1), "2"(arg2)		\
+			: "r0", "r6", "r7", "r8", "r9", "r10", "r11",	\
+			  "r12", "memory", "cr0", "cr1", "cr5",		\
+			  "cr6", "cr7", "ctr", "xer");			\
+		return arg0 ? -1 : arg1;				\
 	}								\
 	static inline void ci_write_##size(type * addr, type data)	\
 	{								\
-		register int bytes asm ("r4") = size / 8;		\
-		register uint64_t _addr asm ("r5") = (uint64_t)addr;	\
-		register uint64_t _data asm ("r6") = (uint64_t)data;	\
-		asm volatile(" li 3, 0x40 \n" /* H_LOGICAL_CI_STORE */	\
+		register uint64_t arg0 asm ("r3");			\
+		register uint64_t arg1 asm ("r4");			\
+		register uint64_t arg2 asm ("r5");			\
+		register uint64_t arg3 asm ("r6");			\
+									\
+		arg0 = 0x40; /* H_LOGICAL_CI_STORE*/			\
+		arg1 = size / 8;					\
+		arg2 = (uint64_t)addr;					\
+		arg3 = (uint64_t)data;					\
+									\
+		asm volatile(						\
 			".long	0x44000022 \n"  /* HVCALL */		\
-			: : "r"(bytes), "r"(_addr), "r"(_data)		\
-			: "r3", "memory");				\
+			: "=&r"(arg0),"=&r"(arg1),"=&r"(arg2),"=&r"(arg3) \
+			: "0"(arg0),"1"(arg1),"2"(arg2),"3"(arg3)	\
+			: "r0", "r7", "r8", "r9", "r10", "r11",		\
+			  "r12", "memory", "cr0", "cr1", "cr5",		\
+			  "cr6", "cr7", "ctr", "xer");			\
 	}
 
 cache_inhibited_access(uint8_t,  8)
