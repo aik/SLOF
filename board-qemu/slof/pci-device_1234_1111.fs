@@ -202,6 +202,7 @@ a CONSTANT VBE_DISPI_INDEX_NB
   s" qemu,graphic-depth" get-chosen IF
      decode-int nip nip     
        dup 8 =
+       over f = or
        over 10 = or
        over 20 = or IF
          to disp-depth
@@ -240,7 +241,7 @@ a CONSTANT VBE_DISPI_INDEX_NB
    \ Shouldn't this be done from open ?
    disp-width encode-int s" width" property
    disp-height encode-int s" height" property
-   disp-width disp-depth 8 / * encode-int s" linebytes" property
+   disp-width disp-depth 7 + 8 / * encode-int s" linebytes" property
    disp-depth encode-int s" depth" property
    s" ISO8859-1" encode-string s" character-set" property \ i hope this is ok...
    \ add "device_type" property
@@ -263,7 +264,7 @@ a CONSTANT VBE_DISPI_INDEX_NB
         set-font
         disp-width disp-height
         disp-width char-width / disp-height char-height /
-        disp-depth 8 /                      ( width height #lines #cols depth )
+        disp-depth 7 + 8 /                      ( width height #lines #cols depth )
         fb-install
         true to is-installed?
     THEN
