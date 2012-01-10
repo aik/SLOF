@@ -122,8 +122,9 @@ find-qemu-rtas
     ( addr ) rtas-cb rtas>args0 l!
     enter-rtas
     rtas-cb rtas>args4 l@ dup IF
-    	    ." RTAS config err " . cr
-	    ffffffff
+        \ Do not warn on error as this is part of the
+	\ normal PCI probing pass
+	drop ffffffff
     ELSE
 	drop rtas-cb rtas>args5 l@
     THEN

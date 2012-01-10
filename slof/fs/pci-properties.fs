@@ -604,7 +604,11 @@
             pci-device-slots encode-int s" slot-names" property
         dup pci-bridge-range-props
         dup pci-bridge-assigned-addresses-prop
+	\ Only create interrupt-map when it doesn't already exist
+	\ (it can be provided by qemu)
+	s" interrupt-map" get-node get-property IF
             pci-bridge-interrupt-map
+	ELSE 2drop THEN
         pci-reg-props
 ;
 

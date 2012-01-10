@@ -107,12 +107,18 @@ setup-puid
 0 VALUE dma-window-size         \ Size of the window
 
 \ Read helper variables (LIOBN, DMA window base and size) from the
-\ "ibm,dma-window" property. This property is unfortunately currently located
-\ in the PCI device node instead of the bus node, so we've got to use the
+\ "ibm,dma-window" property. This property can be either located
+\ in the PCI device node or in the bus node, so we've got to use the
 \ "calling-child" variable here to get to the node that initiated the call.
+\ XXX We should search all the way up the tree to the PHB ...
 : (init-dma-window-vars)  ( -- )
-   s" ibm,dma-window" calling-child
-   get-property ABORT" no dma-window property available"
+\   ." Foo called in " pwd cr
+\   ." calling child is " calling-child .node cr
+\   ." parent is " calling-child parent .node cr
+   s" ibm,dma-window" calling-child get-property IF
+       s" ibm,dma-window" calling-child parent get-property 
+       ABORT" no dma-window property available"
+   THEN
    decode-int TO dma-window-liobn
    decode-64 TO dma-window-base
    decode-64 TO dma-window-size
@@ -179,25 +185,69 @@ setup-puid
 : open  true ;
 : close ;
 
+\ Parse the "ranges" property of the root pci node to decode the available
+\ memory ranges. See "PCI Bus Binding to IEEE Std 1275-1994" for details.
+\ The memory ranges are then used for setting up the device bars (if necessary)
+: phb-parse-ranges ( -- )
+   \ First clear everything, in case there is something missing in the ranges
+   0  pci-next-io !
+   0  pci-max-io !
+   0  pci-next-mem !
+   0  pci-max-mem !
+   0  pci-next-mmio !
+   0  pci-max-mmio !
+
+   \ Now get the "ranges" property
+   s" ranges" get-node get-property 0<> ABORT" ranges property not found"
+   ( prop-addr prop-len )
+   BEGIN
+      dup
+   WHILE
+      decode-int                      \ Decode phys.hi
+      3000000 AND                     \ Filter out address space in phys.hi
+      CASE
+         1000000 OF                             \ I/O space?
+            decode-64 dup >r pci-next-io !      \ Decode PCI base address
+            decode-64 drop                      \ Forget the parent address
+            decode-64 r> + pci-max-io !         \ Decode size & calc max address
+            pci-next-io @ 0= IF
+               pci-next-io @ 10 + pci-next-io ! \ BARs must not be set to zero
+            THEN
+         ENDOF
+         2000000 OF                             \ 32-bit memory space?
+            decode-64 pci-next-mem !            \ Decode mem base address
+            decode-64 drop                      \ Forget the parent address
+            decode-64 2 / dup >r                \ Decode and calc size/2
+            pci-next-mem @ + dup pci-max-mem !  \ and calc max mem address
+            dup pci-next-mmio !                 \ which is the same as MMIO base
+            r> + pci-max-mmio !                 \ calc max MMIO address
+         ENDOF
+         3000000 OF                             \ 64-bit memory space?
+            cr ." Warning: 64-bit PCI space not supported yet! "
+            decode-64 . decode-64 . cr
+         ENDOF
+      ENDCASE
+   REPEAT
+   ( prop-addr prop-len )
+   2drop
+
+   phb-debug? IF
+     ." pci-next-io   = " pci-next-io @ . cr
+     ." pci-max-io    = " pci-max-io  @ . cr
+     ." pci-next-mem  = " pci-next-mem @ . cr
+     ." pci-max-mem   = " pci-max-mem  @ . cr
+     ." pci-next-mmio = " pci-next-mmio @ . cr
+     ." pci-max-mmio  = " pci-max-mmio @ . cr
+   THEN
+;
 
 \ Scan the child nodes of the pci root node to assign bars, fixup
 \ properties etc.
-: setup-children
+: phb-setup-children
    puid >r                          \ Save old value of puid
    my-puid TO puid                  \ Set current puid
-   get-node child
-   BEGIN
-      dup                           \ Continue as long as there are children
-   WHILE
-      \ ." Working on " dup node>path type cr
-      \ Set child node as current node:
-      dup set-node
-      \ Include the PCI device functions:
-      s" pci-device.fs" included
-      peer                          ( next-child-phandle )
-   REPEAT
-   drop
+   phb-parse-ranges
+   ff 0 (probe-pci-host-bridge)
    r> TO puid                       \ Restore previous puid
 ;
-
-setup-children
+phb-setup-children

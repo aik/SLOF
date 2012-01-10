@@ -95,6 +95,8 @@ populate-vios
 
 5a0 cp
 
+#include "pci-scan.fs"
+
 : populate-pci-busses ( -- )
     \ Populate the /pci* children with their methods
     " /" find-device get-node child

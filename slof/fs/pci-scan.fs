@@ -297,6 +297,15 @@ DEFER func-pci-probe-bus
         LOOP                                            \ else next bus
 ;
 
+: (probe-pci-host-bridge) ( bus-max bus-min -- )
+        0d emit ."  Adapters on " puid 10 0.r cr        \ print the puid we're looking at
+        ( bus-max bus-min ) pci-probe-all               \ and walk the bus
+        pci-device-number 0= IF                         \ IF no devices found
+                15 spaces                               \ | indent the output
+                ." None" cr                             \ | tell the world our result
+        THEN                                            \ FI
+;
+
 \ probe the hostbridge that is specified in my-puid
 \ for the mmio mem and io addresses:
 \ base is the least available address
@@ -309,13 +318,7 @@ DEFER func-pci-probe-bus
         pci-max-mem !                                   \ save the max mem-space address
         pci-next-mmio !                                 \ save the next mmio-base address
         pci-max-mmio !                                  \ save the max mmio-space address
-
-        0d emit ."  Adapters on " puid 10 0.r cr        \ print the puid we're looking at
-        ( bus-max bus-min ) pci-probe-all               \ and walk the bus
-        pci-device-number 0= IF                         \ IF no devices found
-                15 spaces                               \ | indent the output
-                ." None" cr                             \ | tell the world our result
-        THEN                                            \ FI
+	(probe-pci-host-bridge)
         r> TO  puid                                     \ restore puid
 ;
 
