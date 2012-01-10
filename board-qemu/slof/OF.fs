@@ -208,6 +208,44 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 ;
 set-default-console
 
+8e0 cp
+
+\ Check if we are booting a kernel passed by qemu, in which case
+\ we skip initializing some devices
+
+0 VALUE direct-ram-boot-base
+0 VALUE direct-ram-boot-size
+CREATE boot-opd 10 ALLOT
+
+: (boot-ram)
+    direct-ram-boot-size 0<> IF
+        ." Booting from memory..." cr
+	direct-ram-boot-base boot-opd !
+	0 boot-opd 8 + !
+	s" boot-opd to go-entry" evaluate
+	s" true state-valid ! " evaluate
+	s" disable-watchdog go-64" evaluate
+    THEN
+;
+
+8e8 cp
+
+: check-boot-from-ram
+    s" qemu,boot-kernel" get-chosen IF
+        decode-int -rot decode-int -rot ( n1 n2 p s )
+	decode-int -rot decode-int -rot ( n1 n2 n3 n4 p s )
+	2drop
+	swap 32 << or to direct-ram-boot-size
+	swap 32 << or to direct-ram-boot-base
+	." Detected RAM kernel at " direct-ram-boot-base .
+	." (" direct-ram-boot-size . ." bytes) "
+	\ Override the boot-command word without touching the
+	\ nvram environment
+	s" boot-command" $create " (boot-ram)" env-string
+    THEN
+;
+check-boot-from-ram
+
 8ff cp
 
 #include <start-up.fs>
