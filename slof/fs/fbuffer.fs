@@ -135,11 +135,14 @@ CREATE bitmap-buffer 400 4 * allot
 		fb8-columns2bytes swap fb8-columns2bytes tuck -
 		over r@ tuck + rot char-height 0 ?DO
 			3dup rmove
-			-rot screen-width tuck + -rot + swap rot
+			-rot screen-width screen-depth * tuck + -rot + swap rot
 		LOOP
 		3drop r>
 	THEN
-	char-height 0 ?DO dup 2 pick fb8-erase-block screen-width + LOOP 2drop
+	char-height 0 ?DO
+		dup 2 pick fb8-erase-block screen-width screen-depth * +
+	LOOP
+	2drop
 ;
 
 : fb8-delete-characters ( n -- )
@@ -150,11 +153,14 @@ CREATE bitmap-buffer 400 4 * allot
 		fb8-columns2bytes swap fb8-columns2bytes tuck -
 		over r@ + 2dup + r> swap >r rot char-height 0 ?DO
 			3dup rmove
-			-rot screen-width tuck + -rot + swap rot
+			-rot screen-width screen-depth * tuck + -rot + swap rot
 		LOOP
 		3drop r> over -
 	THEN
-	char-height 0 ?DO dup 2 pick fb8-erase-block screen-width + LOOP 2drop
+	char-height 0 ?DO
+		dup 2 pick fb8-erase-block screen-width screen-depth * +
+	LOOP
+	2drop
 ;
 
 : fb8-reset-screen ( -- ) ( Left as no-op by design ) ;
