@@ -160,6 +160,8 @@ A1FE000000000100 CONSTANT GET-MAX-LUN
 00 VALUE ptr
 
 
+0 VALUE instance-count
+
 \ TD Management constants and Data structures.
 
 
@@ -170,8 +172,8 @@ A1FE000000000100 CONSTANT GET-MAX-LUN
 0 VALUE max-rh-ports
 0 VALUE current-stat
 
-INSTANCE VARIABLE td-list-region
-INSTANCE VARIABLE td-list-region-dma
+VARIABLE td-list-region
+VARIABLE td-list-region-dma
 
 \ ED Management constants
 
@@ -179,8 +181,8 @@ INSTANCE VARIABLE td-list-region-dma
 14 CONSTANT MAX-EDS
 0 VALUE ed-freelist-head
 0 VALUE num-free-eds
-INSTANCE VARIABLE ed-list-region
-INSTANCE VARIABLE ed-list-region-dma
+VARIABLE ed-list-region
+VARIABLE ed-list-region-dma
 0 VALUE usb-address
 0 VALUE initial-hub-address
 0 VALUE new-device-address
@@ -229,10 +231,10 @@ INSTANCE VARIABLE ed-list-region-dma
 0 VALUE setup-packet     \ 8 bytes for setup packet
 0 VALUE ch-buffer        \ 1 byte character buffer
 
-INSTANCE VARIABLE dd-buffer
-INSTANCE VARIABLE dd-buffer-dma
-INSTANCE VARIABLE cd-buffer
-INSTANCE VARIABLE cd-buffer-dma
+VARIABLE dd-buffer
+VARIABLE dd-buffer-dma
+VARIABLE cd-buffer
+VARIABLE cd-buffer-dma
 
 
 \ Global buffer allocation
@@ -548,6 +550,9 @@ hchcca-dma hchcca - CONSTANT virt2phys-offset
    ed-list-region @ TO temp1
    0 TO temp2   BEGIN
       temp1 zero-out-an-ed-except-link
+      usb-debug-flag IF
+        ." ED " temp2 . ."  v: " temp1 . ."  p: " temp1 virt2phys . cr
+      THEN
       temp1 /edlen +  dup virt2phys  temp1 ed>ned  l!-le  TO temp1
       temp2 1+ TO temp2
       temp2 MAX-EDS =
@@ -673,12 +678,22 @@ hchcca-dma hchcca - CONSTANT virt2phys-offset
 \ OF methods
 
 : open  ( -- TRUE|FALSE )
-   (allocate-mem)
+   instance-count dup 0= IF
+     s" OHCI First open" usb-debug-print
+     (allocate-mem)
+   THEN
+   1 + TO instance-count
+   s" OHCI Open instance count now: " instance-count usb-debug-print-val
    TRUE
 ;
 
 : close  ( -- )
-   (de-allocate-mem)
+   instance-count dup 1 = IF
+     s" OHCI Last close" usb-debug-print
+     (de-allocate-mem)
+   THEN
+   1 - TO instance-count
+   s" OHCI Close instance count now: " instance-count usb-debug-print-val
 ;
 
 
