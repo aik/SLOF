@@ -235,8 +235,8 @@ CREATE boot-opd 10 ALLOT
         decode-int -rot decode-int -rot ( n1 n2 p s )
 	decode-int -rot decode-int -rot ( n1 n2 n3 n4 p s )
 	2drop
-	swap 32 << or to direct-ram-boot-size
-	swap 32 << or to direct-ram-boot-base
+	swap 20 << or to direct-ram-boot-size
+	swap 20 << or to direct-ram-boot-base
 	." Detected RAM kernel at " direct-ram-boot-base .
 	." (" direct-ram-boot-size . ." bytes) "
 	\ Override the boot-command word without touching the
