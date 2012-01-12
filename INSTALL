@@ -1,43 +1,9 @@
 Slimline Open Firmware - SLOF
 
-Copyright (C) 2005, 2008 IBM Corporation
+Copyright (C) 2005, 2012 IBM Corporation
 
 
-BUILD
-===============================================================================
-
- To build SLOF you need:
-  - Recent GNU tools, configured for powerpc64-linux
-    - GCC: 3.3.3 and newer are known to work
-    - Binutils: use a version as new as possible
-    - Subversion
-
-  - set the CROSS variable
-    - something like export CROSS="powerpc64-unknown-linux-gnu-"
-      when using a cross compiler
-    or
-    - export CROSS=""
-      when using a native compiler
-
-  - four more files to build a bootable image:
-    - libipmi.oco
-    - takeover.oco
-    - i2c_bmc.oco
-    - ipmi_oem.oco
-    these files are also provided through developerworks and have to be
-    also downloaded just like the SLOF source code
-
-  - starting with the SLOF release JX-1.6.0-0 it is necessary to
-    download a x86 emulator which is used to execute the BIOS
-    of VGA card; to download the x86 emulator following steps are
-    required:
-    - cd other-licence/x86emu/
-    - ./x86emu_download.sh # this downloads the x86 emulator sources
-    - cd -
-
-  - make js2x
-
-INSTALL
+INSTALL ON JS20/JS21
 ===============================================================================
 
  Detailed information about how to use SLOF on JS20 and JS21 can be found in
@@ -55,18 +21,20 @@ INSTALL
  SLOF usually warns or in most cases does not easily allow to overwrite the
  permanent side.
 
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !                                                           !
- ! WITH THE FOLLOWING STEPS YOU MIGHT DESTROY YOUR FIRMWARE  !
- ! IMAGE AND LOOSE YOUR WARRANTY !                           !
- ! YOU MAY NEED TO CALL SERVICE, IF THE FIRMWARE IMAGE IS    !
- ! DESTROYED !                                               !
- !                                                           !
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !                                                       !
+ ! NOTE: WHEN FLASHING A NEW FIRMWARE IMAGE YOU MIGHT    !
+ ! DESTROY YOUR FIRMWARE IMAGE AND LOOSE YOUR WARRANTY!  !
+ !                                                       !
+ ! YOU MAY NEED TO CALL SERVICE, IF THE FIRMWARE IMAGE   !
+ ! IS DESTROYED !                                        !
+ !                                                       !
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-UNINSTALL
+
+REMOVING SLOF FROM JS20/JS21
 ===============================================================================
 
  If you want to boot the original firmware again, you need to boot the blade 
@@ -91,3 +59,14 @@ UNINSTALL
         Power Off Blade
         Restart Blade System Mgmt Processor 
         Power On Blade
+
+
+INSTALL ON KVM/QEMU
+===============================================================================
+
+ Recent versions of QEMU should already be shipped with a version of SLOF.
+ To upgrade SLOF in your QEMU installation, back-up the old firmware file
+ .../share/qemu/slof.bin from your QEMU installation, then simply copy the
+ new SLOF image (for example "boot_rom.bin" after building board-qemu) to
+ this location.
+
