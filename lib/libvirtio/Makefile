@@ -17,16 +17,14 @@ CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) \
 	   -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
 LDFLAGS = -nostdlib
 
-TARGET = ../libhvcall.a
+TARGET = ../libvirtio.a
 
 
 all: $(TARGET)
 
-SRCS = 
-SRCSS = hvcall.S
+SRCS =  virtio.c virtio-blk.c
 
-
-OBJS = $(SRCS:%.c=%.o) $(SRCSS:%.S=%.o)
+OBJS = $(SRCS:%.c=%.o)
 
 $(TARGET): $(OBJS)
 	$(AR) -rc $@ $(OBJS)

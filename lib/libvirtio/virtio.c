@@ -14,7 +14,6 @@
 #include <cache.h>
 #include <byteorder.h>
 #include "virtio.h"
-#include "libhvcall.h"
 
 /* PCI virtio header offsets */
 #define VIRTIOHDR_DEVICE_FEATURES	0

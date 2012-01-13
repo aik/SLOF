@@ -12,7 +12,6 @@
 
 #include <string.h>
 #include <netdriver_int.h>
-#include <libhvcall.h>
 #include "virtio-net.h"
 
 extern char __module_start[];

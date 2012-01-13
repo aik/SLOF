@@ -10,19 +10,9 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-cod(hv-putchar)
-cod(hv-getchar)
-cod(hv-haschar)
-cod(hv-reg-crq)
-cod(hv-free-crq)
-cod(hv-send-crq)
-cod(hv-put-tce)
-
-cod(RB@)
-cod(RB!)
-cod(RW@)
-cod(RW!)
-cod(RL@)
-cod(RL!)
-cod(RX@)
-cod(RX!)
+cod(virtio-vring-size)
+cod(virtio-get-qsize)
+cod(virtio-get-config)
+cod(virtio-blk-init)
+cod(virtio-blk-shutdown)
+cod(virtio-blk-read)

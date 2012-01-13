@@ -17,7 +17,10 @@ endif
 include $(TOP)/make.rules
 
 CPPFLAGS = -I./ -I$(TOP)/clients/net-snk/include/ -I$(TOP)/lib/libc/include/ \
-	   -I$(TOP)/lib/libhvcall -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
+	   -I$(TOP)/lib/libhvcall  -I$(TOP)/lib/libvirtio -I$(INCLCMNDIR) \
+	   -I$(INCLCMNDIR)/$(CPUARCH)
+
+LIBS   = $(TOP)/lib/libc.a $(TOP)/lib/libhvcall.a $(TOP)/lib/libvirtio.a
 
 SRCS   = module_entry.c virtio-net.c vn-pci.c
 
@@ -25,7 +28,7 @@ OBJS   = $(SRCS:%.c=%.o)
 
 all: net_virtio.elf
 
-net_virtio.elf: $(OBJS) $(TOP)/lib/libc.a $(TOP)/lib/libhvcall.a
+net_virtio.elf: $(OBJS) $(LIBS)
 	$(LD) $(LDFLAGS) $^ -o $@ -T virtio-net.lds -N -q
 	$(STRIP) --strip-unneeded $@
 

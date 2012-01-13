@@ -13,8 +13,6 @@
 #include <stdio.h>
 #include "virtio.h"
 #include "virtio-blk.h"
-#include "libhvcall.h"
-
 
 #define sync()  asm volatile (" sync \n" ::: "memory")
 
