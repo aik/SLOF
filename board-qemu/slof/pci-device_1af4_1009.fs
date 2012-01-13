@@ -10,9 +10,9 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-\ Handle virtio-blk device
+\ Handle virtio-fs device
 
-s" virtio [ block ]" type cr
+s" virtio [ network ]" type cr
 
 my-space pci-device-generic-setup
 
@@ -20,7 +20,7 @@ pci-master-enable
 pci-mem-enable
 pci-io-enable
 
-s" virtio-block.fs" included
+s" virtio-fs.fs" included
 
 \ Allocate memory for virtio queue:
 virtiodev 0 virtio-get-qsize virtio-vring-size

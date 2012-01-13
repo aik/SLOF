@@ -22,7 +22,7 @@ TARGET = ../libvirtio.a
 
 all: $(TARGET)
 
-SRCS =  virtio.c virtio-blk.c
+SRCS =  virtio.c virtio-blk.c p9.c virtio-9p.c
 
 OBJS = $(SRCS:%.c=%.o)
 

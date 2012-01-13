@@ -27,7 +27,10 @@ virtioblk_init(struct virtio_device *dev)
 	struct vring_avail *vq_avail;
 
 	/* Reset device */
-	// virtio_reset_device(dev);
+	// XXX That will clear the virtq base. We need to move
+	//     initializing it to here anyway
+	//
+	//	 virtio_reset_device(dev);
 
 	/* Acknowledge device. */
 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);
@@ -146,6 +149,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	/* Wait for host to consume the descriptor */
 	i = 10000000;
 	while (*current_used_idx == last_used_idx && i-- > 0) {
+		// do something better
 		sync();
 	}
 

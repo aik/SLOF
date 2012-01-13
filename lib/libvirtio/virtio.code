@@ -12,6 +12,9 @@
 
 #include <virtio.h>
 #include <virtio-blk.h>
+#include <virtio-9p.h>
+
+/******** core virtio ********/
 
 // : virtio-vring-size  ( queuesize -- ringsize )
 PRIM(virtio_X2d_vring_X2d_size)
@@ -30,6 +33,8 @@ PRIM(virtio_X2d_get_X2d_config)
 	int offset = TOS.u; POP;
 	TOS.u = virtio_get_config(TOS.a, offset, size);
 MIRP
+
+/******** virtio-blk ********/
 
 // : virtio-blk-init ( dev -- )
 PRIM(virtio_X2d_blk_X2d_init)
@@ -50,4 +55,32 @@ PRIM(virtio_X2d_blk_X2d_read)
 	long blkno = TOS.n; POP;
 	void *buf = TOS.a;
 	TOS.n = virtioblk_read(dev, buf, blkno, cnt);
+MIRP
+
+/******** virtio-fs ********/
+
+// : virtio-fs-init ( dev tx rx size -- success )
+PRIM(virtio_X2d_fs_X2d_init)
+	int size = TOS.n; POP;
+	void *rx = TOS.a; POP;
+	void *tx = TOS.a; POP;
+	void *dev = TOS.a;
+
+	TOS.n = virtio_9p_init(dev, tx, rx, size) == 0 ? -1 : 0;
+MIRP
+
+// : virtio-fs-shutdown ( dev -- )
+PRIM(virtio_X2d_fs_X2d_shutdown)
+	void *dev = TOS.a; POP;
+
+	virtio_9p_shutdown(dev);
+MIRP
+
+// : virtio-fs-load ( dev buf str -- #read )
+PRIM(virtio_X2d_fs_X2d_load)
+	char *str = TOS.a; POP;
+	void *buf = TOS.a; POP;
+	void *dev = TOS.a;
+
+	TOS.n = virtio_9p_load(dev, str, buf);
 MIRP

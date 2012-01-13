@@ -58,12 +58,14 @@ USB_FFS_FILES = \
 VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1000.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1001.fs \
+	$(SLOFBRDDIR)/pci-device_1af4_1009.fs \
 	$(SLOFBRDDIR)/vio-hvterm.fs \
 	$(SLOFBRDDIR)/vio-vscsi.fs \
 	$(SLOFBRDDIR)/vio-vscsi-device.fs \
 	$(SLOFBRDDIR)/vio-veth.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \
-	$(SLOFBRDDIR)/virtio-block.fs
+	$(SLOFBRDDIR)/virtio-block.fs \
+	$(SLOFBRDDIR)/virtio-fs.fs
 
 # Files that should go into the ROM fs (and so have to be listed in OF.ffs):
 OF_FFS_FILES = \

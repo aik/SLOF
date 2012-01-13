@@ -189,3 +189,25 @@ uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size)
 
 	return val;
 }
+
+/**
+ * Get config blob
+ */
+int __virtio_read_config(struct virtio_device *dev, void *dst,
+			  int offset, int len)
+{
+	void *confbase;
+	unsigned char *buf = dst;
+	int i;
+
+	switch (dev->type) {
+	 case VIRTIO_TYPE_PCI:
+		confbase = dev->base+VIRTIOHDR_DEVICE_CONFIG;
+		break;
+	 default:
+		return 0;
+	}
+	for (i = 0; i < len; i++)
+		buf[i] = ci_read_8(confbase + offset + i);
+	return len;
+}

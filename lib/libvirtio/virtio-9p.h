@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2004, 2011 IBM Corporation
+ * Copyright (c) 2011 IBM Corporation
  * All rights reserved.
  * This program and the accompanying materials
  * are made available under the terms of the BSD License
@@ -10,14 +10,22 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-cod(virtio-vring-size)
-cod(virtio-get-qsize)
-cod(virtio-get-config)
+#ifndef VIRTIO_9P_H_
+#define VIRTIO_9P_H_
 
-cod(virtio-blk-init)
-cod(virtio-blk-shutdown)
-cod(virtio-blk-read)
+#include <stdint.h>
 
-cod(virtio-fs-init)
-cod(virtio-fs-shutdown)
-cod(virtio-fs-load)
+#include "virtio.h"
+
+typedef struct {
+    uint16_t tag_lenth;
+    char tag[0];
+} virtio_9p_config_t;
+
+int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
+		   int buf_size);
+void virtio_9p_shutdown(struct virtio_device *dev);
+int virtio_9p_load(struct virtio_device *dev, const char *file_name, uint8_t *buffer);
+
+
+#endif /* VIRTIO_9P_H_ */
