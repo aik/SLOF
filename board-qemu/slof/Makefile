@@ -82,6 +82,7 @@ OF_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-phb.fs \
 	$(SLOFBRDDIR)/rtas.fs \
 	$(SLOFBRDDIR)/pci-device_1234_1111.fs \
+	$(SLOFBRDDIR)/pci-device_1013_00b8.fs \
 	$(FCODE_FFS_FILES)
 
 # Uncomment the following line to enable the USB code:
