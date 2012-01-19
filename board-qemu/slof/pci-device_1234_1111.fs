@@ -13,9 +13,9 @@
 my-space pci-device-generic-setup
 
 \ Defaults, overriden from qemu
-d# 800 CONSTANT disp-width
-d# 600 CONSTANT disp-height
-d#   8 CONSTANT disp-depth
+d# 800 VALUE disp-width
+d# 600 VALUE disp-height
+d#   8 VALUE disp-depth
 
 \ Determine base address
 10 config-l@ translate-my-address 3 not AND  VALUE fb-base
@@ -189,7 +189,7 @@ a CONSTANT VBE_DISPI_INDEX_NB
 ;
 
 : clear-screen
-  fb-base disp-width disp-height * 0 rfill
+  fb-base disp-width disp-height disp-depth 7 + 8 / * * 0 rfill
 ;
 
 : read-settings
