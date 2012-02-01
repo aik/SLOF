@@ -156,6 +156,10 @@ CONSTANT <2constant>
 \ Duplicate string and replace \ with /
 : \-to-/ ( str len -- str' len ) strdup 2dup [char] \ [char] / replace-char ;
 
+: isdigit ( char -- true | false )
+   30 39 between
+;
+
 : //  dup >r 1- + r> / ; \ division, round up
 
 : c@+ ( adr -- c adr' )  dup c@ swap char+ ;

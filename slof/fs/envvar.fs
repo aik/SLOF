@@ -66,10 +66,6 @@ wordlist CONSTANT envvars
    string=ci or or
 ;
 
-: isdigit ( char -- true | false )
-   30 39 between
-;
-
 : test-int ( param len -- true | false )
   drop c@ isdigit if true else false then ;
 

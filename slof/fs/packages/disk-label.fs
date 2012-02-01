@@ -247,7 +247,8 @@ CONSTANT /partition-entry
 
    partition find-dos-partition IF
      ( offset count active? id )
-     2drop drop
+     2drop
+     to part-size
      block-size * to part-offset
      true
    ELSE
@@ -394,14 +395,25 @@ CONSTANT /partition-entry
 : parse-partition ( -- okay? )
    0 to partition
    0 to part-offset
+   0 to part-size
 
    my-args to args-len to args
 
-   \ Fix up the "0" thing yaboot does.
-   args-len 1 = IF args c@ [char] 0 = IF 0 to args-len THEN THEN
+   debug-disk-label? IF
+      cr ." disk-label parse-partition: my-args=" my-args type cr
+   THEN
+
+   \ Called without arguments?
+   args-len 0 = IF true EXIT THEN
 
    \ Check for "full disk" arguments.
-   my-args [char] , findchar 0= IF true EXIT THEN drop \ no comma
+   my-args [char] , findchar 0= IF \ no comma?
+      args c@ isdigit not IF       \ ... and not a partition number?
+         true EXIT                 \ ... then it's not a partition we can parse
+      THEN
+   ELSE
+      drop
+   THEN
    my-args [char] , split to args-len to args
    dup 0= IF 2drop true EXIT THEN \ no first argument
 
@@ -509,7 +521,12 @@ CONSTANT /partition-entry
    ELSE
       partition IF
          0 0 seek drop
-         max-prep-partition-blocks 200 *  read
+         part-size IF
+            part-size max-prep-partition-blocks min   \ Load size
+         ELSE
+            max-prep-partition-blocks
+         THEN
+         200 *  read
       ELSE
          has-iso9660-filesystem IF
              dup load-chrp-boot-file ?dup 0 > IF nip EXIT THEN
