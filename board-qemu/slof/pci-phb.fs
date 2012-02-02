@@ -247,7 +247,7 @@ setup-puid
    puid >r                          \ Save old value of puid
    my-puid TO puid                  \ Set current puid
    phb-parse-ranges
-   ff 0 (probe-pci-host-bridge)
+   1 0 (probe-pci-host-bridge)
    r> TO puid                       \ Restore previous puid
 ;
 phb-setup-children
