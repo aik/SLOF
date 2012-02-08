@@ -176,7 +176,11 @@ CONSTANT <instancevariable>
 ;
 
 : $call-method  ( str len ihandle -- )
-   push-my-self $call-my-method pop-my-self
+   push-my-self
+   ['] $call-my-method CATCH ?dup IF
+      pop-my-self THROW
+   THEN
+   pop-my-self
 ;
 
 0 VALUE calling-child
