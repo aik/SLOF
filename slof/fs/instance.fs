@@ -98,6 +98,7 @@ CONSTANT <instancevariable>
    r> cell+ dup >r
    @ cell+ cell+ @ >instance !
 ;
+' (doito) CONSTANT <(doito)>
 
 : to ( value wordname<> -- )
    ' (instance?)

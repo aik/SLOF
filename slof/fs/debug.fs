@@ -309,6 +309,7 @@ true value trace>up?
 	    <dotick>    OF drop forth-ip cell+ @ cell fip-add ENDOF
 	    <lit>       OF drop forth-ip cell+ @ cell fip-add ENDOF
 	    <doto>      OF drop forth-ip cell+ @ cell+ ! cell fip-add ENDOF
+	    <(doito)>   OF drop forth-ip cell+ @ cell+ cell+ @ >instance ! cell fip-add ENDOF
 	    <0branch>   OF drop IF
 		                    cell fip-add
 		                ELSE
