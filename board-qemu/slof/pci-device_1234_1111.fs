@@ -255,6 +255,16 @@ a CONSTANT VBE_DISPI_INDEX_NB
 : display-remove ( -- ) 
 ;
 
+: hcall-invert-screen ( -- )
+    frame-buffer-adr frame-buffer-adr 3
+    screen-height screen-width * screen-depth * /x /
+    1 hv-logical-memop
+;
+
+: hcall-blink-screen ( -- )
+    hcall-invert-screen hcall-invert-screen
+;
+
 : display-install ( -- )
     is-installed? NOT IF
         ." Installing QEMU fb" cr
@@ -266,7 +276,9 @@ a CONSTANT VBE_DISPI_INDEX_NB
         disp-width char-width / disp-height char-height /
         disp-depth 7 + 8 /                      ( width height #lines #cols depth )
         fb-install
-        true to is-installed?
+	['] hcall-invert-screen to invert-screen
+	['] hcall-blink-screen to blink-screen
+         true to is-installed?
     THEN
 ;
 
