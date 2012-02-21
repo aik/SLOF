@@ -14,7 +14,7 @@
 
 \ rtas control block
 
-4d0 cp
+371 cp
 
 STRUCT
     /l field rtas>token
@@ -43,7 +43,7 @@ rtas-cb /rtas-control-block erase
 \ Locate qemu RTAS, remove the linux,... properties we really don't
 \ want them to stick around
 
-4d1 cp
+372 cp
 
 : find-qemu-rtas ( -- )
     " /rtas" find-device get-node to rtas-node
@@ -64,13 +64,12 @@ rtas-cb /rtas-control-block erase
         " linux,rtas-entry" delete-property
     THEN
 
-    \ ." RTAS found, base=" rtas-base . ."  size=" rtas-size . cr
+\    ." RTAS found, base=" rtas-base . ."  size=" rtas-size . cr
 
     device-end
 ;
 find-qemu-rtas
-
-4d2 cp
+373 cp
 
 : enter-rtas ( -- )
     rtas-cb rtas-base 0 rtas-entry call-c drop
@@ -180,4 +179,4 @@ rtas-node set-node
 
 device-end
 
-4d8 cp
+374 cp
