@@ -22,12 +22,15 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <cache.h>
+
 #include ISTR(TARG,h)
 
 #define LAST_ELEMENT(x) x[sizeof x / sizeof x[0] - 1]
 
 /* Hack to get around static inline issues */
 #include "../lib/libhvcall/libhvcall.h"
+
 
 extern char _start_OF[];
 

@@ -37,4 +37,50 @@ cache_inhibited_access(uint16_t, 16)
 cache_inhibited_access(uint32_t, 32)
 cache_inhibited_access(uint64_t, 64)
 
+#define _FWOVERLAP(s, d, size) ((d >= s) && ((type_u)d < ((type_u)s + size)))
+
+// 3.1
+#define _FWMOVE(s, d, size, t)	\
+	{ t *s1=(t *)s, *d1=(t *)d; \
+		while (size > 0) { *d1++ = *s1++; size -= sizeof(t); } }
+
+#define _BWMOVE(s, d, size, t)	{ \
+	t *s1=(t *)((char *)s+size), *d1=(t *)((char *)d+size); \
+	while (size > 0) { *--d1 = *--s1; size -= sizeof(t); } \
+}
+
+
+#define	_MOVE(s, d, size, t) if _FWOVERLAP(s, d, size) _BWMOVE(s, d, size, t) else  _FWMOVE(s, d, size, t)
+
+#define _FASTMOVE(s, d, size) \
+	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
+		case 0:			_MOVE(s, d, size, type_u); break; \
+		case sizeof(type_l):	_MOVE(s, d, size, type_l); break; \
+		case sizeof(type_w):	_MOVE(s, d, size, type_w); break; \
+		default:		_MOVE(s, d, size, type_c); break; \
+	}
+
+// Device IO block data helpers
+#define _FWRMOVE(s, d, size, t)	\
+	{ t *s1=(t *)s, *d1=(t *)d; SET_CI; \
+		while (size > 0) { *d1++ = *s1++; size -= sizeof(t); } \
+		CLR_CI; \
+}
+
+#define _BWRMOVE(s, d, size, t)	{ \
+	t *s1=(t *)((char *)s+size), *d1=(t *)((char *)d+size); SET_CI; \
+	while (size > 0) { *--d1 = *--s1; size -= sizeof(t); } \
+		CLR_CI; \
+}
+
+#define	_RMOVE(s, d, size, t) if _FWOVERLAP(s, d, size) _BWRMOVE(s, d, size, t) else  _FWRMOVE(s, d, size, t)
+
+#define _FASTRMOVE(s, d, size) \
+	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
+		case 0:			_RMOVE(s, d, size, type_u); break; \
+		case sizeof(type_l):	_RMOVE(s, d, size, type_l); break; \
+		case sizeof(type_w):	_RMOVE(s, d, size, type_w); break; \
+		default:		_RMOVE(s, d, size, type_c); break; \
+	}
+
 #endif
