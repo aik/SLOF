@@ -18,7 +18,7 @@ d# 600 VALUE disp-height
 d#   8 VALUE disp-depth
 
 \ Determine base address
-10 config-l@ translate-my-address 3 not AND  VALUE fb-base
+10 config-l@ translate-my-address f not AND VALUE fb-base
 
 \ Fixed up later
 -1 VALUE io-base
