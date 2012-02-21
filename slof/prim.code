@@ -21,7 +21,7 @@
 #define NEXT	ip++; NEXT0
 
 #define PRIM(name) code_##name: { \
-		   asm("#### " #name); \
+		   asm volatile ("#### " #name : : : "memory"); \
 		   void *w = (cfa = (++ip)->a)->a;
 #define MIRP	   goto *w; }
 
