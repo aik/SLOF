@@ -95,3 +95,11 @@ PRIM(RX_X21)
 	hv_logical_ci_store(8, qaddr, val);
 MIRP
 
+PRIM(hv_X2d_logical_X2d_memop)
+	unsigned long op    = TOS.u; POP;
+	unsigned long count = TOS.u; POP;
+	unsigned long esize = TOS.u; POP;
+	unsigned long src   = TOS.u; POP;
+	unsigned long dst   = TOS.u;
+	TOS.u = hv_logical_memop(dst, src, esize, count, op);
+MIRP

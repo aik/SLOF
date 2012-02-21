@@ -99,6 +99,17 @@ ENTRY(hv_logical_ci_store)
 	HVCALL
 	blr
 
+ENTRY(hv_logical_memop)
+	mr	r8,r7
+	mr	r7,r6
+	mr	r6,r5
+	mr	r5,r4
+	mr	r4,r3
+	lis	r3,KVMPPC_H_LOGICAL_MEMOP@h
+	ori	r3,r3,KVMPPC_H_LOGICAL_MEMOP@l
+	HVCALL
+	blr
+
 	.section ".bss"
 inbuf:	.space	16
 inlen:	.space	4

@@ -17,6 +17,12 @@
 #define H_ADD_LOGICAL_LAN_BUFFER 0x11C
 #define H_SEND_LOGICAL_LAN	0x120
 
+/* KVM specific ones */
+#define KVMPPC_HCALL_BASE       0xf000
+#define KVMPPC_H_RTAS           (KVMPPC_HCALL_BASE + 0x0)
+#define KVMPPC_H_LOGICAL_MEMOP  (KVMPPC_HCALL_BASE + 0x1)
+#define KVMPPC_HCALL_MAX        KVMPPC_H_LOGICAL_MEMOP
+
 #ifndef __ASSEMBLY__
 
 extern long hv_generic(unsigned long opcode, ...);
@@ -67,6 +73,10 @@ static inline long h_add_logical_lan_buffer(unsigned long unit_address,
 extern unsigned long hv_logical_ci_load(unsigned long size, unsigned long addr);
 extern unsigned long hv_logical_ci_store(unsigned long size, unsigned long addr,
 					 unsigned long value);
+
+extern unsigned long hv_logical_memop(unsigned long dst, unsigned long src,
+				      unsigned long esize, unsigned long count,
+				      unsigned long op);
 
 #endif /* __ASSEMBLY__ */
 
