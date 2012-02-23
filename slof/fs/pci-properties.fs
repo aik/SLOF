@@ -612,18 +612,6 @@
         pci-reg-props
 ;
 
-\ FIXME still used in the device files slof/fs/devices/pci-device
-: assign-bar-mapping ( bar-offset size var -- )
-        rot my-unit-64 + -rot
-        assign-bar-value32 drop
-;
-
-\ FIXME this is still used by the devices in slof/fs/devices/pci-device_*
-: assigned-addresses-property (  -- )
-        my-unit-64
-        dup pci-common-props
-            pci-device-assigned-addresses-prop
-;
 
 \ used to set up all unknown Bridges.
 \ If a Bridge has no special handling for setup
