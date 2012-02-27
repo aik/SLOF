@@ -20,7 +20,6 @@ CFLAGS +=$(ADDCFLAGS)
 
 OBJS = main.o
 OBJDIRS = netlib/netlib.o netapps/netboot.o 
-OBJDIRS += netapps/netflash.o
 OBJDIRS += netapps/ping.o
 OBJDIRS += netapps/args.o
 

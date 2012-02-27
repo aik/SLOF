@@ -17,13 +17,12 @@ endif
 include $(TOP)/make.rules
 
 CFLAGS += -I../ -I../../../../lib/ -Wall -W
-OBJS    = netboot.o netflash.o  
-OBJS	+= ping.o
-OBJS	+= args.o
+
+OBJS    = netboot.o ping.o args.o
 
 all: $(OBJS) 
 
-clean:	
-		$(RM) -f *.o *.a *.i
+clean:
+	$(RM) -f *.o *.a *.i
 
 include $(TOP)/make.depend
