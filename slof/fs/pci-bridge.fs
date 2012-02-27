@@ -11,7 +11,9 @@
 \ ****************************************************************************/
 
 \ get the PUID from the node above
-s" my-puid" $call-parent CONSTANT my-puid
+get-node CONSTANT my-phandle
+s" my-puid" my-phandle parent $call-static CONSTANT my-puid
+
 \ Save the bus number provided by this bridge
 pci-bus-number 1+ CONSTANT my-bus
 
