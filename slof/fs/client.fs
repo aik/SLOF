@@ -125,9 +125,21 @@ ALSO client-voc DEFINITIONS
 ;
 
 : getprop ( phandle zstr buf len -- len' )
-  >r >r zcount rot get-property
-  0= IF r> swap dup r> min swap >r move r>
-  ELSE r> r> 2drop -1 THEN ;
+   >r >r zcount rot                     ( str-adr str-len phandle   R: len buf )
+   debug-client-interface? IF
+      ." ci: getprop " 3dup . ." '" type ." '"
+   THEN
+   get-property
+   debug-client-interface? IF
+      dup IF ."  ** not found **" THEN
+      cr
+   THEN
+   0= IF
+      r> swap dup r> min swap >r move r>
+   ELSE
+      r> r> 2drop -1
+   THEN
+;
 
 : getproplen ( phandle zstr -- len )
   zcount rot get-property 0= IF nip ELSE -1 THEN ;
