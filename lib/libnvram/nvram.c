@@ -546,8 +546,6 @@ void reset_nvram(void)
 
 void nvram_debug(void)
 {
-#if !defined(DISABLE_NVRAM)
-	printf("\nNVRAM_BASE: %lx\n", (unsigned long)SB_NVRAM_adr);
-	printf("NVRAM_LEN: %x\n", NVRAM_LENGTH);
-#endif
+	printf("\nNVRAM_BASE: %p\n", nvram);
+	printf("NVRAM_LEN: 0x%x\n", NVRAM_LENGTH);
 }
