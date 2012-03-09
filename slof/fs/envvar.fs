@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2004, 2008 IBM Corporation
+\ * Copyright (c) 2004, 2012 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -70,59 +70,52 @@ wordlist CONSTANT envvars
   drop c@ isdigit if true else false then ;
 
 : findtype ( param len name len -- param len name len type )
-   2dup findenv dup 0= \ try to find type of envvar
-   IF             \ no type found
-    drop 2swap
-    2dup test-flag if 4 -rot else
-    2dup test-secmode if 5 -rot else
-       2dup test-int if 1 -rot else
-	  2dup test-string IF 3 ELSE 2 THEN  \ 3 = string, 2 = default to bytes
-	  -rot then then then
-    rot
-    >r 2swap r>
-    \ XXX: create env
-  else           \ take type from default value
-    nip nip
-  THEN
+   2dup findenv                         \ try to find type of envvar
+   dup IF                               \ found a type?
+      nip nip
+      EXIT
+   THEN
+
+   \ No type found yet, try to auto-detect:
+   drop 2swap
+   2dup test-flag IF
+      4 -rot                         \ boolean type
+   ELSE
+      2dup test-secmode IF
+         5 -rot                      \ secmode type
+      ELSE
+         2dup test-int IF
+            1 -rot                   \ integer type
+         ELSE
+            2dup test-string
+            IF 3 ELSE 2 THEN         \ 3 = string, 2 = default to bytes
+            -rot
+         THEN
+      THEN
+   THEN
+   rot
+   >r 2swap r>
 ;
 
 \ set an envvar
 : $setenv ( param len name len -- )
    4dup set-option
-   findtype dup 0=
-   IF
-      true ABORT" not a configuration variable"
-   ELSE
-      -rot $CREATE CASE
+   findtype
+   -rot $CREATE
+   CASE
       1 OF evaluate env-int ENDOF \ XXX: wants decimal and 0x...
-      \ Since we don't have 0x for hexnumbers, we need to find out the type ...
-      2 OF
-         2dup                    ( param len param len )
-         depth >r                ( param len param len  R: depth-before )
-         ['] evaluate CATCH IF   \ Catch 'unknown Forth words'...
-            ( param len param' len'  R: depth-before )
-            2drop  r> drop
-            env-string           \ and encode 'unknown word' as string
-         ELSE
-            ( param len [...evaluated results...]  R: depth-before )
-            \ If EVALUATE placed two items on the stack, use env-bytes,
-            \ for one item use env-int:
-            depth r> = IF env-bytes ELSE env-int THEN
-            2drop
-         THEN
-      ENDOF
+      2 OF env-bytes ENDOF
       3 OF env-string ENDOF
       4 OF evaluate env-flag ENDOF
       5 OF evaluate env-secmode ENDOF \ XXX: recognize none, command, full
-      ENDCASE
-   THEN
+   ENDCASE
 ;
 
 \ print an envvar
 : (printenv) ( adr type -- )
    CASE
    1 OF aligned @ . ENDOF
-   2 OF aligned dup cell+ swap @ dup IF dump ELSE 2drop THEN ENDOF
+   2 OF aligned dup cell+ swap @ swap . . ENDOF
    3 OF count type ENDOF
    4 OF c@ IF ." true" ELSE ." false" THEN ENDOF
    5 OF c@ . ENDOF \ XXX: print symbolically
@@ -150,12 +143,15 @@ DEFER old-emit
    ['] old-emit behavior to emit
 ;
 
-: .spaces
-   dup 0 > IF spaces ELSE
-   drop space THEN
+: .spaces ( number-of-spaces -- )
+   dup 0 > IF
+      spaces
+   ELSE
+      drop space
+   THEN
 ;
 
-: .print-one-env
+: .print-one-env ( name len -- )
    3 .spaces
    2dup dup -rot type 1c swap - .spaces
    findenv rot over
@@ -167,16 +163,24 @@ DEFER old-emit
 
 : .print-all-env
    .printenv-header
-   envvars cell+ BEGIN @ dup WHILE dup link> >name
-   name>string .print-one-env cr REPEAT drop
+   envvars cell+
+   BEGIN
+      @ dup
+   WHILE
+      dup link> >name
+      name>string .print-one-env cr
+   REPEAT
+   drop
 ;
 
 : printenv
    parse-word dup 0= IF
-   2drop .print-all-env ELSE findenv dup 0=
-   ABORT" not a configuration variable"
-   rot over cr ." Current: " (printenv)
-   cr ." Default: " (printenv) THEN
+      2drop .print-all-env
+   ELSE
+      findenv dup 0= ABORT" not a configuration variable"
+      rot over cr ." Current: " (printenv)
+      cr ." Default: " (printenv)
+   THEN
 ;
 
 \ set envvar(s) to default value
@@ -198,7 +202,7 @@ VARIABLE nvoff \ offset in envvar partition
 : (nvupdate-one) ( adr type -- "value" )
    CASE
    1 OF aligned @ (.) ENDOF
-   2 OF drop s" 0 0" ENDOF
+   2 OF drop 0 0 ENDOF
    3 OF count ENDOF
    4 OF c@ IF s" true" ELSE s" false" THEN ENDOF
    5 OF c@ (.) ENDOF \ XXX: print symbolically
