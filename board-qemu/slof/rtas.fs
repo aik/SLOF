@@ -80,18 +80,7 @@ find-qemu-rtas
 ;
 
 #include <rtas/rtas-reboot.fs>
-
-: rtas-start-cpu  ( pid loc r3 -- status )
-   " start-cpu" rtas-get-token rtas-cb rtas>token l!
-   3  rtas-cb rtas>nargs l!
-   1  rtas-cb rtas>nret l!
-   rtas-cb rtas>args2 l!
-   rtas-cb rtas>args1 l!
-   rtas-cb rtas>args0 l!
-   0 rtas-cb rtas>args3 l!
-   enter-rtas
-   rtas-cb rtas>args3 l@
-;
+#include <rtas/rtas-cpu.fs>
 
 : rtas-set-tce-bypass ( unit enable -- )
     " ibm,set-tce-bypass" rtas-get-token rtas-cb rtas>token l!
