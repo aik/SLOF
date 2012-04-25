@@ -120,7 +120,7 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	int rc;
 
 	if (fdt_addr == 0) {
-		puts("ERROR: Flatten device tree available!");
+		puts("ERROR: Flatten device tree not available!");
 	}
 
 	/* Hack: Determine base for "ROM filesystem" in memory...
