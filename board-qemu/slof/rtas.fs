@@ -79,6 +79,8 @@ find-qemu-rtas
     rtas-node get-package-property IF 0 ELSE drop l@ THEN
 ;
 
+#include <rtas/rtas-reboot.fs>
+
 : rtas-start-cpu  ( pid loc r3 -- status )
    " start-cpu" rtas-get-token rtas-cb rtas>token l!
    3  rtas-cb rtas>nargs l!
@@ -165,6 +167,9 @@ find-qemu-rtas
 ;
 
 : of-start-cpu rtas-start-cpu ;
+
+' power-off to halt
+' rtas-system-reboot to reboot
 
 \ Methods of the rtas node proper
 rtas-node set-node
