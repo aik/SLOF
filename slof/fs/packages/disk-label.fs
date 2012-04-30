@@ -345,9 +345,19 @@ CONSTANT /partition-entry
       3drop 0 0 EXIT
    THEN
    dup >r - swap r> + swap                  ( addr1 len1 )
-   2dup [char] \ findchar drop              ( addr1 len1 pos2 )
+
+   2dup s" &device;:" find-substr           ( addr1 len1 posdev )
+   2dup = IF
+      3drop 0 0 EXIT
+   THEN
+   9 +                                      \ Skip the "&device;:" string
    dup >r - swap r> + swap                  ( addr2 len2 )
    2dup s" </boot-script>" find-substr nip  ( addr2 len3 )
+
+   debug-disk-label? IF
+      ." Extracted boot loader from bootinfo.txt: '"
+      2dup type ." '" cr
+   THEN
 ;
 
 \ Try to load \ppc\bootinfo.txt from the disk (used mainly on CD-ROMs), and if
@@ -358,7 +368,7 @@ CONSTANT /partition-entry
 
 : load-chrp-boot-file ( addr -- size )
    \ Create bootinfo.txt path name and load that file:
-   my-self parent ihandle>phandle node>path
+   my-parent ihandle>phandle node>path
    s" :\ppc\bootinfo.txt" $cat strdup       ( addr str len )
    open-dev dup 0= IF 2drop 0 EXIT THEN
    >r dup                                   ( addr addr R:ihandle )
@@ -368,8 +378,16 @@ CONSTANT /partition-entry
    \ Now parse the information from bootinfo.txt:
    parse-bootinfo-txt                       ( addr fnstr fnlen )
    dup 0= IF 3drop 0 EXIT THEN
+   \ Does the string contain parameters (i.e. a white space)?
+   2dup 20 findchar IF
+      ( addr fnstr fnlen offset )
+      >r 2dup r@ - 1- swap r@ + 1+ swap     ( addr fnstr fnlen pstr plen  R: offset )
+      encode-string s" bootargs" set-chosen
+      drop r>
+   THEN
+
    \ Create the full path to the boot loader:
-   my-self parent ihandle>phandle node>path ( addr fnstr fnlen nstr nlen )
+   my-parent ihandle>phandle node>path      ( addr fnstr fnlen nstr nlen )
    s" :" $cat 2swap $cat strdup             ( addr str len )
    \ Update the bootpath:
    2dup encode-string s" bootpath" set-chosen
