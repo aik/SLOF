@@ -147,7 +147,12 @@ INSTANCE VARIABLE index
 : path-table-search ( str len -- TRUE | FALSE )
    path-table path-tbl-size +  path-table ptable @ +  DO ( str len )
       2dup  I 6 + w@-be index @ =                        ( str len str len )
-      -rot  I 8 +  I c@  string=ci and  IF               ( str len )
+      -rot  I 8 +  I c@
+      iso-debug-flag IF
+          ." ISO: comparing path name '"
+          4dup type ." ' with '" type ." '" cr
+      THEN
+      string=ci and  IF                                  ( str len )
          s" Directory Matched!!  "   iso-debug-print     ( str len )
          self @   index !                                ( str len )
          I 2 + l@-be   dir-addr ! I  dup                 ( str len rec-addr )
@@ -173,9 +178,13 @@ INSTANCE VARIABLE index
       dir-addr @ r@  read-data               ( str len )
    THEN
    r> data-buff @  + data-buff @  DO         ( str len )
-      I 19 + c@  2 and 0=  IF                ( str len )
+      I 19 + c@  2 and 0=  I c@ 0<> and IF   ( str len )
          2dup                                ( str len  str len )
          I 21 + I 20 + c@                    ( str len  str len  str' len' )
+         iso-debug-flag IF
+             ." ISO: comparing file name '"
+             4dup type ." ' with '" type ." '" cr
+         THEN
          file-name  string=ci  IF            ( str len )
             s" File found!"  iso-debug-print ( str len )
             I 6 + l@-be 800 *                ( str len file-loc )
@@ -187,12 +196,14 @@ INSTANCE VARIABLE index
             EXIT
          THEN
       THEN
-      I c@ dup 0=  IF                        ( str len len )
-         s" file not found"   iso-debug-print
-         drop  2drop FALSE                   ( FALSE )
-         UNLOOP
-         EXIT
+      ( str len )
+      I c@ ?dup 0= IF
+         800 I 7ff AND -
+         iso-debug-flag IF
+            ." skipping " dup . ." bytes at end of sector" cr
+         THEN
       THEN
+      ( str len offset )
    +LOOP
    2drop
    FALSE                                     ( FALSE )
