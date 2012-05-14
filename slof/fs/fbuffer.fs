@@ -51,7 +51,7 @@
 \ *
 \ *
 
-: fb8-background inverse-screen? ;
+: fb8-background inverse? ;
 : fb8-foreground inverse? invert ;
 
 : fb8-lines2bytes ( #lines -- #bytes ) char-height * screen-width * screen-depth * ;
