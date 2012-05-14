@@ -88,11 +88,24 @@ defer esc-process
 
 0 VALUE dang
 0 VALUE blipp
+false VALUE stopcsi
+0 VALUE term-background
+7 VALUE term-foreground
+
+: set-term-color
+   dup d# 30 d# 39 between IF dup d# 30 - to term-foreground THEN
+   dup d# 40 d# 49 between IF dup d# 40 - to term-background THEN
+   0 = IF
+      0 to term-background
+      7 to term-foreground
+  THEN
+  term-foreground term-background <= to inverse?
+;
 
 : ansi-esc ( char -- )
     csi-on IF
 	dup [char] 0 [char] 9 between IF set-esc-parm
-	ELSE CASE
+	ELSE true to stopcsi CASE
 	    [char] A OF line# reverse-cursor to line# ENDOF
 	    [char] B OF #lines line# advance-cursor to line# ENDOF
 	    [char] C OF #columns column# advance-cursor to column# ENDOF
@@ -107,7 +120,10 @@ defer esc-process
 		1 get-esc-parm2 to line# column# get-esc-parm to column#
 	    ENDOF
 	    ( second parameter delimiter for f and H commands )
-	    [char] ; OF 0 get-esc-parm to esc-num-parm2 ENDOF
+	    [char] ; OF false to stopcsi 0 get-esc-parm to esc-num-parm2 ENDOF
+	    [char] ? OF false to stopcsi ENDOF ( FIXME: Ignore that for now )
+	    [char] l OF ENDOF ( FIXME: ?25l should hide cursor )
+	    [char] h OF ENDOF ( FIXME: ?25h should show cursor )
 	    [char] J OF
 		#lines line# - dup 0> IF
 			line# 1+ to line# delete-lines line# 1- to line#
@@ -119,7 +135,7 @@ defer esc-process
 	    [char] M OF 1 get-esc-parm delete-lines ENDOF
 	    [char] @ OF 1 get-esc-parm insert-characters ENDOF
 	    [char] P OF 1 get-esc-parm delete-characters ENDOF
-	    [char] m OF 0 get-esc-parm 0<> to inverse? ENDOF
+	    [char] m OF 0 get-esc-parm set-term-color ENDOF
 	    ( These are non-ANSI commands recommended by OpenBoot )
 	    [char] p OF inverse-screen? IF false to inverse-screen?
 			inverse? 0= to inverse? invert-screen
@@ -133,8 +149,8 @@ defer esc-process
 \ 	    [char] s OF line# to saved-line# column# to saved-column# ENDOF
 	    [char] u OF saved-line# to line# saved-column# to column# ENDOF
 	    dup dup to dang OF blink-screen ENDOF
-	ENDCASE false to csi-on
-	false to esc-on 0 to esc-num-parm 0 to esc-num-parm2
+	ENDCASE stopcsi IF false to csi-on
+	        false to esc-on 0 to esc-num-parm 0 to esc-num-parm2 THEN
 	THEN
     ELSE CASE
 	( DEV VT compatibility stuff used by accept.fs )
