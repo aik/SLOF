@@ -11,20 +11,21 @@
 \ ****************************************************************************/
 
 \ Create new VSCSI child device
-\ ( lun id $name is_cdrom -- )
+\ ( target $name is_cdrom -- )
 
 \ Create device
 new-device
 
 VALUE is_cdrom
 
-2swap	( $name lun id )
+rot	( $name target )
 
 \ Set reg & unit
-2dup set-unit encode-phys " reg" property
+dup set-unit-64 xlsplit encode-phys " reg" property
 
 \ Set name
 2dup device-name
+
 
 2dup find-alias 0= IF
     get-node node>path set-alias
@@ -48,7 +49,8 @@ s" block" device-type
 INSTANCE VARIABLE deblocker
 
 : open ( -- true | false )
-    my-unit " set-address" $call-parent
+    \ ." OPEN: [" .s ." ] unit is " my-unit . . ."  [" .s ." ]" cr
+    my-unit lxjoin " set-target" $call-parent
     is_cdrom IF " dev-prep-cdrom" ELSE " dev-prep-disk" THEN $call-parent
     " dev-max-transfer" $call-parent to max-transfer
 

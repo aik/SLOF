@@ -55,6 +55,38 @@ CONSTANT scsi-length-test-unit-ready
 ;
 
 \ ***************************************************************************
+\ SCSI-Command: REPORT LUNS
+\         Type: Primary Command
+\ ***************************************************************************
+\ Forth Word:   scsi-build-report-luns    ( cdb -- )
+\ ***************************************************************************
+\ report all LUNs supported by a device
+\ ***************************************************************************
+\ command code:
+a0 CONSTANT scsi-cmd-report-luns
+\ CDB structure:
+STRUCT
+	/c	FIELD report-luns>operation-code     \ a0h
+	1	FIELD report-luns>reserved           \ unused
+        /c      FIELD report-luns>select-report      \ report select byte
+        3       FIELD report-luns>reserved2          \ unused
+        /l      FIELD report-luns>alloc-length       \ report length
+	1	FIELD report-luns>reserved3          \ unused
+	/c	FIELD report-luns>control            \ control byte
+CONSTANT scsi-length-report-luns
+
+\ cdb build:
+\ all fields are zeroed
+: scsi-build-report-luns ( alloc-len cdb -- )
+   dup scsi-length-report-luns erase              \ 12 bytes CDB
+	scsi-cmd-report-luns over	          ( alloc-len cdb cmd cdb )
+	report-luns>operation-code c!	          ( alloc-len cdb )
+   scsi-param-control over report-luns>control c! ( alloc-len cdb )
+	report-luns>alloc-length l!	  \ size of Data-In Buffer
+   scsi-length-report-luns to scsi-param-size     \ update CDB length
+;
+
+\ ***************************************************************************
 \ SCSI-Command: REQUEST SENSE
 \         Type: Primary Command (SPC-3 clause 6.27)
 \ ***************************************************************************

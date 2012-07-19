@@ -256,17 +256,15 @@ constant /srp-rsp
 CREATE srp 100 allot
 0 VALUE srp-len
 
-: srp-prep-cmd-nodata ( id lun -- )
+: srp-prep-cmd-nodata ( srplun -- )
     srp /srp-cmd erase
     SRP_CMD srp >srp-cmd-opcode c!
     1 srp >srp-cmd-tag x!
-    srp >srp-cmd-lun 1 + c!     \ lun
-    80 or                       \ select logical unit addressing method
-    srp >srp-cmd-lun c!         \ id
+    srp >srp-cmd-lun x!         \ 8 bytes lun
     /srp-cmd to srp-len   
 ;
 
-: srp-prep-cmd-io ( addr len id lun -- )
+: srp-prep-cmd-io ( addr len srplun -- )
     srp-prep-cmd-nodata		( addr len )
     swap l2dma			( len dmaaddr )
     srp srp-len +    		( len dmaaddr descaddr )
@@ -276,13 +274,13 @@ CREATE srp 100 allot
     srp-len 10 + to srp-len
 ;
 
-: srp-prep-cmd-read ( addr len id lun -- )
+: srp-prep-cmd-read ( addr len srplun -- )
     srp-prep-cmd-io
     01 srp >srp-cmd-buf-fmt c!	\ in direct buffer
     1 srp >srp-cmd-din-desc-cnt c!
 ;
 
-: srp-prep-cmd-write ( addr len id lun -- )
+: srp-prep-cmd-write ( addr len srplun -- )
     srp-prep-cmd-io
     10 srp >srp-cmd-buf-fmt c!	\ out direct buffer
     1 srp >srp-cmd-dout-desc-cnt c!
@@ -336,12 +334,11 @@ CREATE srp 100 allot
 
 CREATE sector d# 512 allot
 
-0 INSTANCE VALUE current-id
-0 INSTANCE VALUE current-lun
+8000000000000000 INSTANCE VALUE current-target
 
 \ SCSI test-unit-read
 : test-unit-ready ( -- true | [ ascq asc sense-key false ] )
-    current-id current-lun srp-prep-cmd-nodata
+    current-target srp-prep-cmd-nodata
     srp >srp-cmd-cdb scsi-build-test-unit-ready
     srp-send-cmd
     srp-wait-rsp
@@ -350,15 +347,23 @@ CREATE sector d# 512 allot
 : inquiry ( -- true | false )
     \ WARNING: ATAPI devices with libata seem to ignore the MSB of
     \ the allocation length... let's only ask for ff bytes
-    sector ff current-id current-lun srp-prep-cmd-read
+    sector ff current-target srp-prep-cmd-read
     ff srp >srp-cmd-cdb scsi-build-inquiry
     srp-send-cmd
     srp-wait-rsp
     dup not IF nip nip nip EXIT THEN \ swallow sense
 ;
 
+: report-luns ( -- true | false )
+    sector 200 current-target srp-prep-cmd-read
+    200 srp >srp-cmd-cdb scsi-build-report-luns
+    srp-send-cmd
+    srp-wait-rsp
+    dup not IF nip nip nip EXIT THEN \ swallow sense
+;
+
 : read-capacity ( -- true | false )
-    sector scsi-length-read-cap-10 current-id current-lun srp-prep-cmd-read
+    sector scsi-length-read-cap-10 current-target srp-prep-cmd-read
     srp >srp-cmd-cdb scsi-build-read-cap-10
     srp-send-cmd
     srp-wait-rsp
@@ -366,7 +371,7 @@ CREATE sector d# 512 allot
 ;
 
 : start-stop-unit ( state# -- true | false )
-    current-id current-lun srp-prep-cmd-nodata
+    current-target srp-prep-cmd-nodata
     srp >srp-cmd-cdb scsi-build-start-stop-unit
     srp-send-cmd
     srp-wait-rsp
@@ -374,7 +379,7 @@ CREATE sector d# 512 allot
 ;
 
 : get-media-event ( -- true | false )
-    sector scsi-length-media-event current-id current-lun srp-prep-cmd-read
+    sector scsi-length-media-event current-target srp-prep-cmd-read
     srp >srp-cmd-cdb scsi-build-get-media-event
     srp-send-cmd
     srp-wait-rsp
@@ -385,7 +390,7 @@ CREATE sector d# 512 allot
     over * 					( addr block# #blocks len )    
     >r rot r> 			                ( block# #blocks addr len )
     5 0 DO
-      	2dup current-id current-lun
+      	2dup current-target
 	srp-prep-cmd-read                       ( block# #blocks addr len )
         2swap					( addr len block# #blocks )
         2dup srp >srp-cmd-cdb scsi-build-read-10 ( addr len block# #blocks )
@@ -457,8 +462,10 @@ CREATE sector d# 512 allot
 \ SCSI scan at boot and child device support
 \ -----------------------------------------------------------
 
-: set-address ( lun id -- )
-    to current-id to current-lun 
+\ We use SRP luns of the form 8000 | (bus << 8) | (id << 5) | lun
+\ in the top 16 bits of the 64-bit LUN
+: set-target ( srplun -- )
+    to current-target 
 ;
 
 : dev-max-transfer ( -- n )
@@ -570,11 +577,11 @@ CREATE sector d# 512 allot
     THEN
 ;
 
-: vscsi-create-disk	( lun id -- )
+: vscsi-create-disk	( srplun -- )
     " disk" 0 " vio-vscsi-device.fs" included
 ;
 
-: vscsi-create-cdrom	( lun id -- )
+: vscsi-create-cdrom	( srplun -- )
     " cdrom" 1 " vio-vscsi-device.fs" included
 ;
 
@@ -585,24 +592,57 @@ CREATE sector d# 512 allot
 ;
 
 8 CONSTANT #dev
+
+: vscsi-report-luns ( -- array ndev )
+  \ array of pointers, up to 8 devices
+  #dev 3 << alloc-mem dup
+  0                                    ( devarray devcur ndev )   
+  #dev 0 DO
+     i 8 << 8000 or 30 << set-target
+     report-luns IF
+        sector l@                     ( devarray devcur ndev size )
+        sector 8 + swap               ( devarray devcur ndev lunarray size )
+        dup 8 + dup alloc-mem         ( devarray devcur ndev lunarray size size+ mem )
+        dup rot 0 fill                ( devarray devcur ndev lunarray size mem )
+        dup >r swap move r>           ( devarray devcur ndev mem )
+        dup sector l@ 3 >> 0 DO       ( devarray devcur ndev mem memcur )
+           dup dup x@ j 8 << 8000 or or 30 << swap x! 8 +
+        LOOP drop
+	rot                           ( devarray ndev mem devcur )
+        dup >r x! r> 8 +              ( devarray ndev devcur )
+        swap 1 +
+     THEN
+  LOOP
+  nip
+;
+
 : vscsi-find-disks      ( -- )   
-    ." VSCSI: Looking for disks" cr
-    #dev 0 DO                                      \ check 8 devices (no LUNs)
-        0 i set-address
-	wrapped-inquiry IF	
-	    ."   SCSI ID " i .
-	    \ XXX FIXME: Check top bits to ignore unsupported units
-	    \            and maybe provide better printout & more cases
-	    sector inquiry-data>peripheral c@ CASE
-                0   OF ." DISK     : " 0 i vscsi-create-disk  ENDOF
-                5   OF ." CD-ROM   : " 0 i vscsi-create-cdrom ENDOF
-                7   OF ." OPTICAL  : " 0 i vscsi-create-cdrom ENDOF
-                e   OF ." RED-BLOCK: " 0 i vscsi-create-disk  ENDOF
-                dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
-            ENDCASE
-	    sector .inquiry-text cr
-	THEN
-    LOOP
+    ." VSCSI: Looking for devices" cr
+    vscsi-report-luns
+    0 DO
+       dup x@
+       BEGIN
+          dup x@
+          dup 0= IF drop FALSE ELSE
+             set-target wrapped-inquiry IF	
+	        ."   " current-target (u.) type ."  "
+	        \ XXX FIXME: Check top bits to ignore unsupported units
+	        \            and maybe provide better printout & more cases
+                \ XXX FIXME: Actually check for LUNs
+	        sector inquiry-data>peripheral c@ CASE
+                   0   OF ." DISK     : " current-target vscsi-create-disk  ENDOF
+                   5   OF ." CD-ROM   : " current-target vscsi-create-cdrom ENDOF
+                   7   OF ." OPTICAL  : " current-target vscsi-create-cdrom ENDOF
+                   e   OF ." RED-BLOCK: " current-target vscsi-create-disk  ENDOF
+                   dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
+                ENDCASE
+	        sector .inquiry-text cr
+	     THEN
+             8 + TRUE
+          THEN
+       UNTIL drop
+       8 +
+    LOOP drop
 ;
 
 \ Remove scsi functions from word list
