@@ -97,18 +97,9 @@ fdt-check-header
 \ Update unit with information from the reg property...
 \ ... this is required for the PCI nodes for example.
 : fdt-reg-unit ( prop-addr prop-len -- )
-   s" #address-cells" get-parent get-package-property IF
-      2drop
-   ELSE
-      decode-int nip nip        ( prop-addr prop-len #addr-cells )
-      3 <> IF
-         \ Ignore if #addr-cells is not 3, i.e. no PCI
-         2drop EXIT
-      THEN
       decode-phys               ( prop-addr' prop-len' phys.lo ... phys.hi )
       set-unit                  ( prop-addr' prop-len' )
       2drop
-   THEN
 ;
 
 \ Lookup a string by index
@@ -116,8 +107,30 @@ fdt-check-header
   fdt-strings + dup from-cstring
 ;
 
-: fdt-create-dec  s" decode-unit" $CREATE , DOES> @ hex-decode-unit ;
-: fdt-create-enc  s" encode-unit" $CREATE , DOES> @ hex-encode-unit ;
+: hex64-decode-unit ( str len ncells -- addr.lo ... addr.hi )
+  dup 2 <> IF
+     hex-decode-unit
+  ELSE
+     drop
+     base @ >r hex
+     $number IF 0 0 ELSE xlsplit THEN
+     r> base !
+  THEN
+;
+
+: hex64-encode-unit ( addr.lo ... addr.hi ncells -- str len )
+  dup 2 <> IF
+     hex-encode-unit
+  ELSE
+     drop
+     base @ >r hex
+     lxjoin (u.)
+     r> base !
+  THEN
+;
+
+: fdt-create-dec  s" decode-unit" $CREATE , DOES> @ hex64-decode-unit ;
+: fdt-create-enc  s" encode-unit" $CREATE , DOES> @ hex64-encode-unit ;
 
 \ Check whether array contains an zero-terminated ASCII string:
 : fdt-prop-is-string?  ( addr len -- string? )
