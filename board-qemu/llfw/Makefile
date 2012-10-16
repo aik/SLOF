@@ -14,7 +14,7 @@ include ../../make.rules
 
 CPPFLAGS	= -I$(INCLBRDDIR) -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH) \
 		  -I$(LIBCMNDIR)/libc/include
-CFLAGS		+= -fno-builtin $(CPPFLAGS) -O2  -msoft-float $(MAMBO)
+CFLAGS		+= -fno-builtin $(FLAG) $(CPPFLAGS) -O2  -msoft-float $(MAMBO)
 CFLAGS		+= $(BOOT) $(IOCONF) -Wa,-mregnames $(RELEASE) $(CPUARCHDEF) -Wall
 ASFLAGS         = $(BOOT) $(IOCONF) $(RELEASE)$(CPUARCHDEF)  -Wa,-mregnames
 LDFLAGS1	= -nostdlib -e__start -Tstage2.lds -N -Ttext=0x100

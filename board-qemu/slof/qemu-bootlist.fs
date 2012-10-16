@@ -16,11 +16,15 @@ defer add-boot-device
 : qemu-read-bootlist ( -- )
    0 0 set-boot-device
 
-   \ check nvram
-   " boot-device" evaluate swap drop 0 <> IF EXIT THEN   
-
-   \ check qemu boot list
-   " qemu,boot-device" get-chosen not IF EXIT THEN
+   " qemu,boot-device" get-chosen not IF
+      \ No boot list set from qemu, so check nvram
+      " boot-device" evaluate swap drop 0= IF
+         \ Not set in nvram too, set default disk/cdrom alias
+         " disk" add-boot-device
+         " cdrom" add-boot-device
+      THEN
+      EXIT
+   THEN
    
    0 ?DO
        dup i + c@ CASE

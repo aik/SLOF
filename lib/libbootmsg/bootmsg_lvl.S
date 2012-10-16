@@ -158,7 +158,8 @@ ENTRY(bootmsg_setlevel)
 	andi.	r3, r3, 0x7F
 	add     r6,r3,r6        // address     |
 	stb     r4,0(r6)        // store level |_ stwbrx r4,r3,r6
-#ifndef DISABLE_NVRAM
+	
+#if !defined(DISABLE_NVRAM) && !defined(RTAS_NVRAM)
 	LOAD64(r6, SB_NVRAM_FWONLY_adr + 8 )
 	add	r6,r6,r3
 	stb     r4,0(r6)
@@ -167,7 +168,7 @@ ENTRY(bootmsg_setlevel)
 	blr
 
 ENTRY(bootmsg_nvupdate)
-#ifndef DISABLE_NVRAM
+#if !defined(DISABLE_NVRAM) && !defined(RTAS_NVRAM)
 	mflr	r10
 	LOAD64(r3, SB_NVRAM_FWONLY_adr)
 	lwz	r4, 0(r3)

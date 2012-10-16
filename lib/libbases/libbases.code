@@ -20,7 +20,7 @@ MIRP
 // : get-nvram-size ( -- size )
 PRIM(get_X2d_nvram_X2d_size)
 	PUSH;
-	TOS.u = NVRAM_LENGTH;
+	TOS.u = get_nvram_size();
 MIRP
 
 // : get-flash-base ( -- base )

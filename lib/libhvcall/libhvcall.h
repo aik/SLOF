@@ -70,6 +70,20 @@ static inline long h_add_logical_lan_buffer(unsigned long unit_address,
 	return hv_generic(H_ADD_LOGICAL_LAN_BUFFER, unit_address, buffer);
 }
 
+#define HV_RTAS_MAX_ARGRET	5
+
+struct hv_rtas_call {
+	uint32_t token;
+	uint32_t nargs;
+	uint32_t nrets;
+	uint32_t argret[HV_RTAS_MAX_ARGRET];
+};
+
+static inline unsigned long h_rtas(struct hv_rtas_call *rtas_buf)
+{
+	return hv_generic(KVMPPC_H_RTAS, (unsigned long)rtas_buf);
+}
+
 extern unsigned long hv_logical_ci_load(unsigned long size, unsigned long addr);
 extern unsigned long hv_logical_ci_store(unsigned long size, unsigned long addr,
 					 unsigned long value);

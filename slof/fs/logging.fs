@@ -15,10 +15,10 @@
 defer nvramlog-write-byte
 
 : .nvramlog-write-byte ( byte -- )
-#ifndef DISABLE_NVRAM
-        0 1 asm-cout
-#else
+#if defined(DISABLE_NVRAM) || defined(RTAS_NVRAM)
         drop
+#else
+        0 1 asm-cout
 #endif
 ;
 

@@ -63,6 +63,7 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/vio-vscsi.fs \
 	$(SLOFBRDDIR)/vio-vscsi-device.fs \
 	$(SLOFBRDDIR)/vio-veth.fs \
+	$(SLOFBRDDIR)/rtas-nvram.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \
 	$(SLOFBRDDIR)/virtio-block.fs \
 	$(SLOFBRDDIR)/virtio-fs.fs

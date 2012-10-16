@@ -39,3 +39,4 @@ cod(internal-add-env)
 cod(internal-del-env)
 cod(internal-set-env)
 
+cod(internal-nvram-init)

@@ -60,6 +60,9 @@ int delete_nvram_partition(partition_t part);
 void reset_nvram(void);
 void wipe_nvram(void);
 void nvram_debug(void);
+void nvram_init(uint32_t store_token, uint32_t fetch_token,
+		long nv_size, void* nvram_addr);
+unsigned int get_nvram_size(void);
 
 /* envvar.c */
 char *get_env(partition_t part, char *envvar);

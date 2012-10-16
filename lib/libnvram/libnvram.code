@@ -276,4 +276,12 @@ PRIM(delete_X2d_nvram_X2d_partition)
 
 MIRP
 
+// ( fetch_token store_token size nvram-addr -- )
+PRIM(internal_X2d_nvram_X2d_init)
+	void *nvram_addr = TOS.a; POP;
+	uint32_t nvram_size = TOS.u; POP;
+	uint32_t store_token = TOS.u; POP;
+	long fetch_token = TOS.u; POP;
 
+	nvram_init(fetch_token, store_token, nvram_size, nvram_addr);
+MIRP

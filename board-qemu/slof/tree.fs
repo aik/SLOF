@@ -80,6 +80,9 @@ include fbuffer.fs
             2dup " IBM,l-lan" strequal IF
                 " vio-veth.fs" included
             THEN
+	    2dup " qemu,spapr-nvram" strequal IF
+	    	" rtas-nvram.fs" included
+	    THEN
             2drop
        THEN
        peer

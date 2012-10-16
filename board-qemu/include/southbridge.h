@@ -13,7 +13,6 @@
 /* Not used */
 #define SB_NVRAM_adr 	0
 #define SB_FLASH_adr 	0
-#define NVRAM_LENGTH	0x10000
 #define FLASH_LENGTH 	0
 #define SB_MAILBOX_adr	0
 
