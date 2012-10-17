@@ -671,4 +671,12 @@ scsi-close
     r> to my-self
 ;
 
+\ Create a dummy "disk" node with no unit for the sake of
+\ the SLES11 installer. It is -not- a fully functional node
+\ you can open to access a disk at this stage
+new-device
+s" disk" device-name
+s" block" device-type      
+finish-device
+
 vscsi-init-and-scan
