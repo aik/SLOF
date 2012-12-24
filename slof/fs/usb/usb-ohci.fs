@@ -706,7 +706,7 @@ hchcca-dma hchcca - CONSTANT virt2phys-offset
 ;
 
 
-\ COLON DEFINTION: HC-enable-bulk-list-processing
+\ COLON DEFINITION: HC-enable-bulk-list-processing
 \ PENDING: Remove Hard coded constants.
 
 : HC-enable-bulk-list-processing ( -- )
@@ -779,7 +779,7 @@ hchcca-dma hchcca - CONSTANT virt2phys-offset
 \    If the caller specifies a wrong data toggle of 1 for a SETUP
 \    PACKET, this method will not find it out.
 
-\ COLON DEFINTION: (toggle-current-toggle)
+\ COLON DEFINITION: (toggle-current-toggle)
 \ Scope: Internal to fill-TD-list
 \ Functionality:
 \        Toggles the "T" field that is passed as argument.
@@ -1002,7 +1002,7 @@ s" usb-support.fs" INCLUDED
 
 
 \ =====================================================================
-\ COLON DEFINTION: control-std-set-address
+\ COLON DEFINITION: control-std-set-address
 \                  INTERFACE FUNCTION
 \ Function allocates an USB addrss and uses it to send SET-ADDRESS packet
 \ to the default USB address.
@@ -1022,7 +1022,7 @@ s" usb-support.fs" INCLUDED
 ;
 
 
-\ Fetches the device decriptor of the usb-device
+\ Fetches the device descriptor of the usb-device
 
 
 : control-std-get-device-descriptor

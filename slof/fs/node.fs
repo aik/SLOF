@@ -299,7 +299,7 @@ defer find-node
     ELSE 2drop dup IF .alias
     ELSE 2drop list-alias THEN THEN ;
 
-\ sub-alias does a single iteration of an alias at the begining od dev path
+\ sub-alias does a single iteration of an alias at the beginning od dev path
 \ expression. de-alias will repeat this until all indirect alising is resolved
 : sub-alias ( arg-str arg-len -- arg' len' | false )
    2dup

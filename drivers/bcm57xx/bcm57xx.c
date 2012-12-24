@@ -2647,7 +2647,7 @@ bcm_init( void )
 	// step 40/41/42: initialize rx producer ring
 	bcm_init_rxprod_ring();
 
-	// step 43: set rx producer ring replenish threshhold
+	// step 43: set rx producer ring replenish threshold
 	// using recommended setting of maximum allocated BD's/8
 	bcm_write_reg32( STD_RXPR_REP_THR_R, (u32_t) BCM_MAX_RX_BUF / 8 );
 

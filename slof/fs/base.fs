@@ -143,7 +143,7 @@ CONSTANT <2constant>
       then
    -1 +loop =
 ;
-\ reverse split -- split at the last occurence of char
+\ reverse split -- split at the last occurrence of char
 : rsplit ( str len char -- left len right len )
   >r 2dup r> rfindchar IF >r over r@ 2swap r> 1+ /string ELSE 0 0 THEN ;
 
@@ -221,7 +221,7 @@ CONSTANT <2constant>
    1 >in +!                          \ advance input-index
 ;
 
-\ Parse upto next "
+\ Parse up to next "
 
 : parse-" ( dst-adr -- dst-adr' )
    [char] " parse dup 3 pick + >r    ( dst-adr str len R: dst-adr' )

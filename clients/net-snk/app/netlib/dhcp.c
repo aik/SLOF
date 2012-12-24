@@ -177,7 +177,7 @@ static char   * response_buffer;
  * DHCP: Obtains IP and configuration info from DHCP server
  *       (makes several attempts).
  *
- * @param  boot_device   a socket number used to send and recieve packets
+ * @param  boot_device   a socket number used to send and receive packets
  * @param  fn_ip         contains the following configuration information:
  *                       client MAC, client IP, TFTP-server MAC, 
  *                       TFTP-server IP, Boot file name
@@ -292,7 +292,7 @@ dhcp_attempt(void) {
  *
  * @param  opt_field     Points to the "vend" field of DHCP-message  
  *                       (destination)
- * @param  opt_struct    this structure stores info about the options wich
+ * @param  opt_struct    this structure stores info about the options which
  *                       will be added to DHCP-message (source)
  * @return               TRUE - options packed;
  *                       FALSE - error condition occurs.
@@ -387,7 +387,7 @@ dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
  * @param  opt_field     Points to the "options" field of DHCP-message  
  *                       (source).
  * @param  opt_len       Length of "options" field.
- * @param  opt_struct    this structure stores info about the options wich
+ * @param  opt_struct    this structure stores info about the options which
  *                       was extracted from DHCP-message (destination).
  * @return               TRUE - options extracted;
  *                       FALSE - error condition occurs.
@@ -527,13 +527,13 @@ static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
 }
 
 /**
- * DHCP: Finds given occurence of the option with the given code (op_code)
+ * DHCP: Finds given occurrence of the option with the given code (op_code)
  *       in "options" field of DHCP-message.
  *
  * @param  options       "options" field of DHCP-message
  * @param  len           length of the "options" field
  * @param  op_code       code of the option to find
- * @param  op_offset     SUCCESS - offset to an option occurence;
+ * @param  op_offset     SUCCESS - offset to an option occurrence;
  *                       FAULT - offset is set to zero.
  * @return               TRUE - option was find;
  *                       FALSE - option wasn't find.
@@ -582,7 +582,7 @@ dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
  *
  * @param  dst_options  "options" field of DHCP-message
  * @param  dst_len       length of the "options" field (modified)
- * @param  dst_offset    offset of the option from beggining of the list
+ * @param  dst_offset    offset of the option from beginning of the list
  * @param  new_option    points to an option in another list (src)
  */
 static void

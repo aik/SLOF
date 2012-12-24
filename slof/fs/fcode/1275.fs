@@ -33,7 +33,7 @@
    dup 8000 >= IF
       10000 -           \ Create cell-sized negative value
    THEN
-   fcode-offset -       \ IP is already behind offset, so substract offset size
+   fcode-offset -       \ IP is already behind offset, so subtract offset size
 ;
 
 : ?negative

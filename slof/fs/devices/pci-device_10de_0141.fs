@@ -20,7 +20,7 @@ pci-mem-enable
 30 config-l@  pci-find-fcode execute-rom-fcode
 
 : check-display ( nodepath len -- true|false ) \ true if display found and "screen" alias set
-\ check if display availabe, set screen alias
+\ check if display available, set screen alias
 2dup find-node \ ( path len phandle|0 ) find node
 ?dup IF
    \ node found, get "display-type" property

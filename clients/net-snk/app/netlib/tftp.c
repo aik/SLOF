@@ -535,7 +535,7 @@ tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 	 * which do not support the RRQ blocksize option */
 	blocksize = 512;
 
-	/* Prefered blocksize - used as option for the read request */
+	/* Preferred blocksize - used as option for the read request */
 	if (_blocksize < 8)
 		_blocksize = 8;
 	else if (_blocksize > MAX_BLOCKSIZE)

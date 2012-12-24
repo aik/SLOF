@@ -11,7 +11,7 @@
  *****************************************************************************/
 
 /*
- * Common byteorder (endianess) macros
+ * Common byteorder (endianness) macros
  */
 
 #ifndef BYTEORDER_H

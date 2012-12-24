@@ -29,7 +29,7 @@
          WHILE		      ( xt currxt *name pos )
             dup @ 4 pick = IF ( xt currxt *name pos )
 	       over count type space
-	       BEGIN cell+ dup @ ['] semicolon = UNTIL cell - \ eat up other occurences
+	       BEGIN cell+ dup @ ['] semicolon = UNTIL cell - \ eat up other occurrences
             THEN
          REPEAT
       THEN

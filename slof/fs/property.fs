@@ -28,7 +28,7 @@ true value encode-first?
 : decode-int  over >r 4 /string r> 4c@ swap 2swap swap bljoin ;
 : decode-64 decode-int -rot decode-int -rot 2swap swap lxjoin ;
 : decode-string ( prop-addr1 prop-len1 -- prop-addr2 prop-len2 str len )
-   dup 0= IF 2dup EXIT THEN \ string properties with zero lenght
+   dup 0= IF 2dup EXIT THEN \ string properties with zero length
    over BEGIN dup c@ 0= IF 1+ -rot swap 2 pick over - rot over - -rot 1-
     EXIT THEN 1+ AGAIN ;
 

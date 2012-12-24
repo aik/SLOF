@@ -33,7 +33,7 @@
 
 /**
  * Module init for virtio via PCI.
- * Checks whether we're reponsible for the given device and set up
+ * Checks whether we're responsible for the given device and set up
  * the virtqueue configuration.
  */
 int

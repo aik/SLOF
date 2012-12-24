@@ -154,7 +154,7 @@ THEN
 
 
 takeover?  IF
-   \ potentially comming from phype
+   \ potentially coming from phype
    u4?  IF
       \ takeover on JS21 is using some nvram area
       \ which might be available

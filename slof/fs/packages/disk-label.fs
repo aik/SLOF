@@ -265,7 +265,7 @@ CONSTANT /partition-entry
 \ Check for an ISO-9660 filesystem on the disk
 \ (cf. CHRP IEEE 1275 spec., chapter 11.1.2.3)
 : has-iso9660-filesystem  ( -- TRUE|FALSE )
-   \ Seek to the begining of logical 2048-byte sector 16
+   \ Seek to the beginning of logical 2048-byte sector 16
    \ refer to Chapter C.11.1 in PAPR 2.0 Spec
    \ was: 10 read-sector, but this might cause trouble if you
    \ try booting an ISO image from a device with 512b sectors.

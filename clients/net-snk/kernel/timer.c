@@ -54,7 +54,7 @@ static void wait_ticks(uint64_t ticks)
 // wait for (at least) usecs microseconds
 void udelay(unsigned int usecs)
 {
-        // first multiply the usec with timebase and then devide
+        // first multiply the usec with timebase and then divide
         // because 1.000.000 is relatively huge compared to usecs
         wait_ticks((usecs*tb_freq)/1000000);
 }
@@ -63,7 +63,7 @@ void udelay(unsigned int usecs)
 // wait for (at least) msecs milliseconds
 void mdelay(unsigned int msecs)
 {
-        // first multiply the msec and timebase and then devide
+        // first multiply the msec and timebase and then divide
         // because 1.000 is relatively huge compared to msecs
         wait_ticks((msecs*tb_freq)/1000);
 }

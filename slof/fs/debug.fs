@@ -366,7 +366,7 @@ true value trace>up?
 
 : debug-off ( -- )
     debug-last-xt IF
-	debug-last-xt-content debug-last-xt !  \ Restore overwriten token
+	debug-last-xt-content debug-last-xt !  \ Restore overwritten token
 	0 to debug-last-xt
     THEN
 ;
@@ -377,7 +377,7 @@ true value trace>up?
 
 : (break-entry) ( -- )
    debug-last-xt dup @ ['] breakpoint <> swap  ( debug-addr? debug-last-xt )
-   debug-last-xt-content swap !                \ Restore overwriten token
+   debug-last-xt-content swap !                \ Restore overwritten token
    r> drop                                     \ Don't return to bp, but to caller
    debug-last-xt-content <colon> <> and IF     \ Execute non colon definition
       debug-last-xt cr u. ." : "

@@ -193,7 +193,7 @@ DEFER old-emit
    5 OF env-secmode ENDOF ENDCASE
 ;
 
-\ Enviroment variables might be board specific
+\ Environment variables might be board specific
 
 #include <envvar_defaults.fs>
 

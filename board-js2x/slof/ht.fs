@@ -59,7 +59,7 @@ f2000000 CONSTANT my-puid
 : config-dump ( addr size -- )  ['] config-l@ 4 (dump) ;
 
 
-\ 16MB of configuration space, seperate for type 0 and type 1.
+\ 16MB of configuration space, separate for type 0 and type 1.
 00000000 encode-int  f2000000 encode-int+
 00000000 encode-int+ 02000000 encode-int+ s" reg" property
 

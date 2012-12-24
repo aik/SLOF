@@ -401,7 +401,7 @@ handle_ipv4(uint8_t * ip_packet, int32_t packetsize)
  *       We sent an ARP request first, if this is the first packet sent to
  *       the declared IPv4 destination address. In this case we store the
  *       the packet and sent it later if we receive the ARP response.
- *       If the MAC address is known already, then we send the packet immediatly.
+ *       If the MAC address is known already, then we send the packet immediately.
  *       If there is already an ARP request pending, then we drop this packet
  *       and send again an ARP request.
  *

@@ -327,7 +327,7 @@ biosemu(char argc, char **argv)
 	// indicating that the initialization probably was successful
 	if ((pop_word() == 0xf4f4) && (M.x86.R_SS == STACK_SEGMENT)
 	    && (M.x86.R_SP == STACK_START_OFFSET)) {
-		DEBUG_PRINTF("Stack is clean, initialization successfull!\n");
+		DEBUG_PRINTF("Stack is clean, initialization successful!\n");
 	} else {
 		DEBUG_PRINTF
 		    ("Stack unclean, initialization probably NOT COMPLETE!!!\n");

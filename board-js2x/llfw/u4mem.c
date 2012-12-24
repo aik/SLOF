@@ -81,7 +81,7 @@ static const uint32_t SUBVER = 1;
 #define CLK_DDR_CLK_MSK		(IBIT(11) | IBIT(12) | IBIT(13))
 
 /*
- * memory controler registers
+ * memory controller registers
  */
 #define RASTimer0_R		u4reg(0x2030)
 #define RASTimer1_R		u4reg(0x2040)
@@ -2210,7 +2210,7 @@ u4_auto_calib_MemBus( auto_calib_t *f_ac_pt )
 		l_Ver_u32 /= n;
 
 		/*
-		 * set appropiate vernier register for
+		 * set appropriate vernier register for
 		 * the current bytelane
 		 */
 		bidx = ( b >> 2 );
@@ -2384,7 +2384,7 @@ u4_InitialScrub( void )
 
 /*
  * RND: calculates Timer cycles from the given frequency
- *	devided by the clock frequency. Values are rounded
+ *	divided by the clock frequency. Values are rounded
  * 	up to the nearest integer value if the division is not even.
  */
 #define RND( tXXX )	( ( ( tXXX ) + tCK - 1 ) / tCK )

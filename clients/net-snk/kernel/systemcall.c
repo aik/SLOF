@@ -40,7 +40,7 @@ _syscall_open(const char* name, int flags)
 	}
 	if(fd == FILEIO_MAX) {
 		printk ("Can not open \"%s\" because file descriptor list is full\n", name);
-		/* there is no free file descriptor avaliable */
+		/* there is no free file descriptor available */
 		return -2;
 	}
 

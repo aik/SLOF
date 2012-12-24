@@ -177,7 +177,7 @@ my_rdb(uint32_t addr)
 	uint8_t translated = dev_translate_address(&translated_addr);
 	uint8_t rval;
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%08x): access to VGA Memory\n",
 				 __FUNCTION__, addr);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -209,7 +209,7 @@ my_rdw(uint32_t addr)
 	uint8_t translated = dev_translate_address(&translated_addr);
 	uint16_t rval;
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%08x): access to VGA Memory\n",
 				 __FUNCTION__, addr);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -260,7 +260,7 @@ my_rdl(uint32_t addr)
 	uint8_t translated = dev_translate_address(&translated_addr);
 	uint32_t rval;
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%x): access to VGA Memory\n",
 				 __FUNCTION__, addr);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -322,7 +322,7 @@ my_wrb(uint32_t addr, uint8_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%x, %x): access to VGA Memory\n",
 				 __FUNCTION__, addr, val);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -347,7 +347,7 @@ my_wrw(uint32_t addr, uint16_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%x, %x): access to VGA Memory\n",
 				 __FUNCTION__, addr, val);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -392,7 +392,7 @@ my_wrl(uint32_t addr, uint32_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access VGA Memory (BAR or Legacy...)
+		//translation successful, access VGA Memory (BAR or Legacy...)
 		DEBUG_PRINTF_MEM("%s(%x, %x): access to VGA Memory\n",
 				 __FUNCTION__, addr, val);
 		//DEBUG_PRINTF_MEM("%s(%08x): translated_addr: %llx\n",  __FUNCTION__, addr, translated_addr);

@@ -245,7 +245,7 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
 
 \ ---------------------------------------------------------------
 \ Method to 1. Send the READ CAPACITY command
-\           2. Recieve and analyse the response data
+\           2. Receive and analyse the response data
 \ ---------------------------------------------------------------
 
 : read-capacity ( -- )
@@ -285,7 +285,7 @@ usb-debug-flag to scsi-param-debug  \ copy debug flag
    dma-buf >response-buffer 0 do-bulk-command
    IF
      s" Successfully read test unit ready data" usb-debug-print
-     s" Test Unit STATUS availabe in dma-buf >csw-buffer" usb-debug-print
+     s" Test Unit STATUS available in dma-buf >csw-buffer" usb-debug-print
      dma-buf >csw-buffer 0c + c@ 0=  IF
        s" Test Unit Command Successfully Executed" usb-debug-print
        TRUE                             ( TRUE )

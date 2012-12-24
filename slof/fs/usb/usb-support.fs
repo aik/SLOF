@@ -537,7 +537,7 @@ VARIABLE controlxfer-cmd
 \     value of max packet size
 \ mps: Max Packet Size.
 \ address: Address of endpoint. 11-bit address. The lower 7-bits represent
-\          the USB addres and the upper 4-bits represent the Endpoint
+\          the USB address and the upper 4-bits represent the Endpoint
 \          number.
 
 : (do-rw-endpoint)
@@ -578,7 +578,7 @@ VARIABLE controlxfer-cmd
 \ buffer length: Data buffer associated with the transfer
 \ mps: Max Packet Size.
 \ address: Address of endpoint. 11-bit address. The lower 7-bits represent
-\          the USB addres and the upper 4-bits represent the Endpoint
+\          the USB address and the upper 4-bits represent the Endpoint
 \          number.
 
 

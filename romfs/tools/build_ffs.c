@@ -310,7 +310,7 @@ next_file_address(struct ffs_header_t *hdr, unsigned int rom_pos, int hdrsize,
 		return -1;
 	}
 
-	/* spin offset to new positon */
+	/* spin offset to new position */
 	if (pad8_num(hdr->romaddr) != hdr->romaddr) {
 		printf("BUG!!!! pad8_num(hdr->romaddr) != hdr->romaddr\n");
 		return -1;

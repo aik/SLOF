@@ -19,8 +19,8 @@
 /**
  * Returns pointer of the n'th argument within a string.
  *
- * @param  arg_str    string with arguments, seperated with ','
- * @param  index      index of the requested arguments whithin arg_str
+ * @param  arg_str    string with arguments, separated with ','
+ * @param  index      index of the requested arguments within arg_str
  * @return            pointer of argument[index] on success
  *                    NULL if index is out of range
  */
@@ -41,7 +41,7 @@ get_arg_ptr(const char *arg_str, unsigned int index)
 /**
  * Returns number of arguments within a string.
  *
- * @param  arg_str    string with arguments, seperated with ','
+ * @param  arg_str    string with arguments, separated with ','
  * @return            number of arguments
  */
 unsigned int
@@ -57,7 +57,7 @@ get_args_count(const char *arg_str)
 /**
  * Returns the length of the first argument.
  *
- * @param  arg_str    string with arguments, seperated with ','
+ * @param  arg_str    string with arguments, separated with ','
  * @return            length of first argument
  */
 unsigned int
@@ -74,8 +74,8 @@ get_arg_length(const char *arg_str)
  * Copy the n'th argument within a string into a buffer in respect
  * to a limited buffer size
  *
- * @param  arg_str    string with arguments, seperated with ','
- * @param  index      index of the requested arguments whithin arg_str
+ * @param  arg_str    string with arguments, separated with ','
+ * @param  index      index of the requested arguments within arg_str
  * @param  buffer     pointer to the buffer
  * @param  length     size of the buffer
  * @return            pointer of buffer on success

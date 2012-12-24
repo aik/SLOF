@@ -91,7 +91,7 @@ load_module(const char *name)
 		}
 	}
 	if(i == MODULES_MAX) {
-		// no space avaliable!
+		// no space available!
 		return -3;
 	}
 

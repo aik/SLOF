@@ -69,7 +69,7 @@ main(int argc, char *argv[])
       offset ++;
       if (cnt_a != cnt_b)
 	{
-	  fprintf (stderr, "Files >%s< and >%s< have not the same lenght\n",argv[1],argv[2]);
+	  fprintf (stderr, "Files >%s< and >%s< have not the same length\n",argv[1],argv[2]);
 	  exit(-1);
 	}
 

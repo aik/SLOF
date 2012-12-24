@@ -93,7 +93,7 @@ static int8_t  dns_domain_cname[0x100];      /**< Canonical domain name  */
  * DNS: Initialize the environment for DNS client.
  *      To perfrom DNS-queries use the function dns_get_ip.
  *
- * @param  device_socket a socket number used to send and recieve packets
+ * @param  device_socket a socket number used to send and receive packets
  * @param  server_ip     DNS-server IPv4 address (e.g. 127.0.0.1)
  * @return               TRUE in case of successful initialization;
  *                       FALSE in case of fault (e.g. can't obtain MAC).
@@ -144,7 +144,7 @@ dns_get_ip(int8_t * url, uint32_t * domain_ip) {
 		return 0;
 	}
 
-	// Check if DNS server is presented and accessable
+	// Check if DNS server is presented and accessible
 	if (dns_server_ip == 0) {
 		printf("\nERROR:\t\t\tCan't resolve domain name "
 		       "(DNS server is not presented)!\n");
@@ -183,7 +183,7 @@ dns_get_ip(int8_t * url, uint32_t * domain_ip) {
 /**
  * DNS: Handles DNS-messages according to Receive-handle diagram.
  *      Sets dns_result_ip for given dns_domain_name (see dns_get_ip)
- *      or signals error condition occurs during DNS-resolving proccess
+ *      or signals error condition occurs during DNS-resolving process
  *      by setting dns_error flag.
  *
  * @param  packet     DNS-packet to be handled
@@ -266,7 +266,7 @@ handle_dns(uint8_t * packet, int32_t packetsize) {
 			resp_section += htons(* (uint16_t *) (resp_section + 8)) + 10;
 		}
 	}
-	return 0; // Packet succesfuly handled but IP wasn't obtained
+	return 0; // Packet successfully handled but IP wasn't obtained
 }
 
 /**

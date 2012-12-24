@@ -55,7 +55,7 @@ typedef struct {
  * Parses a argument string for IPv6 booting, extracts all
  * parameters and fills a structure accordingly
  *
- * @param  arg_str        string with arguments, seperated with ','
+ * @param  arg_str        string with arguments, separated with ','
  * @param  argc           number of arguments
  * @param  obp_tftp_args  structure which contains the result
  * @return                updated arg_str
@@ -144,7 +144,7 @@ parse_ipv6args (const char *arg_str, unsigned int argc,
  * Parses a argument string for IPv4 booting, extracts all
  * parameters and fills a structure accordingly
  *
- * @param  arg_str        string with arguments, seperated with ','
+ * @param  arg_str        string with arguments, separated with ','
  * @param  argc           number of arguments
  * @param  obp_tftp_args  structure which contains the result
  * @return                updated arg_str
@@ -232,7 +232,7 @@ parse_ipv4args (const char *arg_str, unsigned int argc,
  * Netload-Parameters:
  *    [bootp,]siaddr,filename,ciaddr,giaddr,bootp-retries,tftp-retries
  *
- * @param  arg_str        string with arguments, seperated with ','
+ * @param  arg_str        string with arguments, separated with ','
  * @param  obp_tftp_args  structure which contains the result
  * @return                none
  */

@@ -25,7 +25,7 @@
  * @param file_addr  pointer to the start of the ELF file
  * @return           the class (1 for 32 bit, 2 for 64 bit)
  *                   -1 if it is not an ELF file
- *                   -2 if it has the wrong endianess
+ *                   -2 if it has the wrong endianness
  *                   -3 if it is not an ELF executable
  *                   -4 if it is not for PPC
  */

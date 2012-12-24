@@ -109,7 +109,7 @@ ASM_ENTRY(checkLogHeaderData)
 ASM_ENTRY(.checkLogPartition)
 	mflr	r8
 	mr      r4, r3                  // emulate "bl updateCRC_NVRAM"
-	li      r3, 0                   // with successfull CRC check
+	li      r3, 0                   // with successful CRC check
 	li      r7, 0
 	cmpwi   7, r3, 0
 	beq+    7, 0f

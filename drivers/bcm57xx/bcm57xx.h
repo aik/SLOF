@@ -140,7 +140,7 @@
 #define RX_DAT_COMPL_MODE_R     ( (u16_t) 0x2800 )
 // Receive BD Initiator Mode register
 #define RX_BD_INIT_MODE_R       ( (u16_t) 0x2c00 )
-// Standard Receive Producer Ring Replenish Threshhold register
+// Standard Receive Producer Ring Replenish Threshold register
 #define STD_RXPR_REP_THR_R      ( (u16_t) 0x2c18 )
 // Receive BD Completion Mode register
 #define RX_BD_COMPL_MODE_R      ( (u16_t) 0x3000 )
@@ -172,7 +172,7 @@
 #define STB_HOST_ADDR_HI_R      ( (u16_t) 0x3c38 )
 // Status Block Host Address High register
 #define STB_HOST_ADDR_LO_R	( (u16_t) 0x3c3c )
-// Statistsics Base Adress register
+// Statistics Base Address register
 #define STAT_NIC_ADDR_R		( (u16_t) 0x3c40 )
 // Status Block Base Address register
 #define STB_NIC_ADDR_R		( (u16_t) 0x3c44 )

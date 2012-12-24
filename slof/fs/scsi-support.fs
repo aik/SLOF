@@ -803,7 +803,7 @@ CONSTANT scsi-length-media-event
 \ ****************************************************************************
 \ close scsi-session and remove scsi word list (if exists)
 \ ****************************************************************************
-\ if 'previous' is used without a preceeding 'also' all forth words are lost !
+\ if 'previous' is used without a preceding 'also' all forth words are lost !
 \ ****************************************************************************
 : scsi-close  ( -- )
 \ FIXME This only works if scsi-words is the last vocabulary on the stack
@@ -817,10 +817,10 @@ CONSTANT scsi-length-media-event
    THEN
    context scsi-context =              \ scsi word list still active ?
    IF
-      scsi-param-errors 0<>          \ any errors occured ?
+      scsi-param-errors 0<>          \ any errors occurred ?
       IF
          cr ." ** WARNING: " scsi-param-errors .d
-         ." SCSI Errors occured ** " cr
+         ." SCSI Errors occurred ** " cr
       THEN
       previous                         \ remove scsi word list on top
       0 to scsi-context                \ prevent from being misinterpreted

@@ -51,7 +51,7 @@ CONSTANT ciregs-size
       200 OF ." Machine Check" ENDOF
       300 OF ." Data Storage" ENDOF
       380 OF ." Data Segment" ENDOF
-      400 OF ." Intruction Storage" ENDOF
+      400 OF ." Instruction Storage" ENDOF
       480 OF ." Instruction Segment" ENDOF
       500 OF ." External" ENDOF
       600 OF ." Alignment" ENDOF
@@ -143,7 +143,7 @@ CONSTANT ciregs-size
    msr@ 8000 not and msr!
 ;
 
-\ Generate external interrupt thru Internal Interrupt Controller of BE
+\ Generate external interrupt through Internal Interrupt Controller of BE
 
 : gen-ext-int ( -- )
    7fffffff dec!               \ Reset decrementer

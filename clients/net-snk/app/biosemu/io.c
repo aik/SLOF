@@ -83,7 +83,7 @@ my_inb(X86EMU_pioAddr addr)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x): access to Device I/O\n", __FUNCTION__,
 				addr);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -132,7 +132,7 @@ my_inw(X86EMU_pioAddr addr)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x): access to Device I/O\n", __FUNCTION__,
 				addr);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -177,7 +177,7 @@ my_inl(X86EMU_pioAddr addr)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x): access to Device I/O\n", __FUNCTION__,
 				addr);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -223,7 +223,7 @@ my_outb(X86EMU_pioAddr addr, uint8_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x, %x): access to Device I/O\n",
 				__FUNCTION__, addr, val);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -255,7 +255,7 @@ my_outw(X86EMU_pioAddr addr, uint16_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x, %x): access to Device I/O\n",
 				__FUNCTION__, addr, val);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);
@@ -296,7 +296,7 @@ my_outl(X86EMU_pioAddr addr, uint32_t val)
 	uint64_t translated_addr = addr;
 	uint8_t translated = dev_translate_address(&translated_addr);
 	if (translated != 0) {
-		//translation successfull, access Device I/O (BAR or Legacy...)
+		//translation successful, access Device I/O (BAR or Legacy...)
 		DEBUG_PRINTF_IO("%s(%x, %x): access to Device I/O\n",
 				__FUNCTION__, addr, val);
 		//DEBUG_PRINTF_IO("%s(%04x): translated_addr: %llx\n", __FUNCTION__, addr, translated_addr);

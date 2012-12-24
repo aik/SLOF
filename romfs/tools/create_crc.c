@@ -115,7 +115,7 @@ createHeaderImage(int notime)
 		}
 		// length must be 13 instead 12 because of terminating
 		// NUL. Therefore uH.stH.platform_revison must be
-		// writen later to overwrite the terminating NUL
+		// written later to overwrite the terminating NUL
 		if (strftime(dastr, 15, "0x%Y%m%d%H%M", tm) == 0) {
 			printf("strftime error\n");
 		}

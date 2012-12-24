@@ -474,7 +474,7 @@ e1k_init_transmitter(void)
 	 */
 	e1k_wr32(TCTL, BIT32(1) |			// enable transmitter
 			BIT32(3) |			// pad short packets
-			((uint32_t) 0x0f <<  4) |	// collision threshhold
+			((uint32_t) 0x0f <<  4) |	// collision threshold
 			((uint32_t) 0x40 << 12));	// collision distance
 }
 

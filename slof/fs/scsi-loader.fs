@@ -14,7 +14,7 @@
 \ Last change: MiR 13.11.2007 10:55:57
 \ **************************************
 
-: .ansi-attr-off 1b emit ." [0m"  ;    \ ESC Sequence: all terminal atributes off
+: .ansi-attr-off 1b emit ." [0m"  ;    \ ESC Sequence: all terminal attributes off
 : .ansi-blue     1b emit ." [34m" ;    \ ESC Sequence: foreground-color = blue
 : .ansi-green    1b emit ." [32m" ;    \ ESC Sequence: foreground-color = green
 : .ansi-red      1b emit ." [31m" ;    \ ESC Sequence: foreground-color = green

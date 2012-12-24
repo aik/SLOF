@@ -21,7 +21,7 @@
 0 VALUE >ata                                 \ base address for command-block
 0 VALUE >ata1                                \ base address for control block
 
-true VALUE no-timeout                        \ flag that no timeout occured
+true VALUE no-timeout                        \ flag that no timeout occurred
 
 0c  CONSTANT #cdb-bytes                      \ command descriptor block (12 bytes)
 800 CONSTANT atapi-size
@@ -289,7 +289,7 @@ scsi-open                             \ add scsi functions
    IF
       cr ."    packet size = 16 ** not supported ! **"
    THEN
-   no-timeout not                \ any timeout occured so far ?
+   no-timeout not                \ any timeout occurred so far ?
    IF
       cr   ."    ** timeout **"
    THEN
