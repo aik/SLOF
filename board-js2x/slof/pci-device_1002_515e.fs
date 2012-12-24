@@ -391,10 +391,10 @@ pllwriteoff
    _color h# B4 reg-rl!
 ;
 
-: SET-COLORS ( addr index #indicies -- )
+: SET-COLORS ( addr index #indices -- )
 
   swap h# B0 pc!
-  ( addr #indicies ) 0 ?do dup ( index ) i 3 * + DO-COLOR loop
+  ( addr #indices ) 0 ?do dup ( index ) i 3 * + DO-COLOR loop
   ( addr ) drop ;
 
 : init-card

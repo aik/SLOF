@@ -17,7 +17,7 @@ s" entered usb-storage-support.fs" usb-debug-print
 \ ---------------------------------------------------------------------------
 
 : rw-endpoint
-   ( pt ed-type toggle buffer length mps addres -- toggle TRUE | toggle FALSE )
+   ( pt ed-type toggle buffer length mps address -- toggle TRUE | toggle FALSE )
    s" rw-endpoint" $call-parent
    ( toggle TRUE | toggle FALSE )
 ;
