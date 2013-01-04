@@ -128,6 +128,21 @@ void virtio_queue_notify(struct virtio_device *dev, int queue)
 	}
 }
 
+/**
+ * Set queue address
+ */
+void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned int qaddr)
+{
+        if (dev->type == VIRTIO_TYPE_PCI) {
+                uint32_t val = qaddr;
+                val = val >> 12;
+                ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+                            cpu_to_le16(queue));
+                eieio();
+                ci_write_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS,
+                            cpu_to_le32(val));
+        }
+}
 
 /**
  * Set device status bits
