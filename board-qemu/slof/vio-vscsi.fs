@@ -623,7 +623,7 @@ CREATE sector d# 512 allot
        dup x@
        BEGIN
           dup x@
-          dup 0= IF drop FALSE ELSE
+          dup 0= IF drop TRUE ELSE
              set-target wrapped-inquiry IF	
 	        ."   " current-target (u.) type ."  "
 	        \ XXX FIXME: Check top bits to ignore unsupported units
@@ -638,7 +638,7 @@ CREATE sector d# 512 allot
                 ENDCASE
 	        sector .inquiry-text cr
 	     THEN
-             8 + TRUE
+             8 + FALSE
           THEN
        UNTIL drop
        8 +
