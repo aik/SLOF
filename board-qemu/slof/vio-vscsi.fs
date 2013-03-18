@@ -593,6 +593,14 @@ CREATE sector d# 512 allot
 
 8 CONSTANT #dev
 
+: vscsi-read-lun     ( addr -- lun true | false )
+  dup c@ C0 AND CASE
+     40 OF w@-be 3FFF AND TRUE ENDOF
+     0  OF w@-be          TRUE ENDOF
+     dup dup OF ." Unsupported LUN format = " . cr FALSE ENDOF
+  ENDCASE
+;
+
 : vscsi-report-luns ( -- array ndev )
   \ array of pointers, up to 8 devices
   #dev 3 << alloc-mem dup
@@ -606,7 +614,11 @@ CREATE sector d# 512 allot
         dup rot 0 fill                ( devarray devcur ndev lunarray size mem )
         dup >r swap move r>           ( devarray devcur ndev mem )
         dup sector l@ 3 >> 0 DO       ( devarray devcur ndev mem memcur )
-           dup dup x@ j 8 << 8000 or or 30 << swap x! 8 +
+           dup dup vscsi-read-lun IF
+              j 8 << 8000 or or 30 << swap x! 8 +
+           ELSE
+              2drop
+           THEN
         LOOP drop
 	rot                           ( devarray ndev mem devcur )
         dup >r x! r> 8 +              ( devarray ndev devcur )
