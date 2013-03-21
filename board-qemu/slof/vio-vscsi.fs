@@ -631,7 +631,7 @@ CREATE sector d# 512 allot
 : vscsi-find-disks      ( -- )   
     ." VSCSI: Looking for devices" cr
     vscsi-report-luns
-    0 DO
+    0 ?DO
        dup x@
        BEGIN
           dup x@
