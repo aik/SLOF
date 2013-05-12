@@ -333,6 +333,8 @@ CREATE srp 100 allot
 \ -----------------------------------------------------------
 
 CREATE sector d# 512 allot
+TRUE VALUE first-time-init?
+0 VALUE open-count
 
 8000000000000000 INSTANCE VALUE current-target
 
@@ -409,21 +411,18 @@ CREATE sector d# 512 allot
 
 \ Cleanup behind us
 : vscsi-cleanup
-    \ ." VSCSI: Cleaning up" cr
+    vscsi-debug IF ." VSCSI: Cleaning up" cr THEN
     crq-cleanup
+
     \ Disable TCE bypass:
     vscsi-unit 0 rtas-set-tce-bypass
 ;
 
 \ Initialize our vscsi instance
 : vscsi-init ( -- true | false )
-    ." VSCSI: Initializing" cr
+    vscsi-debug IF ." VSCSI: Initializing" cr THEN
 
-    \ Can't use my-unit bcs we aren't instanciating (fix this ?)
-    " reg" get-node get-package-property IF
-        ." VSCSI: Not reg property !!!" 0
-    THEN
-    decode-int to vscsi-unit 2drop
+    my-unit to vscsi-unit
 
     \ Enable TCE bypass special qemu feature
     vscsi-unit 1 rtas-set-tce-bypass
@@ -437,7 +436,7 @@ CREATE sector d# 512 allot
         ." VSCSI: Error sending init command"
         crq-cleanup false EXIT
     THEN
-
+ 
     \ Wait reply
     crq-wait not IF
         crq-cleanup false EXIT
@@ -453,9 +452,36 @@ CREATE sector d# 512 allot
     \ with our qemu model
 
     \ Ensure we cleanup after booting
-    ['] vscsi-cleanup add-quiesce-xt
+    first-time-init? IF
+        ['] vscsi-cleanup add-quiesce-xt
+	false to first-time-init?
+    THEN
 
     true
+;
+
+: open
+    vscsi-debug IF ." VSCSI: Opening (count is " open-count . ." )" cr THEN
+
+    open-count 0= IF
+        vscsi-init IF
+	    1 to open-count true
+	THEN
+    ELSE
+        open-count 1 + to open-count
+        true
+    THEN
+;
+
+: close
+    vscsi-debug IF ." VSCSI: Closing (count is " open-count . ." )" cr THEN
+
+    open-count 0> IF
+        open-count 1 - dup to open-count
+	0= IF
+	    vscsi-cleanup
+	THEN
+    THEN
 ;
 
 \ -----------------------------------------------------------
@@ -674,10 +700,8 @@ scsi-close
     my-self >r
     dup to my-self
     \ Scan the VSCSI bus:
-    vscsi-init IF
-        vscsi-find-disks
-        setup-alias
-    THEN
+    vscsi-find-disks
+    setup-alias
     \ Close the temporary instance:
     close-node
     r> to my-self
