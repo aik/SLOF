@@ -462,8 +462,12 @@ CREATE user-instance-units 4 cells allot
 CREATE search-unit 4 cells allot
 
 : match-unit ( node -- match? )
-  node>space search-unit #search-unit 0 ?DO 2dup @ swap @ <> IF
-  2drop false UNLOOP EXIT THEN cell+ swap cell+ swap LOOP 2drop true ;
+  \ A node with no space is a wildcard and will always match
+  dup >space? IF
+      node>space search-unit #search-unit 0 ?DO 2dup @ swap @ <> IF
+      2drop false UNLOOP EXIT THEN cell+ swap cell+ swap LOOP 2drop true
+  ELSE drop true THEN
+;
 : match-node ( name len node -- match? )
   dup >r match-name r> match-unit and ; \ XXX e3d
 : find-kid ( name len -- node|0 )
@@ -500,6 +504,9 @@ CREATE search-unit 4 cells allot
   THEN
 ;
 
+\ XXX This is an old hack that allows wildcard nodes to work
+\     by not having a #address-cells in the parent and no
+\     decode unit. This should be removed.
 : set-instance-unit  ( unitaddr len -- )
    dup 0= IF 2drop  0 to user-instance-#units  EXIT THEN
    2dup 0 -rot bounds ?DO
@@ -521,9 +528,21 @@ CREATE search-unit 4 cells allot
 : find-component  ( path len -- path' len' args len node|0 )
    split-component           ( path'. args. name. unit. )
    ['] set-search-unit CATCH IF
+      \ XXX: See comment in set-instance-unit
+      ." WARNING: Obsolete old wildcard hack " .s cr
       set-instance-unit
    THEN
    resolve-relatives find-kid        ( path' len' args len node|0 )
+
+   \ If resolve returned a wildcard node, and we haven't hit
+   \ the above gross hack then copy the unit
+   dup IF dup >space? not #search-unit 0 > AND user-instance-#units 0= AND IF
+     #search-unit dup to user-instance-#units 0 ?DO
+        search-unit i cells + @ user-instance-units i cells + !
+     LOOP
+   THEN THEN
+
+   \ XXX This can go away with the old wildcard hack
    dup IF dup >space? user-instance-#units 0 > AND IF
       \ User supplied a unit value, but node also has different physical unit
       cr ." find-component with unit mismatch!" .s cr
