@@ -18,8 +18,8 @@ false VALUE debug-disk-label?
 \ partition. This is required to keep the load time in reasonable limits if the
 \ PREP partition becomes big.
 \ If we ever want to put a large kernel with initramfs from a PREP partition
-\ we might need to increase this value. The default value is 16384 blocks (8MB)
-d# 16384 value max-prep-partition-blocks
+\ we might need to increase this value. The default value is 65536 blocks (32MB)
+d# 65536 value max-prep-partition-blocks
 
 s" disk-label" device-name
 
