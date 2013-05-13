@@ -61,7 +61,7 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1009.fs \
 	$(SLOFBRDDIR)/vio-hvterm.fs \
 	$(SLOFBRDDIR)/vio-vscsi.fs \
-	$(SLOFBRDDIR)/vio-vscsi-device.fs \
+	$(SLOFBRDDIR)/scsi-disk.fs \
 	$(SLOFBRDDIR)/vio-veth.fs \
 	$(SLOFBRDDIR)/rtas-nvram.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \

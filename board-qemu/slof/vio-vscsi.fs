@@ -12,8 +12,7 @@
 
 ." Populating " pwd
 
-0 CONSTANT vscsi-debug
-
+false VALUE vscsi-debug?
 0 VALUE vscsi-unit
 
 \ -----------------------------------------------------------
@@ -48,7 +47,7 @@ CREATE crq 10 allot
     \ Allocate CRQ. XXX deal with fail
     crq-alloc
 
-    vscsi-debug IF
+    vscsi-debug? IF
         ." VSCSI: allocated crq at " crq-base . cr
     THEN
 
@@ -68,7 +67,7 @@ CREATE crq 10 allot
 : crq-cleanup ( -- )
     crq-base 0 = IF EXIT THEN
 
-    vscsi-debug IF
+    vscsi-debug? IF
         ." VSCSI: freeing crq at " crq-base . cr
     THEN
     crq-free
@@ -80,11 +79,11 @@ CREATE crq 10 allot
 
 : crq-poll ( -- true | false)
     crq-offset crq-base + dup
-    vscsi-debug IF
+    vscsi-debug? IF
         ." VSCSI: crq poll " dup .
     THEN
     c@
-    vscsi-debug IF
+    vscsi-debug? IF
         ."  value=" dup . cr
     THEN
     80 and 0 <> IF
@@ -101,7 +100,7 @@ CREATE crq 10 allot
     dup not IF
         ." VSCSI: Timeout waiting response !" cr EXIT
     ELSE
-        vscsi-debug IF
+        vscsi-debug? IF
             ." VSCSI: got crq: " crq dup l@ . ."  " 4 + dup l@ . ."  "
 	    4 + dup l@ . ."  " 4 + l@ . cr
         THEN
@@ -287,7 +286,7 @@ CREATE srp 100 allot
 ;
 
 : srp-send-cmd ( -- )
-    vscsi-debug IF
+    vscsi-debug? IF
         ." VSCSI: Sending SCSI cmd " srp >srp-cmd-cdb c@ . cr
     THEN
     srp srp-len srp-send-crq
@@ -311,7 +310,7 @@ CREATE srp 100 allot
     THEN drop
     
     srp >srp-rsp-status c@
-    vscsi-debug IF
+    vscsi-debug? IF
         ." VSCSI: Got response status: "
 	dup .status-text cr
     THEN
@@ -319,7 +318,7 @@ CREATE srp 100 allot
     0 <> IF
        srp-rsp-find-sense
        scsi-get-sense-data
-       vscsi-debug IF
+       vscsi-debug? IF
            ." VSCSI: Sense key: " dup .sense-text cr	   
        THEN
        false EXIT
@@ -346,14 +345,15 @@ TRUE VALUE first-time-init?
     srp-wait-rsp
 ;
 
-: inquiry ( -- true | false )
+: inquiry ( -- buffer | NULL )
     \ WARNING: ATAPI devices with libata seem to ignore the MSB of
     \ the allocation length... let's only ask for ff bytes
     sector ff current-target srp-prep-cmd-read
     ff srp >srp-cmd-cdb scsi-build-inquiry
     srp-send-cmd
     srp-wait-rsp
-    dup not IF nip nip nip EXIT THEN \ swallow sense
+    not IF nip nip nip 0 EXIT THEN \ swallow sense
+    sector
 ;
 
 : report-luns ( -- true | false )
@@ -411,7 +411,7 @@ TRUE VALUE first-time-init?
 
 \ Cleanup behind us
 : vscsi-cleanup
-    vscsi-debug IF ." VSCSI: Cleaning up" cr THEN
+    vscsi-debug? IF ." VSCSI: Cleaning up" cr THEN
     crq-cleanup
 
     \ Disable TCE bypass:
@@ -420,7 +420,7 @@ TRUE VALUE first-time-init?
 
 \ Initialize our vscsi instance
 : vscsi-init ( -- true | false )
-    vscsi-debug IF ." VSCSI: Initializing" cr THEN
+    vscsi-debug? IF ." VSCSI: Initializing" cr THEN
 
     my-unit to vscsi-unit
 
@@ -461,12 +461,12 @@ TRUE VALUE first-time-init?
 ;
 
 : open
-    vscsi-debug IF ." VSCSI: Opening (count is " open-count . ." )" cr THEN
+    vscsi-debug? IF ." VSCSI: Opening (count is " open-count . ." )" cr THEN
 
     open-count 0= IF
         vscsi-init IF
 	    1 to open-count true
-	THEN
+	ELSE ." VSCSI initialization failed !" cr false THEN
     ELSE
         open-count 1 + to open-count
         true
@@ -474,7 +474,7 @@ TRUE VALUE first-time-init?
 ;
 
 : close
-    vscsi-debug IF ." VSCSI: Closing (count is " open-count . ." )" cr THEN
+    vscsi-debug? IF ." VSCSI: Closing (count is " open-count . ." )" cr THEN
 
     open-count 0> IF
         open-count 1 - dup to open-count
@@ -490,8 +490,13 @@ TRUE VALUE first-time-init?
 
 \ We use SRP luns of the form 8000 | (bus << 8) | (id << 5) | lun
 \ in the top 16 bits of the 64-bit LUN
-: set-target ( srplun -- )
-    to current-target 
+: (set-target)
+    to current-target
+;
+\ We obtain here a unit address on the stack, since our #address-cells
+\ is 2, the 64-bit srplun is split in two cells that we need to join
+: set-target ( srplun.lo srplun.hi -- )
+    lxjoin (set-target)
 ;
 
 : dev-max-transfer ( -- n )
@@ -538,7 +543,7 @@ TRUE VALUE first-time-init?
     initial-test-unit-ready
     IF CDROM-READY EXIT THEN
 
-    vscsi-debug IF
+    vscsi-debug? IF
         ." TestUnitReady sense: " 3dup . . . cr
     THEN
 
@@ -604,15 +609,25 @@ TRUE VALUE first-time-init?
 ;
 
 : vscsi-create-disk	( srplun -- )
-    " disk" 0 " vio-vscsi-device.fs" included
+    " disk" find-alias 0<> IF drop THEN
+    get-node node>path
+    20 allot
+    " /disk@" string-cat                      \ srplun npath npathl
+    rot base @ >r hex (u.) r> base ! string-cat
+    " disk" 2swap set-alias
 ;
 
 : vscsi-create-cdrom	( srplun -- )
-    " cdrom" 1 " vio-vscsi-device.fs" included
+    " cdrom" find-alias 0<> IF drop THEN
+    get-node node>path
+    20 allot
+    " /disk@" string-cat                      \ srplun npath npathl
+    rot base @ >r hex (u.) r> base ! string-cat
+    " cdrom" 2swap set-alias
 ;
 
 : wrapped-inquiry ( -- true | false )
-    inquiry not IF false EXIT THEN
+    inquiry 0= IF false EXIT THEN
     \ Skip devices with PQ != 0
     sector inquiry-data>peripheral c@ e0 and 0 =
 ;
@@ -632,7 +647,7 @@ TRUE VALUE first-time-init?
   #dev 3 << alloc-mem dup
   0                                    ( devarray devcur ndev )   
   #dev 0 DO
-     i 8 << 8000 or 30 << set-target
+     i 8 << 8000 or 30 << (set-target)
      report-luns IF
         sector l@                     ( devarray devcur ndev size )
         sector 8 + swap               ( devarray devcur ndev lunarray size )
@@ -662,7 +677,7 @@ TRUE VALUE first-time-init?
        BEGIN
           dup x@
           dup 0= IF drop TRUE ELSE
-             set-target wrapped-inquiry IF	
+             (set-target) wrapped-inquiry IF	
 	        ."   " current-target (u.) type ."  "
 	        \ XXX FIXME: Check top bits to ignore unsupported units
 	        \            and maybe provide better printout & more cases
@@ -707,12 +722,9 @@ scsi-close
     r> to my-self
 ;
 
-\ Create a dummy "disk" node with no unit for the sake of
-\ the SLES11 installer. It is -not- a fully functional node
-\ you can open to access a disk at this stage
-new-device
-s" disk" device-name
-s" block" device-type      
-finish-device
+: vscsi-add-disk
+    " scsi-disk.fs" included
+;
 
+vscsi-add-disk
 vscsi-init-and-scan

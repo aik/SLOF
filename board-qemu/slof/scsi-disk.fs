@@ -11,53 +11,78 @@
 \ ****************************************************************************/
 
 \ Create new VSCSI child device
-\ ( target $name is_cdrom -- )
 
 \ Create device
 new-device
 
-VALUE is_cdrom
-
-rot	( $name target )
-
-\ Set reg & unit
-dup set-unit-64 xlsplit encode-phys " reg" property
-
 \ Set name
-2dup device-name
+s" disk" device-name
 
+s" block" device-type
 
-2dup find-alias 0= IF
-    get-node node>path set-alias
-ELSE 3drop THEN 
+false VALUE scsi-disk-debug?
 
-s" block" device-type      
+\ Get SCSI bits
+scsi-open
 
 \ Required interface for deblocker
 
 0 INSTANCE VALUE block-size
 0 INSTANCE VALUE max-block-num
 0 INSTANCE VALUE max-transfer
+0 INSTANCE VALUE is_cdrom
+INSTANCE VARIABLE deblocker
 
 : read-blocks ( addr block# #blocks -- #read )
     block-size " dev-read-blocks" $call-parent
     not IF
-        ." Read blocks failed !" cr -1 throw
+        ." SCSI-DISK: Read blocks failed !" cr -1 throw
     THEN
-;    
-
-INSTANCE VARIABLE deblocker
+;
 
 : open ( -- true | false )
-    \ ." OPEN: [" .s ." ] unit is " my-unit . . ."  [" .s ." ]" cr
-    my-unit lxjoin " set-target" $call-parent
+    scsi-disk-debug? IF
+        ." SCSI-DISK: open [" .s ." ] unit is " my-unit . . ."  [" .s ." ]" cr
+    THEN
+    my-unit " set-target" $call-parent
+
+    " inquiry" $call-parent dup 0= IF drop false EXIT THEN
+    scsi-disk-debug? IF
+        ." ---- inquiry: ----" cr
+        dup 200 dump cr
+        ." ------------------" cr
+    THEN
+
+    \ Skip devices with PQ != 0
+    dup inquiry-data>peripheral c@ e0 and 0 <> IF
+        ." SCSI-DISK: Unsupported PQ != 0" cr
+	false EXIT
+    THEN
+
+    inquiry-data>peripheral c@ CASE
+        5   OF true to is_cdrom ENDOF
+        7   OF true to is_cdrom ENDOF
+    ENDCASE
+
+    scsi-disk-debug? IF
+        is_cdrom IF
+            ." SCSI-DISK: device treated as CD-ROM" cr
+        ELSE
+            ." SCSI-DISK: device treated as disk" cr
+        THEN
+    THEN
+
     is_cdrom IF " dev-prep-cdrom" ELSE " dev-prep-disk" THEN $call-parent
     " dev-max-transfer" $call-parent to max-transfer
 
     " dev-get-capacity" $call-parent to max-block-num to block-size
     max-block-num 0=  block-size 0= OR IF
-       ." Failed to get disk capacity!" cr
+       ." SCSI-DISK: Failed to get disk capacity!" cr
        FALSE EXIT
+    THEN
+
+    scsi-disk-debug? IF
+        ." Capacity: " max-block-num . ." blocks of " block-size . cr
     THEN
 
     0 0 " deblocker" $open-package dup deblocker ! dup IF 
@@ -75,5 +100,8 @@ INSTANCE VARIABLE deblocker
 
 : read ( addr len -- actual )
     s" read" deblocker @ $call-method ;
+
+\ Get rid of SCSI bits
+scsi-close
 
 finish-device
