@@ -107,7 +107,7 @@ defer go ( -- )
 ;
 
 : init-program ( -- )
-   $bootargs LOAD-BASE ['] load-elf-init CATCH ?dup IF
+   $bootargs get-load-base ['] load-elf-init CATCH ?dup IF
       boot-exception-handler
       2drop 2drop false          \ Could not claim
    ELSE IF
@@ -142,7 +142,7 @@ defer go ( -- )
       THEN
       encode-string s" bootpath" set-chosen
       $bootargs encode-string s" bootargs" set-chosen
-      LOAD-BASE s" load" 3 pick ['] $call-method CATCH IF
+      get-load-base s" load" 3 pick ['] $call-method CATCH IF
 	-67 boot-exception-handler 3drop drop false
       ELSE
 	 dup 0> IF
@@ -191,11 +191,11 @@ defer go ( -- )
 
 : (go-and-catch)  ( -- )
    \ Recommended Practice: Forth Source Support (scripts starting with comment)
-   load-base c@ 5c =  load-base 1+ c@ 20 = AND IF
+   get-load-base c@ 5c =  get-load-base 1+ c@ 20 = AND IF
       load-size alloc-mem            ( allocated-addr )
       ?dup 0= IF ." alloc-mem failed." cr EXIT THEN
       load-size >r >r                ( R: allocate-addr load-size )
-      load-base r@ load-size move    \ Move away from load-base
+      get-load-base r@ load-size move    \ Move away from load-base
       r@ load-size evaluate          \ Run the script
       r> r> free-mem
       EXIT
@@ -238,9 +238,9 @@ read-bootlist
 ;
 
 : netload ( -- rc ) (parse-line)
-   load-base >r FLASH-LOAD-BASE to load-base
+   load-base-override >r flash-load-base to load-base-override
    s" load net:" strdup 2swap $cat strdup evaluate
-   r> to load-base
+   r> to load-base-override
    load-size
 ;
 

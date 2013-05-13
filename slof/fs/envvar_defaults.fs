@@ -38,6 +38,7 @@ false default-flag use-nvramrc?
 false default-flag direct-serial?
 true default-flag real-mode?
 true default-flag use-axon-ddr?
+default-load-base default-int load-base
 #ifdef BIOSEMU
 true default-flag use-biosemu?
 0 default-int biosemu-debug

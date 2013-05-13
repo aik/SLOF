@@ -160,6 +160,24 @@ CONSTANT <2constant>
    30 39 between
 ;
 
+: ishexdigit ( char -- true | false )
+   30 39 between 41 46 between OR 61 66 between OR
+;
+
+\ Variant of $number that defaults to decimal unless "0x" is
+\ a prefix
+: $dh-number ( addr len -- true | number false )
+   base @ >r
+   decimal
+   dup 2 > IF
+       over dup c@ [char] 0 =
+       over 1 + c@ 20 or [char] x =
+       AND IF hex 2 + swap 2 - rot THEN drop
+   THEN
+   $number
+   r> base !
+;
+
 : //  dup >r 1- + r> / ; \ division, round up
 
 : c@+ ( adr -- c adr' )  dup c@ swap char+ ;
@@ -533,9 +551,24 @@ defer cursor-off ( -- )
 
 : reset-all reboot ;
 
-\ Load base
-10000000 value load-base
-2000000 value flash-load-base
+\ load-base is an env. variable now, but it can
+\ be overriden temporarily provided users use
+\ get-load-base rather than load-base directly
+\
+\ default-load-base is set here and can be
+\ overriden by the board code. It will be used
+\ to set the default value of the envvar "load-base"
+\ when booting without a valid nvram
+
+10000000 VALUE default-load-base
+2000000 VALUE flash-load-base
+0 VALUE load-base-override
+
+: get-load-base
+  load-base-override 0<> IF load-base-override ELSE
+    " load-base" evaluate 
+  THEN
+;
 
 \ provide first level debug support
 #include "debug.fs"
