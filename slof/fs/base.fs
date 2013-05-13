@@ -70,7 +70,7 @@ VARIABLE huge-tftp-load 1 huge-tftp-load !
 ;
 
 
-CREATE $catpad 100 allot
+CREATE $catpad 400 allot
 : $cat ( str1 len1 str2 len2 -- str3 len3 )
    >r >r dup >r $catpad swap move
    r> dup $catpad + r> swap r@ move
