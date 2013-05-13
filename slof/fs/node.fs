@@ -216,6 +216,22 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
    THEN
 ;
 
+: $cat-instance-unit
+   dup parent 0= IF drop EXIT THEN
+   dup instance>#units 0= IF drop EXIT THEN
+   dup >r push-my-self
+   ['] my-unit CATCH IF pop-my-self r> drop EXIT THEN
+   pop-my-self
+   s" encode-unit"
+   r> ihandle>phandle parent
+   $call-static
+   dup IF
+      dup >r here swap move s" @" $cat here r> $cat
+   ELSE
+      2drop
+   THEN
+;
+
 \ Getting basic info about a node.
 : node>name  dup >r s" name" rot get-property IF r> (u.) ELSE 1- r> drop THEN ;
 : node>qname dup node>name rot ['] $cat-unit CATCH IF drop THEN ;
@@ -238,9 +254,15 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
   \ open-dev and friends, if there were no interposition.
   dup instance>parent @ dup 0= IF 2drop false EXIT THEN
   ihandle>phandle swap ihandle>phandle parent <> ;
-: instance>qname  dup >r interposed? IF s" %" ELSE 0 0 THEN
-                  r@ ihandle>phandle node>qname $cat  r> instance>args 2@
-                  dup IF 2>r s" :" $cat 2r> $cat ELSE 2drop THEN ;
+
+: instance>qname
+  dup >r interposed? IF s" %" ELSE 0 0 THEN
+  r@ dup ihandle>phandle node>name
+  rot ['] $cat-instance-unit CATCH IF drop THEN
+  $cat r> instance>args 2@
+  dup IF 2>r s" :" $cat 2r> $cat ELSE 2drop THEN
+;
+
 : instance>qpath \ With interposed nodes.
   here 0 rot BEGIN dup WHILE dup instance>parent @ REPEAT 2drop
   dup 0= IF [char] / c, THEN
