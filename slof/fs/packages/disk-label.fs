@@ -368,7 +368,7 @@ CONSTANT /partition-entry
 
 : load-chrp-boot-file ( addr -- size )
    \ Create bootinfo.txt path name and load that file:
-   my-parent ihandle>phandle node>path
+   my-parent instance>path
    s" :\ppc\bootinfo.txt" $cat strdup       ( addr str len )
    open-dev dup 0= IF 2drop 0 EXIT THEN
    >r dup                                   ( addr addr R:ihandle )
@@ -387,7 +387,7 @@ CONSTANT /partition-entry
    THEN
 
    \ Create the full path to the boot loader:
-   my-parent ihandle>phandle node>path      ( addr fnstr fnlen nstr nlen )
+   my-parent instance>path      ( addr fnstr fnlen nstr nlen )
    s" :" $cat 2swap $cat strdup             ( addr str len )
    \ Update the bootpath:
    2dup encode-string s" bootpath" set-chosen
