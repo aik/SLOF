@@ -506,7 +506,7 @@ CONSTANT /partition-entry
 
 : close ( -- )
    debug-disk-label? IF ." Closing disk-label: block=0x" block u. ." block-size=" block-size .d cr THEN
-   block d# 2048 free-mem
+   block d# 4096 free-mem
 ;
 
 
