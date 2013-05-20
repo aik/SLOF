@@ -120,8 +120,8 @@ CONSTANT /partition-entry
 : init-block ( -- )
    s" block-size" ['] $call-parent CATCH IF ABORT" parent has no block-size." THEN
    to block-size
-   d# 2048 alloc-mem
-   dup d# 2048 erase
+   d# 4096 alloc-mem
+   dup d# 4096 erase
    to block
    debug-disk-label? IF
       ." init-block: block-size=" block-size .d ." block=0x" block u. cr
