@@ -44,7 +44,7 @@ INSTANCE VARIABLE deblocker
     scsi-disk-debug? IF
         ." SCSI-DISK: open [" .s ." ] unit is " my-unit . . ."  [" .s ." ]" cr
     THEN
-    my-unit " set-target" $call-parent
+    my-unit " set-address" $call-parent
 
     " inquiry" $call-parent dup 0= IF drop false EXIT THEN
     scsi-disk-debug? IF
@@ -73,7 +73,9 @@ INSTANCE VARIABLE deblocker
     THEN
 
     is_cdrom IF " dev-prep-cdrom" ELSE " dev-prep-disk" THEN $call-parent
-    " dev-max-transfer" $call-parent to max-transfer
+    not IF false EXIT THEN
+
+    " max-transfer" $call-parent to max-transfer
 
     " dev-get-capacity" $call-parent to max-block-num to block-size
     max-block-num 0=  block-size 0= OR IF

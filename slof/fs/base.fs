@@ -190,9 +190,14 @@ CONSTANT <2constant>
 : 4drop  ( n1 n2 n3 n4 -- )  2drop 2drop ;
 
 \ yes sometimes even something like this is needed
+: 5dup  ( 1 2 3 4 5 -- 1 2 3 4 5 1 2 3 4 5 )
+   4 pick 4 pick 4 pick 4 pick 4 pick ;
+: 5drop 4drop drop ;
+: 5nip
+  nip nip nip nip nip ;
+
 : 6dup  ( 1 2 3 4 5 6 -- 1 2 3 4 5 6 1 2 3 4 5 6 )
-   5 pick 5 pick 5 pick 5 pick 5 pick 5 pick
-;
+   5 pick 5 pick 5 pick 5 pick 5 pick 5 pick ;
 
 \ convert a 32 bit signed into a 64 signed
 \ ( propagate bit 31 to all bits 32:63 )

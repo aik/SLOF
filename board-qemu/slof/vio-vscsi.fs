@@ -251,6 +251,14 @@ struct
     0 field >srp-rsp-data
 constant /srp-rsp
 
+\ Constants for srp-rsp-flags
+01 CONSTANT SRP_RSP_FLAG_RSPVALID
+02 CONSTANT SRP_RSP_FLAG_SNSVALID
+04 CONSTANT SRP_RSP_FLAG_DOOVER
+05 CONSTANT SRP_RSP_FLAG_DOUNDER
+06 CONSTANT SRP_RSP_FLAG_DIOVER
+07 CONSTANT SRP_RSP_FLAG_DIUNDER
+
 \ Storage for up to 256 bytes SRP request */
 CREATE srp 100 allot
 0 VALUE srp-len
@@ -292,21 +300,30 @@ CREATE srp 100 allot
     srp srp-len srp-send-crq
 ;
 
-: srp-rsp-find-sense ( -- addr )
-    \ XXX FIXME: Always in same position
-    srp >srp-rsp-data
+: srp-rsp-find-sense ( -- addr len true | false )
+    srp >srp-rsp-flags c@ SRP_RSP_FLAG_SNSVALID and 0= IF
+        false EXIT
+    THEN
+    \ XXX FIXME: We assume the sense data is right at response
+    \            data. A different server might actually have both
+    \            some response data we need to skip *and* some sense
+    \            data.
+    srp >srp-rsp-data srp >srp-rsp-sense-len l@ true
 ;
 
-: srp-wait-rsp ( -- true | [ ascq asc sense-key false ] )
+\ Wait for a response to the last sent SRP command
+\ returns a SCSI status code or -1 (HW error).
+\
+: srp-wait-rsp ( -- stat )
     srp-wait-crq not IF false EXIT THEN
     dup 1 <> IF
         ." VSCSI: Invalid CRQ response tag, want 1 got " . cr
-	false EXIT
+	-1 EXIT
     THEN drop
     
     srp >srp-rsp-tag x@ dup 1 <> IF
         ." VSCSI: Invalid SRP response tag, want 1 got " . cr
-	false EXIT
+	-1 EXIT
     THEN drop
     
     srp >srp-rsp-status c@
@@ -314,99 +331,230 @@ CREATE srp 100 allot
         ." VSCSI: Got response status: "
 	dup .status-text cr
     THEN
-
-    0 <> IF
-       srp-rsp-find-sense
-       scsi-get-sense-data
-       vscsi-debug? IF
-           ." VSCSI: Sense key: " dup .sense-text cr	   
-       THEN
-       false EXIT
-    THEN
-    true
 ;
 
+\ -----------------------------------------------------------
+\ Perform SCSI commands
+\ -----------------------------------------------------------
+
+8000000000000000 INSTANCE VALUE current-target
+
+\ SCSI command. We do *NOT* implement the "standard" execute-command
+\ because that doesn't have a way to return the sense buffer back, and
+\ we do have auto-sense with some hosts. Instead we implement a made-up
+\ do-scsi-command.
+\
+\ Note: stat is -1 for "hw error" (ie, error queuing the command or
+\ getting the response).
+\
+\ A sense buffer is returned whenever the status is non-0 however
+\ if sense-len is 0 then no sense data is actually present
+\
+true  CONSTANT scsi-dir-read
+false CONSTANT scsi-dir-write
+
+: execute-scsi-command ( buf-addr buf-len dir cmd-addr cmd-len -- ... )
+                       ( ... [ sense-buf sense-len ] stat )
+    \ Stash command addr & len
+    >r >r				( buf-addr buf-len dir )
+    \ Command has no data ?
+    over 0= IF
+        3drop current-target srp-prep-cmd-nodata
+    ELSE
+        \ Command is a read ?
+        current-target swap IF srp-prep-cmd-read ELSE srp-prep-cmd-write THEN
+    THEN
+    \ Recover command and copy it to our srp buffer
+    r> r>
+    srp >srp-cmd-cdb swap move
+    srp-send-cmd
+    srp-wait-rsp
+
+    \ Check for HW error
+    dup -1 = IF
+        0 0 rot EXIT
+    THEN
+
+    \ Other error status
+    dup 0<> IF
+       srp-rsp-find-sense IF
+           vscsi-debug? IF
+               over scsi-get-sense-data
+               ." VSCSI: Sense key [ " dup . ." ] " .sense-text
+	       ."  ASC,ASCQ: " . . cr
+           THEN
+       ELSE 0 0
+           \ This relies on auto-sense from qemu... if that isn't always the
+           \ case we should request sense here
+           ." VSCSI: No sense data" cr
+       THEN
+       rot
+    THEN
+;
+
+\ Returns 1 for retry, 0 for return with no error and
+\ -1 for return with an error
+\
+: check-retry-sense? ( sense-buf sense-len -- retry? )
+    \ Check if the sense-len is at least 8 bytes
+    8 < IF -1 EXIT THEN
+
+    \ Fixed sense record, look for filemark etc...
+    dup sense-data>response-code c@ 7e and 70 = IF
+        dup sense-data>sense-key c@ e0 and IF drop -1 EXIT THEN
+    THEN
+
+    \ Get sense data
+    scsi-get-sense-data? IF 	( ascq asc sense-key )
+        \ No sense or recoverable, return success
+	dup 2 < IF 3drop 0 EXIT THEN
+	\ not ready and unit attention, retry
+	dup 2 = swap 6 = or nip nip IF 1 EXIT THEN
+    THEN
+    \ Return failure
+    -1
+;
+
+\ This is almost as the standard retry-command but returns
+\ additionally the length of the returned sense information
+\
+\ The hw-err? field is gone, stat is -1 for a HW error, and
+\ the sense data is provided iff stat is CHECK_CONDITION (02)
+\
+\ Additionally we wait 10ms between retries
+\
+0 INSTANCE VALUE rcmd-buf-addr
+0 INSTANCE VALUE rcmd-buf-len
+0 INSTANCE VALUE rcmd-dir
+0 INSTANCE VALUE rcmd-cmd-addr
+0 INSTANCE VALUE rcmd-cmd-len
+
+: retry-scsi-command ( buf-addr buf-len dir cmd-addr cmd-len #retries -- ... )
+                     ( ... 0 | [ sense-buf sense-len ] stat )
+    >r \ stash #retries
+    to rcmd-cmd-len to rcmd-cmd-addr to rcmd-dir to rcmd-buf-len to rcmd-buf-addr
+    0 0 0  \ dummy status & semse
+    r> \ retreive #retries              ( stat #retries )
+    0 DO
+        3drop  \ drop previous status & sense
+	rcmd-buf-addr
+	rcmd-buf-len
+	rcmd-dir
+	rcmd-cmd-addr
+	rcmd-cmd-len
+	execute-scsi-command		( [ sense-buf sense-len ] stat )
+
+	\ Success ?
+	dup 0= IF LEAVE THEN
+
+	\ HW error ?
+	dup -1 = IF LEAVE THEN
+
+	\ Check condition ?
+	dup 2 = IF  			( sense-buf sense-len stat )
+	    >r	\ stash stat		( sense-buf sense len )
+	    2dup
+	    check-retry-sense?	        ( sense-buf sense-len retry? )
+	    r> swap \ unstash stat	( sense-buf sense-len stat retry? )
+	    \ Check retry? result
+	    CASE
+	         0 OF 3drop 0 LEAVE ENDOF	\ Swallow error, return 0
+	        -1 OF LEAVE ENDOF		\ No retry
+	    ENDCASE
+        ELSE \ Anything other than busy -> exit
+            dup 8 <> IF LEAVE THEN
+	THEN
+	a ms
+    LOOP
+;
 
 \ -----------------------------------------------------------
-\ Core VSCSI
+\ Some command helpers
 \ -----------------------------------------------------------
 
 CREATE sector d# 512 allot
 TRUE VALUE first-time-init?
 0 VALUE open-count
-
-8000000000000000 INSTANCE VALUE current-target
+CREATE cdb 10 allot
+100 CONSTANT test-unit-retries
 
 \ SCSI test-unit-read
-: test-unit-ready ( -- true | [ ascq asc sense-key false ] )
-    current-target srp-prep-cmd-nodata
-    srp >srp-cmd-cdb scsi-build-test-unit-ready
-    srp-send-cmd
-    srp-wait-rsp
+: test-unit-ready ( -- 0 | [ sense-buf sense-len ] stat )
+    vscsi-debug? IF
+        ." VSCSI: test-unit-ready " current-target . cr
+    THEN
+    cdb scsi-build-test-unit-ready
+    0 0 0 cdb scsi-param-size test-unit-retries retry-scsi-command
 ;
 
 : inquiry ( -- buffer | NULL )
+    vscsi-debug? IF
+        ." VSCSI: inquiry " current-target . cr
+    THEN
     \ WARNING: ATAPI devices with libata seem to ignore the MSB of
     \ the allocation length... let's only ask for ff bytes
-    sector ff current-target srp-prep-cmd-read
-    ff srp >srp-cmd-cdb scsi-build-inquiry
-    srp-send-cmd
-    srp-wait-rsp
-    not IF nip nip nip 0 EXIT THEN \ swallow sense
-    sector
+    ff cdb scsi-build-inquiry
+    \ 16 retries for inquiry to flush out any UAs
+    sector ff scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
+    \ Success ?
+    0= IF sector ELSE 2drop 0 THEN
 ;
 
 : report-luns ( -- true | false )
-    sector 200 current-target srp-prep-cmd-read
-    200 srp >srp-cmd-cdb scsi-build-report-luns
-    srp-send-cmd
-    srp-wait-rsp
-    dup not IF nip nip nip EXIT THEN \ swallow sense
+    vscsi-debug? IF
+        ." VSCSI: report luns " current-target . cr
+    THEN
+    200 cdb scsi-build-report-luns
+    \ 16 retries to flush out any UAs
+    sector 200 scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
+    \ Success ?
+    0= IF true ELSE 2drop false THEN
 ;
 
 : read-capacity ( -- true | false )
-    sector scsi-length-read-cap-10 current-target srp-prep-cmd-read
-    srp >srp-cmd-cdb scsi-build-read-cap-10
-    srp-send-cmd
-    srp-wait-rsp
-    dup not IF nip nip nip EXIT THEN \ swallow sense    
+    vscsi-debug? IF
+        ." VSCSI: read-capacity " current-target . cr
+    THEN
+    cdb scsi-build-read-cap-10
+    sector scsi-length-read-cap-10-data scsi-dir-read
+    cdb scsi-param-size 1 retry-scsi-command
+    \ Success ?
+    0= IF true ELSE 2drop false THEN
 ;
 
 : start-stop-unit ( state# -- true | false )
-    current-target srp-prep-cmd-nodata
-    srp >srp-cmd-cdb scsi-build-start-stop-unit
-    srp-send-cmd
-    srp-wait-rsp
-    dup not IF nip nip nip EXIT THEN \ swallow sense    
+    vscsi-debug? IF
+        ." VSCSI: start-stop-unit " current-target . cr
+    THEN
+    cdb scsi-build-start-stop-unit
+    0 0 0 cdb scsi-param-size 10 retry-scsi-command
+    \ Success ?
+    0= IF true ELSE 2drop false THEN
 ;
 
 : get-media-event ( -- true | false )
-    sector scsi-length-media-event current-target srp-prep-cmd-read
-    srp >srp-cmd-cdb scsi-build-get-media-event
-    srp-send-cmd
-    srp-wait-rsp
-    dup not IF nip nip nip EXIT THEN \ swallow sense    
+    vscsi-debug? IF
+        ." VSCSI: get-media-event " current-target . cr
+    THEN
+    cdb scsi-build-get-media-event
+    sector scsi-length-media-event scsi-dir-read cdb scsi-param-size 1 retry-scsi-command
+    \ Success ?
+    0= IF true ELSE 2drop false THEN
 ;
 
 : read-blocks ( -- addr block# #blocks blksz -- [ #read-blocks true ] | false )
+    vscsi-debug? IF
+        ." VSCSI: read-blocks " current-target . cr
+    THEN
     over * 					( addr block# #blocks len )    
     >r rot r> 			                ( block# #blocks addr len )
-    5 0 DO
-      	2dup current-target
-	srp-prep-cmd-read                       ( block# #blocks addr len )
-        2swap					( addr len block# #blocks )
-        2dup srp >srp-cmd-cdb scsi-build-read-10 ( addr len block# #blocks )
-	2swap                                   ( block# #blocks addr len )
-        srp-send-cmd
- 	srp-wait-rsp
-	IF 2drop nip true UNLOOP EXIT THEN
-	srp >srp-rsp-status c@ 8 <> IF
-	    nip nip nip 2drop 2drop false EXIT
-	THEN
-	3drop
-	100 ms
-    LOOP
-    2drop 2drop false
+    2swap                                       ( addr len block# #blocks )
+    dup >r
+    cdb scsi-build-read-10                      ( addr len )
+    r> -rot                                     ( #blocks addr len )
+    scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
+                                                ( #blocks [ sense-buf sense-len ] stat )
+    0= IF true ELSE 3drop false THEN
 ;
 
 \ Cleanup behind us
@@ -495,11 +643,17 @@ TRUE VALUE first-time-init?
 ;
 \ We obtain here a unit address on the stack, since our #address-cells
 \ is 2, the 64-bit srplun is split in two cells that we need to join
-: set-target ( srplun.lo srplun.hi -- )
+\
+\ Note: This diverges a bit from the original OF scsi spec as the two
+\ cells are the 2 words of a 64-bit SRP LUN
+: set-address ( srplun.lo srplun.hi -- )
     lxjoin (set-target)
 ;
 
-: dev-max-transfer ( -- n )
+\ We set max-transfer to a fixed value for now to avoid problems
+\ with some CD-ROM drives.
+
+: max-transfer ( -- n )
     10000 \ Larger value seem to have problems with some CDROMs
 ;
 
@@ -518,11 +672,13 @@ TRUE VALUE first-time-init?
 ;
 
 : initial-test-unit-ready ( -- true | [ ascq asc sense-key false ] )
-    0 0 0 false
-    3 0 DO
-        2drop 2drop
-        test-unit-ready dup IF UNLOOP EXIT THEN
-    LOOP    
+    test-unit-ready
+    \ stat == 0, return
+    0= IF true EXIT THEN
+    \ check sense len, no sense -> return HW error
+    0= IF drop 0 0 4 false EXIT THEN
+    \ get sense
+    scsi-get-sense-data false
 ;
 
 : compare-sense ( ascq asc key ascq2 asc2 key2 -- true | false )
@@ -587,25 +743,25 @@ TRUE VALUE first-time-init?
     THEN
 ;
 
-: dev-prep-cdrom ( -- )
+: dev-prep-cdrom ( -- ready? )
     5 0 DO
         cdrom-status CASE
-	    CDROM-READY           OF UNLOOP EXIT ENDOF
-	    CDROM-NO-DISK         OF ." No medium !" cr -65 THROW ENDOF
+	    CDROM-READY           OF UNLOOP true EXIT ENDOF
+	    CDROM-NO-DISK         OF ." No medium !" cr false EXIT ENDOF
 	    CDROM-TRAY-OPEN       OF cdrom-must-close-tray ENDOF
 	    CDROM-INIT-REQUIRED   OF cdrom-try-close-tray ENDOF
 	    CDROM-TRAY-MAYBE-OPEN OF cdrom-try-close-tray ENDOF
 	ENDCASE
 	d# 1000 ms
     LOOP
-    ." Drive not ready !" cr -65 THROW
+    ." Drive not ready !" cr false
 ;
 
-: dev-prep-disk ( -- )
-    initial-test-unit-ready 0= IF
-        ." Disk not ready!" cr
-        3drop
-    THEN
+: dev-prep-disk ( -- ready? )
+    initial-test-unit-ready not IF
+        ." Disk not ready! Sense key :" . ."  ASC,ASCQ: " . . cr
+        false EXIT
+    THEN true
 ;
 
 : vscsi-create-disk	( srplun -- )
