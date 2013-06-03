@@ -350,8 +350,6 @@ CREATE srp 100 allot
 \ A sense buffer is returned whenever the status is non-0 however
 \ if sense-len is 0 then no sense data is actually present
 \
-true  CONSTANT scsi-dir-read
-false CONSTANT scsi-dir-write
 
 : execute-scsi-command ( buf-addr buf-len dir cmd-addr cmd-len -- ... )
                        ( ... [ sense-buf sense-len ] stat )
@@ -433,15 +431,20 @@ false CONSTANT scsi-dir-write
                      ( ... 0 | [ sense-buf sense-len ] stat )
     >r \ stash #retries
     to rcmd-cmd-len to rcmd-cmd-addr to rcmd-dir to rcmd-buf-len to rcmd-buf-addr
-    0 0 0  \ dummy status & semse
+    0  \ dummy status & sense
     r> \ retreive #retries              ( stat #retries )
     0 DO
-        3drop  \ drop previous status & sense
+        \ drop previous status & sense
+        0<> IF 2drop THEN
+
+	\ Restore arguments
 	rcmd-buf-addr
 	rcmd-buf-len
 	rcmd-dir
 	rcmd-cmd-addr
 	rcmd-cmd-len
+
+	\ Send command
 	execute-scsi-command		( [ sense-buf sense-len ] stat )
 
 	\ Success ?
@@ -476,16 +479,6 @@ CREATE sector d# 512 allot
 TRUE VALUE first-time-init?
 0 VALUE open-count
 CREATE cdb 10 allot
-100 CONSTANT test-unit-retries
-
-\ SCSI test-unit-read
-: test-unit-ready ( -- 0 | [ sense-buf sense-len ] stat )
-    vscsi-debug? IF
-        ." VSCSI: test-unit-ready " current-target . cr
-    THEN
-    cdb scsi-build-test-unit-ready
-    0 0 0 cdb scsi-param-size test-unit-retries retry-scsi-command
-;
 
 : inquiry ( -- buffer | NULL )
     vscsi-debug? IF
@@ -509,52 +502,6 @@ CREATE cdb 10 allot
     sector 200 scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
     \ Success ?
     0= IF true ELSE 2drop false THEN
-;
-
-: read-capacity ( -- true | false )
-    vscsi-debug? IF
-        ." VSCSI: read-capacity " current-target . cr
-    THEN
-    cdb scsi-build-read-cap-10
-    sector scsi-length-read-cap-10-data scsi-dir-read
-    cdb scsi-param-size 1 retry-scsi-command
-    \ Success ?
-    0= IF true ELSE 2drop false THEN
-;
-
-: start-stop-unit ( state# -- true | false )
-    vscsi-debug? IF
-        ." VSCSI: start-stop-unit " current-target . cr
-    THEN
-    cdb scsi-build-start-stop-unit
-    0 0 0 cdb scsi-param-size 10 retry-scsi-command
-    \ Success ?
-    0= IF true ELSE 2drop false THEN
-;
-
-: get-media-event ( -- true | false )
-    vscsi-debug? IF
-        ." VSCSI: get-media-event " current-target . cr
-    THEN
-    cdb scsi-build-get-media-event
-    sector scsi-length-media-event scsi-dir-read cdb scsi-param-size 1 retry-scsi-command
-    \ Success ?
-    0= IF true ELSE 2drop false THEN
-;
-
-: read-blocks ( -- addr block# #blocks blksz -- [ #read-blocks true ] | false )
-    vscsi-debug? IF
-        ." VSCSI: read-blocks " current-target . cr
-    THEN
-    over * 					( addr block# #blocks len )    
-    >r rot r> 			                ( block# #blocks addr len )
-    2swap                                       ( addr len block# #blocks )
-    dup >r
-    cdb scsi-build-read-10                      ( addr len )
-    r> -rot                                     ( #blocks addr len )
-    scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
-                                                ( #blocks [ sense-buf sense-len ] stat )
-    0= IF true ELSE 3drop false THEN
 ;
 
 \ Cleanup behind us
@@ -655,113 +602,6 @@ CREATE cdb 10 allot
 
 : max-transfer ( -- n )
     10000 \ Larger value seem to have problems with some CDROMs
-;
-
-: dev-get-capacity ( -- blocksize #blocks )
-    \ Make sure that there are zeros in the buffer in case something goes wrong:
-    sector 10 erase
-    \ Now issue the read-capacity command
-    read-capacity not IF
-        0 0 EXIT
-    THEN
-    sector scsi-get-capacity-10
-;
-
-: dev-read-blocks ( -- addr block# #blocks blksize -- #read-blocks )
-    read-blocks    
-;
-
-: initial-test-unit-ready ( -- true | [ ascq asc sense-key false ] )
-    test-unit-ready
-    \ stat == 0, return
-    0= IF true EXIT THEN
-    \ check sense len, no sense -> return HW error
-    0= IF drop 0 0 4 false EXIT THEN
-    \ get sense
-    scsi-get-sense-data false
-;
-
-: compare-sense ( ascq asc key ascq2 asc2 key2 -- true | false )
-    3 pick =	    ( ascq asc key ascq2 asc2 keycmp )
-    swap 4 pick =   ( ascq asc key ascq2 keycmp asccmp )
-    rot 5 pick =    ( ascq asc key keycmp asccmp ascqcmp )
-    and and nip nip nip
-;
-
-0 CONSTANT CDROM-READY
-1 CONSTANT CDROM-NOT-READY
-2 CONSTANT CDROM-NO-DISK
-3 CONSTANT CDROM-TRAY-OPEN
-4 CONSTANT CDROM-INIT-REQUIRED
-5 CONSTANT CDROM-TRAY-MAYBE-OPEN
-
-: cdrom-status ( -- status )
-    initial-test-unit-ready
-    IF CDROM-READY EXIT THEN
-
-    vscsi-debug? IF
-        ." TestUnitReady sense: " 3dup . . . cr
-    THEN
-
-    3dup 1 4 2 compare-sense IF
-        3drop CDROM-NOT-READY EXIT
-    THEN
-
-    get-media-event IF
-        sector w@ 4 >= IF
-	    sector 2 + c@ 04 = IF
-	        sector 5 + c@
-		dup 02 and 0<> IF drop 3drop CDROM-READY EXIT THEN
-		dup 01 and 0<> IF drop 3drop CDROM-TRAY-OPEN EXIT THEN
-		drop 3drop CDROM-NO-DISK EXIT
-	    THEN
-	THEN
-    THEN
-
-    3dup 2 4 2 compare-sense IF
-        3drop CDROM-INIT-REQUIRED EXIT
-    THEN
-    over 4 = over 2 = and IF
-        \ Format in progress... what do we do ? Just ignore
-	3drop CDROM-READY EXIT
-    THEN
-    over 3a = IF
-        3drop CDROM-NO-DISK EXIT
-    THEN
-
-    \ Other error...
-    3drop CDROM-TRAY-MAYBE-OPEN    
-;
-
-: cdrom-try-close-tray ( -- )
-    scsi-const-load start-stop-unit drop
-;
-
-: cdrom-must-close-tray ( -- )
-    scsi-const-load start-stop-unit not IF
-        ." Tray open !" cr -65 throw
-    THEN
-;
-
-: dev-prep-cdrom ( -- ready? )
-    5 0 DO
-        cdrom-status CASE
-	    CDROM-READY           OF UNLOOP true EXIT ENDOF
-	    CDROM-NO-DISK         OF ." No medium !" cr false EXIT ENDOF
-	    CDROM-TRAY-OPEN       OF cdrom-must-close-tray ENDOF
-	    CDROM-INIT-REQUIRED   OF cdrom-try-close-tray ENDOF
-	    CDROM-TRAY-MAYBE-OPEN OF cdrom-try-close-tray ENDOF
-	ENDCASE
-	d# 1000 ms
-    LOOP
-    ." Drive not ready !" cr false
-;
-
-: dev-prep-disk ( -- ready? )
-    initial-test-unit-ready not IF
-        ." Disk not ready! Sense key :" . ."  ASC,ASCQ: " . . cr
-        false EXIT
-    THEN true
 ;
 
 : vscsi-create-disk	( srplun -- )

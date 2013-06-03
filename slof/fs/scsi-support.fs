@@ -778,6 +778,12 @@ CONSTANT scsi-length-media-event
    d# 0   to scsi-param-errors         \ local errors (param limits)
 ;
 
+\ ***************************************************************************
+\ Constants used by SCSI controller's execute-scsi-command
+\ ***************************************************************************
+true  CONSTANT scsi-dir-read
+false CONSTANT scsi-dir-write
+
 
 \ ***************************************************************************
 \ scsi loader
