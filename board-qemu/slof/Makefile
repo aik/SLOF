@@ -62,7 +62,6 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1009.fs \
 	$(SLOFBRDDIR)/vio-hvterm.fs \
 	$(SLOFBRDDIR)/vio-vscsi.fs \
-	$(SLOFBRDDIR)/scsi-disk.fs \
 	$(SLOFBRDDIR)/vio-veth.fs \
 	$(SLOFBRDDIR)/rtas-nvram.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \
@@ -81,6 +80,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/pci-config-bridge.fs \
 	$(SLOFCMNDIR)/fs/update_flash.fs \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
+	$(SLOFCMNDIR)/fs/scsi-disk.fs \
 	$(SLOFBRDDIR)/default-font.bin \
 	$(SLOFBRDDIR)/pci-phb.fs \
 	$(SLOFBRDDIR)/rtas.fs \
