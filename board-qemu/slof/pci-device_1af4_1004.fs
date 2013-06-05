@@ -19,4 +19,6 @@ pci-master-enable
 pci-mem-enable
 pci-io-enable
 
+s" virtio-scsi.fs" included
+
 pci-device-disable
