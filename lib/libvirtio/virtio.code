@@ -13,6 +13,7 @@
 #include <virtio.h>
 #include <virtio-blk.h>
 #include <virtio-9p.h>
+#include <virtio-scsi.h>
 
 /******** core virtio ********/
 
@@ -92,3 +93,29 @@ PRIM(virtio_X2d_fs_X2d_load)
 
 	TOS.n = virtio_9p_load(dev, str, buf);
 MIRP
+
+/******** virtio-scsi ********/
+
+// : virtio-scsi-init ( dev -- success )
+PRIM(virtio_X2d_scsi_X2d_init)
+	void *dev = TOS.a;
+	TOS.u = virtioscsi_init(dev);
+MIRP
+
+// : virtio-scsi-shutdown ( dev -- )
+PRIM(virtio_X2d_scsi_X2d_shutdown)
+	void *dev = TOS.a; POP;
+	virtioscsi_shutdown(dev);
+MIRP
+
+// : virtio-scsi-send ( buf_addr buf_len is_read req_ptr rsp_ptr dev -- success)
+PRIM(virtio_X2d_scsi_X2d_send)
+	void *dev	= TOS.a; POP;
+	void *resp	= TOS.a; POP;
+	void *req	= TOS.a; POP;
+	int is_read	= !!TOS.n; POP;
+	uint64_t blen	= TOS.n; POP;
+	void *buf	= TOS.a;
+	TOS.n = virtioscsi_send(dev, req, resp, is_read, buf, blen);
+MIRP
+

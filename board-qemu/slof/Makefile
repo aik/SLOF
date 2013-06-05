@@ -67,7 +67,8 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/rtas-nvram.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \
 	$(SLOFBRDDIR)/virtio-block.fs \
-	$(SLOFBRDDIR)/virtio-fs.fs
+	$(SLOFBRDDIR)/virtio-fs.fs \
+	$(SLOFBRDDIR)/virtio-scsi.fs
 
 # Files that should go into the ROM fs (and so have to be listed in OF.ffs):
 OF_FFS_FILES = \
