@@ -390,119 +390,14 @@ CREATE srp 100 allot
     THEN
 ;
 
-\ Returns 1 for retry, 0 for return with no error and
-\ -1 for return with an error
-\
-: check-retry-sense? ( sense-buf sense-len -- retry? )
-    \ Check if the sense-len is at least 8 bytes
-    8 < IF -1 EXIT THEN
+\ --------------------------------
+\ Include the generic host helpers
+\ --------------------------------
 
-    \ Fixed sense record, look for filemark etc...
-    dup sense-data>response-code c@ 7e and 70 = IF
-        dup sense-data>sense-key c@ e0 and IF drop -1 EXIT THEN
-    THEN
+" scsi-host-helpers.fs" included
 
-    \ Get sense data
-    scsi-get-sense-data? IF 	( ascq asc sense-key )
-        \ No sense or recoverable, return success
-	dup 2 < IF 3drop 0 EXIT THEN
-	\ not ready and unit attention, retry
-	dup 2 = swap 6 = or nip nip IF 1 EXIT THEN
-    THEN
-    \ Return failure
-    -1
-;
-
-\ This is almost as the standard retry-command but returns
-\ additionally the length of the returned sense information
-\
-\ The hw-err? field is gone, stat is -1 for a HW error, and
-\ the sense data is provided iff stat is CHECK_CONDITION (02)
-\
-\ Additionally we wait 10ms between retries
-\
-0 INSTANCE VALUE rcmd-buf-addr
-0 INSTANCE VALUE rcmd-buf-len
-0 INSTANCE VALUE rcmd-dir
-0 INSTANCE VALUE rcmd-cmd-addr
-0 INSTANCE VALUE rcmd-cmd-len
-
-: retry-scsi-command ( buf-addr buf-len dir cmd-addr cmd-len #retries -- ... )
-                     ( ... 0 | [ sense-buf sense-len ] stat )
-    >r \ stash #retries
-    to rcmd-cmd-len to rcmd-cmd-addr to rcmd-dir to rcmd-buf-len to rcmd-buf-addr
-    0  \ dummy status & sense
-    r> \ retreive #retries              ( stat #retries )
-    0 DO
-        \ drop previous status & sense
-        0<> IF 2drop THEN
-
-	\ Restore arguments
-	rcmd-buf-addr
-	rcmd-buf-len
-	rcmd-dir
-	rcmd-cmd-addr
-	rcmd-cmd-len
-
-	\ Send command
-	execute-scsi-command		( [ sense-buf sense-len ] stat )
-
-	\ Success ?
-	dup 0= IF LEAVE THEN
-
-	\ HW error ?
-	dup -1 = IF LEAVE THEN
-
-	\ Check condition ?
-	dup 2 = IF  			( sense-buf sense-len stat )
-	    >r	\ stash stat		( sense-buf sense len )
-	    2dup
-	    check-retry-sense?	        ( sense-buf sense-len retry? )
-	    r> swap \ unstash stat	( sense-buf sense-len stat retry? )
-	    \ Check retry? result
-	    CASE
-	         0 OF 3drop 0 LEAVE ENDOF	\ Swallow error, return 0
-	        -1 OF LEAVE ENDOF		\ No retry
-	    ENDCASE
-        ELSE \ Anything other than busy -> exit
-            dup 8 <> IF LEAVE THEN
-	THEN
-	a ms
-    LOOP
-;
-
-\ -----------------------------------------------------------
-\ Some command helpers
-\ -----------------------------------------------------------
-
-CREATE sector d# 512 allot
 TRUE VALUE first-time-init?
 0 VALUE open-count
-CREATE cdb 10 allot
-
-: inquiry ( -- buffer | NULL )
-    vscsi-debug? IF
-        ." VSCSI: inquiry " current-target . cr
-    THEN
-    \ WARNING: ATAPI devices with libata seem to ignore the MSB of
-    \ the allocation length... let's only ask for ff bytes
-    ff cdb scsi-build-inquiry
-    \ 16 retries for inquiry to flush out any UAs
-    sector ff scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
-    \ Success ?
-    0= IF sector ELSE 2drop 0 THEN
-;
-
-: report-luns ( -- true | false )
-    vscsi-debug? IF
-        ." VSCSI: report luns " current-target . cr
-    THEN
-    200 cdb scsi-build-report-luns
-    \ 16 retries to flush out any UAs
-    sector 200 scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
-    \ Success ?
-    0= IF true ELSE 2drop false THEN
-;
 
 \ Cleanup behind us
 : vscsi-cleanup
@@ -599,12 +494,14 @@ CREATE cdb 10 allot
 
 \ We set max-transfer to a fixed value for now to avoid problems
 \ with some CD-ROM drives.
-
+\ FIXME: Check max transfer coming from VSCSI
 : max-transfer ( -- n )
     10000 \ Larger value seem to have problems with some CDROMs
 ;
 
-: vscsi-create-disk	( srplun -- )
+\ FIXME: Make these two common somewhat, possibly passing the
+\        unit "name" as an argument
+: make-disk-alias	( srplun -- )
     " disk" find-alias 0<> IF drop THEN
     get-node node>path
     20 allot
@@ -613,7 +510,7 @@ CREATE cdb 10 allot
     " disk" 2swap set-alias
 ;
 
-: vscsi-create-cdrom	( srplun -- )
+: make-cdrom-alias	( srplun -- )
     " cdrom" find-alias 0<> IF drop THEN
     get-node node>path
     20 allot
@@ -621,6 +518,8 @@ CREATE cdb 10 allot
     rot base @ >r hex (u.) r> base ! string-cat
     " cdrom" 2swap set-alias
 ;
+
+\ FIXME: Most of the stuff below should be made common
 
 : wrapped-inquiry ( -- true | false )
     inquiry 0= IF false EXIT THEN
@@ -679,10 +578,10 @@ CREATE cdb 10 allot
 	        \            and maybe provide better printout & more cases
                 \ XXX FIXME: Actually check for LUNs
 	        sector inquiry-data>peripheral c@ CASE
-                   0   OF ." DISK     : " current-target vscsi-create-disk  ENDOF
-                   5   OF ." CD-ROM   : " current-target vscsi-create-cdrom ENDOF
-                   7   OF ." OPTICAL  : " current-target vscsi-create-cdrom ENDOF
-                   e   OF ." RED-BLOCK: " current-target vscsi-create-disk  ENDOF
+                   0   OF ." DISK     : " current-target make-disk-alias  ENDOF
+                   5   OF ." CD-ROM   : " current-target make-cdrom-alias ENDOF
+                   7   OF ." OPTICAL  : " current-target make-cdrom-alias ENDOF
+                   e   OF ." RED-BLOCK: " current-target make-disk-alias  ENDOF
                    dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
                 ENDCASE
 	        sector .inquiry-text cr

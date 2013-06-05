@@ -52,8 +52,7 @@ USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/usb/usb-storage-wrapper.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-keyboard.fs \
 	$(SLOFCMNDIR)/fs/usb/usb-kbd-device-support.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-mouse.fs \
-	$(SLOFCMNDIR)/fs/scsi-support.fs
+	$(SLOFCMNDIR)/fs/usb/usb-mouse.fs
 
 VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1000.fs \
@@ -81,6 +80,8 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/update_flash.fs \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFCMNDIR)/fs/scsi-disk.fs \
+	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
+	$(SLOFCMNDIR)/fs/scsi-support.fs \
 	$(SLOFBRDDIR)/default-font.bin \
 	$(SLOFBRDDIR)/pci-phb.fs \
 	$(SLOFBRDDIR)/rtas.fs \
