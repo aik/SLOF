@@ -107,5 +107,5 @@ CREATE cdb 10 allot
     \ 16 retries to flush out any UAs
     sector 200 scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
     \ Success ?
-    0= IF sector true ELSE 2drop false THEN
+    0= IF sector true ELSE drop false THEN
 ;

@@ -543,7 +543,7 @@ TRUE VALUE first-time-init?
   0                                    ( devarray devcur ndev )   
   #dev 0 DO
      i 8 << 8000 or 30 << (set-target)
-     report-luns IF
+     report-luns nip IF
         sector l@                     ( devarray devcur ndev size )
         sector 8 + swap               ( devarray devcur ndev lunarray size )
         dup 8 + dup alloc-mem         ( devarray devcur ndev lunarray size size+ mem )
