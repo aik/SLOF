@@ -259,7 +259,7 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
   dup >r interposed? IF s" %" ELSE 0 0 THEN
   r@ dup ihandle>phandle node>name
   rot ['] $cat-instance-unit CATCH IF drop THEN
-  $cat r> instance>args 2@
+  $cat r> instance>args 2@ swap
   dup IF 2>r s" :" $cat 2r> $cat ELSE 2drop THEN
 ;
 
