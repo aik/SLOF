@@ -225,7 +225,7 @@ CREATE cdb 10 allot
     5 0 DO
         cdrom-status CASE
 	    CDROM-READY           OF UNLOOP true EXIT ENDOF
-	    CDROM-NO-DISK         OF ." No medium !" cr false EXIT ENDOF
+	    CDROM-NO-DISK         OF ." No medium !" cr UNLOOP false EXIT ENDOF
 	    CDROM-TRAY-OPEN       OF cdrom-must-close-tray ENDOF
 	    CDROM-INIT-REQUIRED   OF cdrom-try-close-tray ENDOF
 	    CDROM-TRAY-MAYBE-OPEN OF cdrom-try-close-tray ENDOF
