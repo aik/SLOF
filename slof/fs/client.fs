@@ -121,6 +121,11 @@ ALSO client-voc DEFINITIONS
    debug-client-interface? IF
       ." ci: finddevice " 2dup type cr
    THEN
+   2dup " /memory" str= IF
+     ." * finddevice /memory grub workaround *" cr
+     2drop
+     " /memory@0"
+   THEN
    find-node dup 0= IF drop -1 THEN
 ;
 
