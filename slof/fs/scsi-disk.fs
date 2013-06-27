@@ -66,6 +66,18 @@ CREATE cdb 10 allot
     scsi-disk-debug? IF
         ." SCSI-DISK: read-blocks " .s cr
     THEN
+
+    \ Bound check. This should probably be done by deblocker
+    \ but it doesn't at this point so do it here
+    2dup + max-block-num > IF
+        ." SCSI-DISK: Access beyond end of device ! " cr
+	drop
+	dup max-block-num > IF
+	  drop drop 0 EXIT
+	THEN
+	dup max-block-num swap -
+    THEN
+
     dup block-size *                            ( addr block# #blocks len )
     >r rot r> 			                ( block# #blocks addr len )
     2swap                                       ( addr len block# #blocks )
