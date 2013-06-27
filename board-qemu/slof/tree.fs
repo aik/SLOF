@@ -142,7 +142,7 @@ populate-pci-busses
 6c0 cp
 
 s" /cpus/@0" open-dev encode-int s" cpu" set-chosen
-s" /memory" open-dev encode-int s" memory" set-chosen
+s" /memory@0" open-dev encode-int s" memory" set-chosen
 
 6e0 cp
 

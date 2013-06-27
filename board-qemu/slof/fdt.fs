@@ -226,7 +226,9 @@ fdt-unflatten-tree
 
 \ Find memory size
 : fdt-parse-memory
-    " /memory" find-device
+    \ XXX FIXME Handle more than one memory node, and deal
+    \     with RMA vs. full access
+    " /memory@0" find-device
     " reg" get-node get-package-property IF throw -1 THEN
 
     \ XXX FIXME Assume one entry only in "reg" property for now
