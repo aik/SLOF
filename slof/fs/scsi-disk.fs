@@ -102,7 +102,7 @@ CREATE cdb 10 allot
     cdb scsi-param-size 1 retry-scsi-command
     \ Success ?
     dup 0<> IF " read-capacity" dump-scsi-error 0 0 EXIT THEN
-    drop scratch scsi-get-capacity-10
+    drop scratch scsi-get-capacity-10 1 +
 ;
 
 100 CONSTANT test-unit-retries
