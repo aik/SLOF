@@ -45,6 +45,16 @@ PRIM(USB_X2d_HCD_X2d_INIT)
 MIRP
 
 /************************************************/
+/* Remove hcidev with the usb-core              */
+/* SLOF:   USB-HCD-EXIT  ( hcidev -- )          */
+/* LIBNEWUSB: usb_hcd_exit(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_HCD_X2d_EXIT)
+	void *hcidev = TOS.a; POP;
+	usb_hcd_exit(hcidev);
+MIRP
+
+/************************************************/
 /* Initialize hid                               */
 /* SLOF:   USB-HID-INIT  ( dev -- true | false )*/
 /* LIBNEWUSB: usb_hid_init(hcidev)              */

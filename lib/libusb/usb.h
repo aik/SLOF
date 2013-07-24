@@ -29,6 +29,10 @@ extern void usb_ehci_register(void);
 /*******************************************/
 extern void usb_hcd_init(void *hcidev);
 /*******************************************/
+/* SLOF:  USB-HCD-EXIT                     */
+/*******************************************/
+extern void usb_hcd_exit(void *hcidev);
+/*******************************************/
 /* SLOF:  USB-HID-INIT                     */
 /*******************************************/
 extern int usb_hid_init(void *dev);

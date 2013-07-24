@@ -53,6 +53,29 @@ void SLOF_dma_free(void *virt, long size)
 	forth_eval("dma-free");
 }
 
+void *SLOF_alloc_mem(long size)
+{
+	forth_push(size);
+	forth_eval("alloc-mem");
+	return (void *)forth_pop();
+}
+
+void *SLOF_alloc_mem_aligned(long align, long size)
+{
+	unsigned long addr = (unsigned long)SLOF_alloc_mem(size + align - 1);
+	addr = addr + align - 1;
+	addr = addr & ~(align - 1);
+
+	return (void *)addr;
+}
+
+void SLOF_free_mem(void *addr, long size)
+{
+	forth_push((long)addr);
+	forth_push(size);
+	forth_eval("free-mem");
+}
+
 long SLOF_dma_map_in(void *virt, long size, int cacheable)
 {
 	forth_push((long)virt);

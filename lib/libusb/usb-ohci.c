@@ -217,11 +217,11 @@ static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd)
 
 	dprintf("usb-ohci: %s enter\n", __func__);
 	count = OHCI_PIPE_POOL_SIZE/sizeof(*opipe);
-	opipe = SLOF_dma_alloc(OHCI_PIPE_POOL_SIZE);
+	ohcd->pool = opipe = SLOF_dma_alloc(OHCI_PIPE_POOL_SIZE);
 	if (!opipe)
 		return false;
 
-	opipe_phys = SLOF_dma_map_in(opipe, OHCI_PIPE_POOL_SIZE, true);
+	ohcd->pool_phys = opipe_phys = SLOF_dma_map_in(opipe, OHCI_PIPE_POOL_SIZE, true);
 	dprintf("usb-ohci: %s opipe %x, opipe_phys %x size %d count %d\n",
 		__func__, opipe, opipe_phys, sizeof(*opipe), count);
 	/* Although an array, link them*/
@@ -261,7 +261,7 @@ static void ohci_init(struct usb_hcd_dev *hcidev)
 	printf("  OHCI: initializing\n");
 	dprintf("%s: device base address %p\n", __func__, hcidev->base);
 
-	ohcd = SLOF_dma_alloc(sizeof(struct ohci_hcd));
+	ohcd = SLOF_alloc_mem(sizeof(struct ohci_hcd));
 	if (!ohcd) {
 		printf("usb-ohci: Unable to allocate memory\n");
 		goto out;
@@ -293,8 +293,32 @@ static void ohci_init(struct usb_hcd_dev *hcidev)
 
 out_free_hcd:
 	SLOF_dma_free(ohcd->hcca, sizeof(struct ohci_hcca));
-	SLOF_dma_free(ohcd, sizeof(struct ohci_hcd));
+	SLOF_free_mem(ohcd, sizeof(struct ohci_hcd));
 out:
+	return;
+}
+
+static void ohci_exit(struct usb_hcd_dev *hcidev)
+{
+	struct ohci_hcd *ohcd = NULL;
+	static int count = 0;
+
+	dprintf("%s: enter \n", __func__);
+	if (!hcidev && !hcidev->priv)
+		return;
+
+	count++;
+	if (count > 1) {
+		printf("%s: already called once \n", __func__);
+		return;
+	}
+	ohcd = hcidev->priv;
+	write_reg(&ohcd->regs->hcca, 0);
+	SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
+	SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);
+	SLOF_dma_map_out(ohcd->hcca_phys, ohcd->hcca, sizeof(struct ohci_hcca));
+	SLOF_dma_free(ohcd->hcca, sizeof(struct ohci_hcca));
+	SLOF_free_mem(ohcd, sizeof(struct ohci_hcd));
 	return;
 }
 
@@ -818,6 +842,7 @@ static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 struct usb_hcd_ops ohci_ops = {
 	.name        = "ohci-hcd",
 	.init        = ohci_init,
+	.exit        = ohci_exit,
 	.detect      = ohci_detect,
 	.disconnect  = ohci_disconnect,
 	.get_pipe    = ohci_get_pipe,

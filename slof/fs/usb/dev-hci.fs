@@ -31,6 +31,8 @@ ELSE 3drop THEN
 
 /hci-dev BUFFER: hcidev
 usb_num hcidev usb-setup-hcidev
+TRUE VALUE first-time-init?
+0 VALUE open-count
 
 false VALUE dev-hci-debug?
 
@@ -53,34 +55,6 @@ get-base-address CONSTANT baseaddrs
     hcidev
 ;
 
-
-0 VALUE open-count
-
-: USB-HCI-INIT drop 1 ;
-: USB-HCI-EXIT drop 1 ;
-
-: open   ( -- true | false )
-    dev-hci-debug? IF ." DEV-HCI: Opening (count is " open-count . ." )" cr THEN
-    open-count 0= IF
-	hcidev USB-HCI-INIT 0= IF
-	    ." HCI Device setup failed " pwd cr
-	    false EXIT
-	THEN
-    THEN
-    open-count 1 + to open-count
-    true
-;
-
-: close
-    dev-hci-debug? IF ." DEV-HCI: Closing (count is " open-count . ." )" cr THEN
-    open-count 0> IF
-	open-count 1 - dup to open-count
-	0= IF
-	    hcidev USB-HCI-EXIT drop
-	THEN
-    THEN
-;
-
 \ set HCI into suspend mode
 \ this disables all activities to shared RAM
 \ called when linux starts (quiesce)
@@ -96,5 +70,24 @@ get-base-address CONSTANT baseaddrs
    THEN
 ;
 
-\ create a new entry to suspend HCI
-' hc-suspend add-quiesce-xt
+: hc-cleanup ( -- )
+    my-phandle set-node
+    dev-hci-debug? IF ." USB-HCI: Cleaning up " pwd cr THEN
+    hcidev USB-HCD-EXIT
+    hc-suspend
+    0 set-node
+;
+
+: open   ( -- true | false )
+    true
+;
+
+: close
+;
+
+\ create a new entry to cleanup and suspend HCI
+\ after first init
+first-time-init? IF
+   ['] hc-cleanup add-quiesce-xt
+   false to first-time-init?
+THEN

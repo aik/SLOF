@@ -30,7 +30,7 @@ static struct usb_dev *usb_alloc_devpool(void)
 	struct usb_dev *head, *curr, *prev;
 	unsigned int dev_count = 0, i;
 
-	head = SLOF_dma_alloc(USB_DEVPOOL_SIZE);
+	head = SLOF_alloc_mem(USB_DEVPOOL_SIZE);
 	if (!head)
 		return NULL;
 
@@ -173,6 +173,20 @@ void usb_hcd_init(void *hcidev)
 	}
 
 	dprintf("usb_ops for the controller not found\n");
+}
+
+void usb_hcd_exit(void *_hcidev)
+{
+	struct usb_hcd_dev *hcidev = _hcidev;
+
+	dprintf("%s: enter \n", __func__);
+	if (!hcidev) {
+		printf("Device Error");
+		return;
+	}
+
+	if (hcidev->ops->exit)
+		hcidev->ops->exit(hcidev);
 }
 
 int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)

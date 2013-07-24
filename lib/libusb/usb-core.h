@@ -243,6 +243,7 @@ struct usb_dev_hid_descr {
 struct usb_hcd_ops {
 	const char *name;
 	void (*init)(struct usb_hcd_dev *);
+	void (*exit)(struct usb_hcd_dev *);
 	void (*detect)(void);
 	void (*disconnect)(void);
 	int  (*send_ctrl)(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);

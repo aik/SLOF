@@ -44,19 +44,25 @@ struct ehci_op_regs {
 	uint32_t portsc[0];
 } __attribute__ ((packed));
 
+struct ehci_framelist {
+	uint32_t fl_ptr[FL_SIZE];
+} __attribute__ ((packed));
+
 struct ehci_hcd {
 	struct ehci_cap_regs *cap_regs;
 	struct ehci_op_regs  *op_regs;
 	struct usb_hcd_dev *hcidev;
 	struct ehci_qh *qh_async;
+	struct ehci_qh *qh_intr;
 	struct usb_pipe *freelist;
 	struct usb_pipe *end;
+	struct ehci_framelist *fl;
 	long qh_async_phys;
+	long qh_intr_phys;
+	long fl_phys;
+	void *pool;
+	long pool_phys;
 };
-
-struct ehci_framelist {
-	uint32_t fl_ptr[FL_SIZE];
-} __attribute__ ((packed));
 
 struct ehci_qtd {
 	uint32_t next_qtd;

@@ -120,6 +120,8 @@ struct ohci_hcd {
 	struct usb_pipe *end;
 	struct usb_dev rhdev;
 	long hcca_phys;
+	void *pool;
+	long pool_phys;
 };
 
 #define OHCI_CTRL_CBSR  (3 << 0)

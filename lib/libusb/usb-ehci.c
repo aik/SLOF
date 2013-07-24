@@ -152,6 +152,10 @@ static int ehci_hcd_init(struct ehci_hcd *ehcd)
 	write_reg32(&ehcd->op_regs->asynclistaddr, qh_async_phys);
 	ehcd->qh_async = qh_async;
 	ehcd->qh_async_phys = qh_async_phys;
+	ehcd->qh_intr = qh_intr;
+	ehcd->qh_intr_phys = qh_intr_phys;
+	ehcd->fl = fl;
+	ehcd->fl_phys = fl_phys;
 
 	write_reg32(&ehcd->op_regs->usbcmd, usbcmd | CMD_ASE | CMD_RUN);
 	write_reg32(&ehcd->op_regs->configflag, 1);
@@ -168,6 +172,25 @@ fail:
 	return -1;
 }
 
+static int ehci_hcd_exit(struct ehci_hcd *ehcd)
+{
+	uint32_t usbcmd;
+
+	usbcmd = read_reg32(&ehcd->op_regs->usbcmd);
+	write_reg32(&ehcd->op_regs->usbcmd, usbcmd | ~CMD_RUN);
+	write_reg32(&ehcd->op_regs->periodiclistbase, 0);
+
+	SLOF_dma_map_out(ehcd->pool_phys, ehcd->pool, EHCI_PIPE_POOL_SIZE);
+	SLOF_dma_free(ehcd->pool, EHCI_PIPE_POOL_SIZE);
+	SLOF_dma_map_out(ehcd->qh_intr_phys, ehcd->qh_intr, sizeof(struct ehci_qh));
+	SLOF_dma_free(ehcd->qh_intr, sizeof(struct ehci_qh));
+	SLOF_dma_map_out(ehcd->qh_async_phys, ehcd->qh_async, sizeof(struct ehci_qh));
+	SLOF_dma_free(ehcd->qh_async, sizeof(struct ehci_qh));
+	SLOF_dma_map_out(ehcd->fl_phys, ehcd->fl, sizeof(struct ehci_framelist));
+	SLOF_dma_free(ehcd->fl, sizeof(struct ehci_framelist));
+	return true;
+}
+
 static int ehci_alloc_pipe_pool(struct ehci_hcd *ehcd)
 {
 	struct ehci_pipe *epipe, *curr, *prev;
@@ -175,10 +198,10 @@ static int ehci_alloc_pipe_pool(struct ehci_hcd *ehcd)
 	long epipe_phys = 0;
 
 	count = EHCI_PIPE_POOL_SIZE/sizeof(*epipe);
-	epipe = SLOF_dma_alloc(EHCI_PIPE_POOL_SIZE);
+	ehcd->pool = epipe = SLOF_dma_alloc(EHCI_PIPE_POOL_SIZE);
 	if (!epipe)
 		return -1;
-	epipe_phys = SLOF_dma_map_in(epipe, EHCI_PIPE_POOL_SIZE, true);
+	ehcd->pool_phys = epipe_phys = SLOF_dma_map_in(epipe, EHCI_PIPE_POOL_SIZE, true);
 	dprintf("%s: epipe %p, epipe_phys %lx\n", __func__, epipe, epipe_phys);
 
 	/* Although an array, link them */
@@ -209,7 +232,7 @@ static void ehci_init(struct usb_hcd_dev *hcidev)
 	printf("  EHCI: Initializing\n");
 	dprintf("%s: device base address %p\n", __func__, hcidev->base);
 
-	ehcd = SLOF_dma_alloc(sizeof(*ehcd));
+	ehcd = SLOF_alloc_mem(sizeof(*ehcd));
 	if (!ehcd) {
 		printf("usb-ehci: Unable to allocate memory\n");
 		return;
@@ -227,6 +250,27 @@ static void ehci_init(struct usb_hcd_dev *hcidev)
 #endif
 	ehci_hcd_init(ehcd);
 	ehci_hub_check_ports(ehcd);
+}
+
+static void ehci_exit(struct usb_hcd_dev *hcidev)
+{
+	struct ehci_hcd *ehcd;
+	static int count = 0;
+
+	dprintf("%s: enter \n", __func__);
+
+	if (!hcidev && !hcidev->priv) {
+		return;
+	}
+	count++;
+	if (count > 1) {
+		printf("%s: already called once \n", __func__);
+		return;
+	}
+	ehcd = hcidev->priv;
+	ehci_hcd_exit(ehcd);
+	SLOF_free_mem(ehcd, sizeof(*ehcd));
+	hcidev->priv = NULL;
 }
 
 static void ehci_detect(void)
@@ -501,6 +545,7 @@ static void ehci_put_pipe(struct usb_pipe *pipe)
 struct usb_hcd_ops ehci_ops = {
 	.name          = "ehci-hcd",
 	.init          = ehci_init,
+	.exit          = ehci_exit,
 	.detect        = ehci_detect,
 	.disconnect    = ehci_disconnect,
 	.get_pipe      = ehci_get_pipe,
