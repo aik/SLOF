@@ -53,6 +53,23 @@ static void dump_ehci_regs(struct ehci_hcd *ehcd)
 }
 #endif
 
+static int ehci_hub_check_ports(struct ehci_hcd *ehcd)
+{
+	uint32_t num_ports, portsc, i;
+
+	num_ports = read_reg32(&ehcd->cap_regs->hcsparams) & HCS_NPORTS_MASK;
+	for (i = 0; i < num_ports; i++) {
+		portsc = read_reg32(&ehcd->op_regs->portsc[i]);
+		if (portsc & PORT_CONNECT) { /* Device present */
+			/* Clear Connect Status Change bit */
+			write_reg32(&ehcd->op_regs->portsc[i], portsc | PORT_CSC);
+			dprintf("usb-ehci: Device present on port %d\n", i);
+		}
+	}
+
+	return 0;
+}
+
 static int ehci_hcd_init(struct ehci_hcd *ehcd)
 {
 	uint32_t usbcmd;
@@ -154,7 +171,7 @@ static void ehci_init(struct usb_hcd_dev *hcidev)
 	dump_ehci_regs(ehcd);
 #endif
 	ehci_hcd_init(ehcd);
-	//ehci_hub_check_ports(ehcd);
+	ehci_hub_check_ports(ehcd);
 }
 
 static void ehci_detect(void)

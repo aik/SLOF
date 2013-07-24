@@ -76,11 +76,16 @@ struct ehci_qh {
 #define EHCI_TYP_SITD	0x04
 #define EHCI_TYP_FSTN	0x06
 
+#define HCS_NPORTS_MASK        0x000f
+
 #define CMD_ASE		(1 << 5)
 #define CMD_PSE		(1 << 4)
 #define CMD_FLS_MASK	(3 << 2)
 #define CMD_HCRESET	(1 << 1)
 #define CMD_RUN		(1 << 0)
+
+#define PORT_CSC       (1 << 1)
+#define PORT_CONNECT   (1 << 0)
 
 #define QH_CAP_H	(1 << 15)
 #define QH_PTR_TERM	0x0001
