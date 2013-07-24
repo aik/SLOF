@@ -497,6 +497,7 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 		break;
 	case 8:
 		dprintf("MASS STORAGE found %d\n", dev->intf_num);
+		usb_msc_reset(dev);
 		slof_usb_handle(dev);
 		break;
 	case 9:
