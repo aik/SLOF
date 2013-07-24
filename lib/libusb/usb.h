@@ -22,6 +22,10 @@
 /*******************************************/
 extern void usb_ohci_register(void);
 /*******************************************/
+/* SLOF:  USB-EHCI-REGISTER                */
+/*******************************************/
+extern void usb_ehci_register(void);
+/*******************************************/
 /* SLOF:  USB-HCD-INIT                     */
 /*******************************************/
 extern void usb_hcd_init(void *hcidev);

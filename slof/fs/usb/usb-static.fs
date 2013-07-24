@@ -57,6 +57,10 @@
 	THEN
     LOOP
 
+    ehci-alias-num 1 >= IF
+	USB-EHCI-REGISTER
+    THEN
+
     ehci-alias-num 0 ?DO
 	" ehci" i $cathex find-device
 	" get-hci-dev" get-node find-method
