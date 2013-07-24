@@ -66,6 +66,12 @@ struct usb_ep_descr {
 #define	DEV_MASS_ATAPI          0x080550	/* MassStorage, SFF-8070i , Bulk */
 #define	DEV_MASS_SCSI           0x080650	/* MassStorage, SCSI, Bulk */
 
+enum USB_SPEED_TYPE {
+	USB_LOW_SPEED = 0,
+	USB_FULL_SPEED = 1,
+	USB_HIGH_SPEED = 2,
+};
+
 /* Max number of endpoints supported in a device */
 #define USB_DEV_EP_MAX 4
 #define USB_TIMEOUT    5000 /* 5 sec usb timeout */
@@ -82,7 +88,7 @@ struct usb_dev {
 	uint32_t class;
 	uint32_t speed;
 	uint32_t addr;
-	uint32_t mps;
+	uint32_t mps0;
 	uint32_t port;
 	uint16_t intf_num;
 };
@@ -184,7 +190,7 @@ struct usb_dev_config_descr {
 	uint8_t		bConfigurationValue;	/* Configuration-ID for SetConfiguration */
 	uint8_t		iConfiguration;		/* index of string descriptor */
 	uint8_t		bmAttributes;		/* configuration characteristics */
-	uint8_t		MaxPower;		/* in 2mA units */
+	uint8_t		bMaxPower;		/* in 2mA units */
 } __attribute__((packed));
 
 /*******************************************/
