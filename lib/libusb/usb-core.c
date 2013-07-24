@@ -101,3 +101,17 @@ void usb_hcd_init(void *hcidev)
 
 	dprintf("usb_ops for the controller not found\n");
 }
+
+int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
+{
+	struct usb_dev *dev = NULL;
+	if (!pipe)
+		return false;
+	dev = pipe->dev;
+	if (validate_hcd_ops(dev) && dev->hcidev->ops->send_ctrl)
+		return dev->hcidev->ops->send_ctrl(pipe, req, data);
+	else {
+		printf("%s: Failed\n", __func__);
+		return false;
+	}
+}

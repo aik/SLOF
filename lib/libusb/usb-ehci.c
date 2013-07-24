@@ -71,6 +71,11 @@ static void ehci_disconnect(void)
 
 }
 
+static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
+{
+	return false;
+}
+
 static struct usb_pipe *ehci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len)
 {
@@ -89,6 +94,7 @@ struct usb_hcd_ops ehci_ops = {
 	.disconnect  = ehci_disconnect,
 	.get_pipe    = ehci_get_pipe,
 	.put_pipe    = ehci_put_pipe,
+	.send_ctrl   = ehci_send_ctrl,
 	.usb_type    = USB_EHCI,
 	.next        = NULL,
 };

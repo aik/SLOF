@@ -296,6 +296,11 @@ static void ohci_disconnect(void)
 
 }
 
+static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
+{
+	return false;
+}
+
 static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t buflen)
 {
@@ -356,6 +361,7 @@ struct usb_hcd_ops ohci_ops = {
 	.disconnect  = ohci_disconnect,
 	.get_pipe    = ohci_get_pipe,
 	.put_pipe    = ohci_put_pipe,
+	.send_ctrl   = ohci_send_ctrl,
 	.usb_type    = USB_OHCI,
 	.next        = NULL,
 };

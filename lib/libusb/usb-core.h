@@ -120,6 +120,7 @@ struct usb_hcd_ops {
 	void (*init)(struct usb_hcd_dev *);
 	void (*detect)(void);
 	void (*disconnect)(void);
+	int  (*send_ctrl)(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);
 	struct usb_pipe* (*get_pipe)(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len);
 	void (*put_pipe)(struct usb_pipe *);
@@ -131,5 +132,6 @@ extern void usb_hcd_register(struct usb_hcd_ops *ops);
 extern struct usb_pipe *usb_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len);
 extern void usb_put_pipe(struct usb_pipe *pipe);
+extern int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);
 
 #endif
