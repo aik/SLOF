@@ -41,4 +41,7 @@
 
 : usb-scan ( -- )
     ." Scanning USB " cr
+    ohci-alias-num 1 >= IF
+	USB-OHCI-REGISTER
+    then
 ;

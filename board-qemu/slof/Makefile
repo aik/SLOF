@@ -20,16 +20,19 @@ include $(TOPCMNDIR)/make.rules
 all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libhvcall \
-	   -I$(LIBCMNDIR)/libvirtio -I$(LIBCMNDIR)/libnvram
+	   -I$(LIBCMNDIR)/libvirtio -I$(LIBCMNDIR)/libnvram \
+	   -I$(LIBCMNDIR)/libusb
 SLOF_LIBS = \
 	$(LIBCMNDIR)/libbootmsg.a \
 	$(LIBCMNDIR)/libelf.a \
 	$(LIBCMNDIR)/libhvcall.a \
 	$(LIBCMNDIR)/libvirtio.a \
+	$(LIBCMNDIR)/libusb.a \
 	$(LIBCMNDIR)/libnvram.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libhvcall/hvcall.in \
 	$(LIBCMNDIR)/libvirtio/virtio.in \
+	$(LIBCMNDIR)/libusb/usb.in \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
 	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libnvram/libnvram.in \

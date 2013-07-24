@@ -1,0 +1,26 @@
+/******************************************************************************
+ * Copyright (c) 2013 IBM Corporation
+ * All rights reserved.
+ * This program and the accompanying materials
+ * are made available under the terms of the BSD License
+ * which accompanies this distribution, and is available at
+ * http://www.opensource.org/licenses/bsd-license.php
+ *
+ * Contributors:
+ *     IBM Corporation - initial implementation
+ *****************************************************************************/
+/*
+ * libusb bindings for SLOF - implementation
+ */
+
+#include <usb.h>
+
+
+/************************************************/
+/* Register with the usb-core                   */
+/* SLOF:   USB-OHCI-REGISTER  ( -- )            */
+/* LIBNEWUSB: usb_ohci_register(void)           */
+/************************************************/
+PRIM(USB_X2d_OHCI_X2d_REGISTER)
+	usb_ohci_register();
+MIRP

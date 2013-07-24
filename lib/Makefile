@@ -10,7 +10,7 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-SUBDIRS = libc libipmi libbootmsg libbases libnvram libelf libhvcall libvirtio
+SUBDIRS = libc libipmi libbootmsg libbases libnvram libelf libhvcall libvirtio libusb
 
 all:  subdirs
 
