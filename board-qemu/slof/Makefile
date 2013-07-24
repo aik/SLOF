@@ -81,6 +81,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
 	$(SLOFCMNDIR)/fs/scsi-disk.fs \
 	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
+	$(SLOFCMNDIR)/fs/scsi-probe-helpers.fs \
 	$(SLOFCMNDIR)/fs/scsi-support.fs \
 	$(SLOFBRDDIR)/default-font.bin \
 	$(SLOFBRDDIR)/pci-phb.fs \

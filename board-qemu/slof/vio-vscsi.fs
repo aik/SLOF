@@ -504,83 +504,12 @@ TRUE VALUE first-time-init?
     10000 \ Larger value seem to have problems with some CDROMs
 ;
 
-\ FIXME: Most of the stuff below should be made common
-
-: wrapped-inquiry ( -- true | false )
-    inquiry 0= IF false EXIT THEN
-    \ Skip devices with PQ != 0
-    sector inquiry-data>peripheral c@ e0 and 0 =
-;
-
 8 CONSTANT #dev
-
-: vscsi-read-lun     ( addr -- lun true | false )
-  dup c@ C0 AND CASE
-     40 OF w@-be 3FFF AND TRUE ENDOF
-     0  OF w@-be          TRUE ENDOF
-     dup dup OF ." Unsupported LUN format = " . cr FALSE ENDOF
-  ENDCASE
-;
-
-: get-max-target ( -- #dev )
+: dev-max-target ( -- #max-target )
     #dev
 ;
 
-: vscsi-report-luns ( -- array ndev )
-  \ array of pointers, up to 8 devices
-  get-max-target 3 << alloc-mem dup
-  0                                    ( devarray devcur ndev )   
-  get-max-target 0 DO
-     i 0 dev-generate-srplun (set-target)
-     report-luns nip IF
-        sector l@                     ( devarray devcur ndev size )
-        sector 8 + swap               ( devarray devcur ndev lunarray size )
-        dup 8 + dup alloc-mem         ( devarray devcur ndev lunarray size size+ mem )
-        dup rot 0 fill                ( devarray devcur ndev lunarray size mem )
-        dup >r swap move r>           ( devarray devcur ndev mem )
-        dup sector l@ 3 >> 0 DO       ( devarray devcur ndev mem memcur )
-           dup dup vscsi-read-lun IF
-              j swap dev-generate-srplun  swap x! 8 +
-           ELSE
-              2drop
-           THEN
-        LOOP drop
-	rot                           ( devarray ndev mem devcur )
-        dup >r x! r> 8 +              ( devarray ndev devcur )
-        swap 1 +
-     THEN
-  LOOP
-  nip
-;
-
-: vscsi-find-disks      ( -- )   
-    ." VSCSI: Looking for devices" cr
-    vscsi-report-luns
-    0 ?DO
-       dup x@
-       BEGIN
-          dup x@
-          dup 0= IF drop TRUE ELSE
-             (set-target) wrapped-inquiry IF	
-	        ."   " current-target (u.) type ."  "
-	        \ XXX FIXME: Check top bits to ignore unsupported units
-	        \            and maybe provide better printout & more cases
-                \ XXX FIXME: Actually check for LUNs
-	        sector inquiry-data>peripheral c@ CASE
-                   0   OF ." DISK     : " " disk"  current-target make-disk-alias ENDOF
-                   5   OF ." CD-ROM   : " " cdrom" current-target make-disk-alias ENDOF
-                   7   OF ." OPTICAL  : " " cdrom" current-target make-disk-alias ENDOF
-                   e   OF ." RED-BLOCK: " " disk"  current-target make-disk-alias ENDOF
-                   dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
-                ENDCASE
-	        sector .inquiry-text cr
-	     THEN
-             8 + FALSE
-          THEN
-       UNTIL drop
-       8 +
-    LOOP drop
-;
+" scsi-probe-helpers.fs" included
 
 \ Remove scsi functions from word list
 scsi-close
@@ -599,7 +528,7 @@ scsi-close
     my-self >r
     dup to my-self
     \ Scan the VSCSI bus:
-    vscsi-find-disks
+    scsi-find-disks
     setup-alias
     \ Close the temporary instance:
     close-node
