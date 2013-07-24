@@ -99,8 +99,14 @@ struct ohci_hcca {
 struct ohci_pipe {
 	struct ohci_ed  ed; /* has to be aligned at 16 byte address*/
 	struct usb_pipe pipe;
+	struct ohci_td  *td;
+	void *buf;
 	long ed_phys;
-	uint8_t pad[8];
+	long td_phys;
+	long buf_phys;
+	uint32_t buflen;
+	uint32_t count;
+	uint8_t pad[0];
 }__attribute__((packed));
 
 #define OHCI_PIPE_POOL_SIZE 4096

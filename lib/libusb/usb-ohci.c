@@ -184,7 +184,6 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe)
 {
 	struct ohci_pipe *opipe;
-
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
 	dprintf("%s: ed is %p\n", __func__, &opipe->ed);
 	return &opipe->ed;
@@ -193,10 +192,17 @@ static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe)
 static inline long ohci_pipe_get_ed_phys(struct usb_pipe *pipe)
 {
 	struct ohci_pipe *opipe;
-
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
 	dprintf("%s: ed_phys is %x\n", __func__, opipe->ed_phys);
 	return opipe->ed_phys;
+}
+
+static inline struct ohci_pipe *ohci_pipe_get_opipe(struct usb_pipe *pipe)
+{
+	struct ohci_pipe *opipe;
+	opipe = container_of(pipe, struct ohci_pipe, pipe);
+	dprintf("%s: opipe is %p\n", __func__, opipe);
+	return opipe;
 }
 
 static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd)
@@ -418,6 +424,141 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	return ret;
 }
 
+/* Populate the hcca intr region with periodic intr */
+static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
+			char *buf, size_t buflen)
+{
+	struct ohci_hcca *hcca;
+	struct ohci_pipe *opipe;
+	struct ohci_ed *ed;
+	struct usb_dev *dev;
+	struct ohci_td *tds, *td;
+	int32_t count, i;
+	uint8_t *ptr;
+	uint16_t mps;
+	long ed_phys, td_phys, td_next, buf_phys;
+
+	if (!pipe || !ohcd)
+		return false;
+
+	hcca = ohcd->hcca;
+	dev = pipe->dev;
+	if (dev->class != DEV_HID_KEYB)
+		return false;
+
+	opipe = ohci_pipe_get_opipe(pipe);
+	ed = &(opipe->ed);
+	ed_phys = opipe->ed_phys;
+	mps = pipe->mps;
+	write_reg(&ed->attr, EDA_DIR_IN | EDA_FADDR(dev->addr) | dev->speed |
+		EDA_MPS(pipe->mps) | EDA_SKIP | EDA_EP(pipe->epno));
+	dprintf("%s: pipe %p ed %p dev %p opipe %p\n", __func__, pipe, ed, dev, opipe);
+	count = (buflen/mps) + 1;
+	tds = td = SLOF_dma_alloc(sizeof(*td) * count);
+	if (!tds) {
+		printf("%s: alloc failed\n", __func__);
+		return false;
+	}
+	td_phys = SLOF_dma_map_in(td, sizeof(*td) * count, false);
+
+	memset(tds, 0, sizeof(*tds) * count);
+	memset(buf, 0, buflen);
+	buf_phys = SLOF_dma_map_in(buf, buflen, false);
+	opipe->td = td;
+	opipe->td_phys = td_phys;
+	opipe->count = count;
+	opipe->buf = buf;
+	opipe->buflen = buflen;
+	opipe->buf_phys = buf_phys;
+
+	ptr = (uint8_t *)buf_phys;
+	for (i = 0; i < count - 1; i++, ptr += mps) {
+		td = &tds[i];
+		td_next = ohci_get_td_phys(td + 1, &tds[0], td_phys);
+		write_reg(&td->cbp, PTR_U32(ptr));
+		write_reg(&td->attr, TDA_DP_IN | TDA_ROUNDING | TDA_CC);
+		write_reg(&td->next_td, td_next);
+		write_reg(&td->be, PTR_U32(ptr) + mps - 1);
+		dprintf("td %x td++ %x ptr %x be %x\n",
+			td, read_reg(&td->next_td), ptr, (PTR_U32(ptr) + mps - 1));
+	}
+	td->next_td = 0;
+	td_next = ohci_get_td_phys(td, &tds[0], td_phys);
+	write_reg(&ed->headp, td_phys);
+	write_reg(&ed->tailp, td_next);
+
+	dprintf("%s: head %08X tail %08X, count %d, mps %d\n", __func__,
+		read_reg(&ed->headp),
+		read_reg(&ed->tailp),
+		count, mps);
+	ed->next_ed = 0;
+
+
+	switch (dev->class) {
+	case DEV_HID_KEYB:
+		dprintf("%s: Keyboard class %d\n", __func__, dev->class);
+		write_reg(&hcca->intr_table[0],  ed_phys);
+		write_reg(&hcca->intr_table[8],  ed_phys);
+		write_reg(&hcca->intr_table[16], ed_phys);
+		write_reg(&hcca->intr_table[24], ed_phys);
+		write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+		break;
+	case DEV_HUB:
+	default:
+		dprintf("%s: unhandled class %d\n", __func__, dev->class);
+	}
+	return true;
+}
+
+static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
+{
+	struct ohci_hcca *hcca;
+	struct ohci_pipe *opipe;
+	struct ohci_ed *ed;
+	struct usb_dev *dev;
+	struct ohci_td *td;
+	long ed_phys;
+
+	if (!pipe || !ohcd)
+		return false;
+
+	hcca = ohcd->hcca;
+	dev = pipe->dev;
+
+	if (dev->class != DEV_HID_KEYB)
+		return false;
+
+	opipe = ohci_pipe_get_opipe(pipe);
+	ed = &(opipe->ed);
+	ed_phys = opipe->ed_phys;
+	dprintf("%s: td %p td_phys %08lx buf %p buf_phys %08lx\n", __func__,
+		opipe->td, opipe->td_phys, opipe->buf, opipe->buf_phys);
+
+	write_reg(&ed->attr, read_reg(&ed->attr) | EDA_SKIP);
+	barrier();
+	ed->headp = 0;
+	ed->tailp = 0;
+	ed->next_ed = 0;
+	SLOF_dma_map_out(opipe->buf_phys, opipe->buf, opipe->buflen);
+	SLOF_dma_map_out(opipe->td_phys, opipe->td, sizeof(*td) * opipe->count);
+	SLOF_dma_free(opipe->td, sizeof(*td) * opipe->count);
+
+	switch (dev->class) {
+	case DEV_HID_KEYB:
+		dprintf("%s: Keyboard class %d\n", __func__, dev->class);
+		write_reg(&hcca->intr_table[0],  ed_phys);
+		write_reg(&hcca->intr_table[8],  ed_phys);
+		write_reg(&hcca->intr_table[16], ed_phys);
+		write_reg(&hcca->intr_table[24], ed_phys);
+		break;
+
+	case DEV_HUB:
+	default:
+		dprintf("%s: unhandled class %d\n", __func__, dev->class);
+	}
+	return true;
+}
+
 static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t buflen)
 {
@@ -446,7 +587,13 @@ static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 	new->type = ep->bmAttributes & USB_EP_TYPE_MASK;
 	new->speed = dev->speed;
 	new->mps = read_reg16(&ep->wMaxPacketSize);
+	new->epno = ep->bEndpointAddress & 0xF;
 	new->dir = ep->bEndpointAddress & 0x80;
+	if (new->type == USB_EP_TYPE_INTR)
+		if (!ohci_get_pipe_intr(new, ohcd, buf, buflen))
+			dprintf("usb-ohci: %s alloc_intr failed  %p\n",
+				__func__, new);
+
 	dprintf("usb-ohci: %s exit %p\n", __func__, new);
 	return new;
 }
@@ -464,11 +611,90 @@ static void ohci_put_pipe(struct usb_pipe *pipe)
 	else
 		ohcd->freelist = pipe;
 
+	if (pipe->type == USB_EP_TYPE_INTR)
+		if (!ohci_put_pipe_intr(pipe, ohcd))
+			dprintf("usb-ohci: %s alloc_intr failed  %p\n",
+				__func__, new);
+
 	ohcd->end = pipe;
 	pipe->next = NULL;
 	pipe->dev = NULL;
 	memset(pipe, 0, sizeof(*pipe));
 	dprintf("usb-ohci: %s exit\n", __func__);
+}
+
+static uint16_t ohci_get_last_frame(struct usb_dev *dev)
+{
+	struct ohci_hcd *ohcd;
+	struct ohci_regs *regs;
+
+	ohcd = dev->hcidev->priv;
+	regs = ohcd->regs;
+	return read_reg(&regs->fm_num);
+}
+
+static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
+{
+	struct ohci_pipe *opipe;
+	struct ohci_ed *ed;
+	struct ohci_td *head, *tail, *curr, *next;
+	struct ohci_td *head_phys, *tail_phys, *curr_phys;
+	uint8_t *ptr;
+	unsigned int i, pos;
+	static uint16_t last_frame;
+	long ptr_phys = 0;
+	long td_next;
+
+	if (!pipe || last_frame == ohci_get_last_frame(pipe->dev))
+		return 0;
+
+	dprintf("%s: enter\n", __func__);
+
+	last_frame = ohci_get_last_frame(pipe->dev);
+	opipe = ohci_pipe_get_opipe(pipe);
+	ed = &opipe->ed;
+
+	head_phys = (struct ohci_td *)(long)(read_reg32(&ed->headp) & EDA_HEADP_MASK);
+	tail_phys = (struct ohci_td *)(long) read_reg32(&ed->tailp);
+	curr_phys = (struct ohci_td *) opipe->td_phys;
+	pos = (tail_phys - curr_phys + 1) % (opipe->count - 1);
+	dprintf("pos %d %ld -- %d\n", pos, (tail_phys - curr_phys + 1),
+		opipe->count);
+	curr = opipe->td + pos;
+	head = opipe->td + (head_phys - (struct ohci_td *) opipe->td_phys);
+	tail = opipe->td + (tail_phys - (struct ohci_td *) opipe->td_phys);
+
+	/* dprintf("%08X %08X %08X %08X\n",
+	   opipe->td_phys, head_phys, tail_phys, curr_phys);
+	   dprintf("%08X %08X %08X %08X\n", opipe->td, head, tail, curr); */
+
+	if (curr != head) {
+		ptr = (uint8_t *) ((long)opipe->buf + pipe->mps * pos);
+		ptr_phys = opipe->buf_phys + pipe->mps * pos;
+		if (read_reg((uint32_t *)ptr) != 0) {
+			for (i = 0; i < 8; i++)
+				data[i] = *(ptr + i);
+		}
+
+		next = curr + 1;
+		if (next == (opipe->td + opipe->count - 1))
+			next = opipe->td;
+
+		write_reg(&curr->attr, TDA_DP_IN | TDA_ROUNDING | TDA_CC);
+		write_reg(&curr->next_td, 0);
+		write_reg(&curr->cbp, PTR_U32(ptr_phys));
+		write_reg(&curr->be, PTR_U32(ptr_phys + pipe->mps - 1));
+		td_next = ohci_get_td_phys(curr, opipe->td, opipe->td_phys);
+		dprintf("Connecting %p to %p(phys %08lx) ptr %p, ptr_phys %08lx\n",
+			tail, curr, td_next, ptr, ptr_phys);
+		write_reg(&tail->next_td, td_next);
+		barrier();
+		write_reg(&ed->tailp, td_next);
+	} else
+		return 0;
+
+	dprintf("%s: exit\n", __func__);
+	return 1;
 }
 
 struct usb_hcd_ops ohci_ops = {
@@ -479,6 +705,7 @@ struct usb_hcd_ops ohci_ops = {
 	.get_pipe    = ohci_get_pipe,
 	.put_pipe    = ohci_put_pipe,
 	.send_ctrl   = ohci_send_ctrl,
+	.poll_intr   = ohci_poll_intr,
 	.usb_type    = USB_OHCI,
 	.next        = NULL,
 };

@@ -238,6 +238,7 @@ struct usb_hcd_ops {
 	struct usb_pipe* (*get_pipe)(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len);
 	void (*put_pipe)(struct usb_pipe *);
+	int (*poll_intr)(struct usb_pipe *, uint8_t *);
 	struct usb_hcd_ops *next;
 	unsigned int usb_type;
 };
@@ -246,6 +247,7 @@ extern void usb_hcd_register(struct usb_hcd_ops *ops);
 extern struct usb_pipe *usb_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len);
 extern void usb_put_pipe(struct usb_pipe *pipe);
+extern int usb_poll_intr(struct usb_pipe *pipe, uint8_t *buf);
 extern int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);
 extern struct usb_dev *usb_devpool_get(void);
 extern void usb_devpool_put(struct usb_dev *);
@@ -253,5 +255,7 @@ extern int setup_new_device(struct usb_dev *dev, unsigned int port);
 extern int slof_usb_handle(struct usb_dev *dev);
 extern int usb_dev_populate_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				void *buf, size_t len);
+extern int usb_hid_kbd_init(struct usb_dev *dev);
+extern int usb_hid_kbd_exit(struct usb_dev *dev);
 
 #endif

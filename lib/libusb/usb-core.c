@@ -124,6 +124,17 @@ void usb_put_pipe(struct usb_pipe *pipe)
 	}
 }
 
+int usb_poll_intr(struct usb_pipe *pipe, uint8_t *buf)
+{
+	struct usb_dev *dev = NULL;
+	if (pipe && pipe->dev) {
+		dev = pipe->dev;
+		if (validate_hcd_ops(dev) && dev->hcidev->ops->poll_intr)
+			return dev->hcidev->ops->poll_intr(pipe, buf);
+	}
+	return 0;
+}
+
 void usb_hcd_register(struct usb_hcd_ops *ops)
 {
 	struct usb_hcd_ops *list;
@@ -272,6 +283,40 @@ int usb_dev_populate_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 	return true;
 }
 
+static void usb_dev_copy_epdesc(struct usb_dev *dev, struct usb_ep_descr *ep)
+{
+	uint32_t ep_cnt;
+
+	ep_cnt = dev->ep_cnt;
+	if (ep_cnt < USB_DEV_EP_MAX)
+		memcpy((void *)&dev->ep[ep_cnt], ep, sizeof(*ep));
+	else
+		dprintf("usb-core: only %d EPs supported\n", USB_DEV_EP_MAX);
+	dev->ep_cnt++;
+}
+
+int usb_hid_init(void *vdev)
+{
+	struct usb_dev *dev;
+	dev = (struct usb_dev *) vdev;
+	if (!dev)
+		return false;
+	if (dev->class == DEV_HID_KEYB)
+		usb_hid_kbd_init(dev);
+	return true;
+}
+
+int usb_hid_exit(void *vdev)
+{
+	struct usb_dev *dev;
+	dev = (struct usb_dev *) vdev;
+	if (!dev)
+		return false;
+	if (dev->class == DEV_HID_KEYB)
+		usb_hid_kbd_exit(dev);
+	return true;
+}
+
 static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *cfg,
 		uint8_t *ptr, uint16_t len)
 {
@@ -296,7 +341,7 @@ static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *c
 		case DESCR_TYPE_ENDPOINT:
 			ep = (struct usb_ep_descr *)ptr;
 			dev->intf_num = intf->bInterfaceNumber;
-			/* usb_dev_populate_pipe(dev, ep, NULL, 0); */
+			usb_dev_copy_epdesc(dev, ep);
 			break;
 		case DESCR_TYPE_HID:
 			hid = (struct usb_dev_hid_descr *)ptr;

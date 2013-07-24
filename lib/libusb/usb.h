@@ -1,4 +1,3 @@
-
 /******************************************************************************
  * Copyright (c) 2006, 2012, 2013 IBM Corporation
  * All rights reserved.
@@ -29,6 +28,21 @@ extern void usb_ehci_register(void);
 /* SLOF:  USB-HCD-INIT                     */
 /*******************************************/
 extern void usb_hcd_init(void *hcidev);
+/*******************************************/
+/* SLOF:  USB-HID-INIT                     */
+/*******************************************/
+extern int usb_hid_init(void *dev);
+/*******************************************/
+/* SLOF:  USB-HID-EXIT                     */
+/*******************************************/
+extern int usb_hid_exit(void *dev);
+/*******************************************/
+/* SLOF:  USB-READ-KEYB                    */
+/*******************************************/
+extern unsigned char usb_read_keyb(void *dev);
+/*******************************************/
+/* SLOF:  USB-KEY-AVAILABLE                */
+/*******************************************/
+extern unsigned char usb_key_available(void *dev);
 
 #endif
-

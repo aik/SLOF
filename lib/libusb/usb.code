@@ -43,3 +43,45 @@ PRIM(USB_X2d_HCD_X2d_INIT)
 	void *hcidev = TOS.a; POP;
 	usb_hcd_init(hcidev);
 MIRP
+
+/************************************************/
+/* Initialize hid                               */
+/* SLOF:   USB-HID-INIT  ( dev -- true | false )*/
+/* LIBNEWUSB: usb_hid_init(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_HID_X2d_INIT)
+	void *dev = TOS.a;
+	TOS.n = usb_hid_init(dev);
+MIRP
+
+/************************************************/
+/* Exit hid                                     */
+/* SLOF:   USB-HID-EXIT  ( dev -- true | false )*/
+/* LIBNEWUSB: usb_hid_exit(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_HID_X2d_EXIT)
+	void *dev = TOS.a;
+	TOS.n = usb_hid_exit(dev);
+MIRP
+
+/************************************************/
+/* Read usb keyboard for key                    */
+/* SLOF:   USB-READ-KEYB  ( dev --              */
+/*                        ( key | false  ))     */
+/* LIBNEWUSB: usb_read_keyb                     */
+/************************************************/
+PRIM(USB_X2d_READ_X2d_KEYB)
+	void *dev = TOS.a;
+	TOS.n = usb_read_keyb(dev);
+MIRP
+
+/************************************************/
+/* Is USB KEY available                         */
+/* SLOF:   USB-KEY-AVAILABLE ( dev -- ( true |  */
+/*                                      false ))*/
+/* LIBNEWUSB: usb_key_available                 */
+/************************************************/
+PRIM(USB_X2d_KEY_X2d_AVAILABLE)
+	void *dev = TOS.a;
+	TOS.n = usb_key_available(dev);
+MIRP
