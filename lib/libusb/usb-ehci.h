@@ -131,6 +131,10 @@ struct ehci_pipe {
 #define QH_STS_SXS	(1 << 1)
 #define QH_STS_PING	(1 << 0)
 
+#define NUM_BULK_QTDS		4
+#define MAX_XFER_PER_QTD	(20 * 1024)
+#define QTD_MAX_TRANSFER_LEN	(NUM_BULK_QTDS * MAX_XFER_PER_QTD)
+
 #define TOKEN_DT_SHIFT		31
 #define TOKEN_TBTT_SHIFT	16
 #define TOKEN_IOC_SHIFT		15

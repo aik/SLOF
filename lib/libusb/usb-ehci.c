@@ -15,6 +15,7 @@
 #include "usb-core.h"
 #include "usb-ehci.h"
 #include "tools.h"
+#include "paflof.h"
 
 #undef EHCI_DEBUG
 //#define EHCI_DEBUG
@@ -58,8 +59,10 @@ static int ehci_hub_check_ports(struct ehci_hcd *ehcd)
 	uint32_t num_ports, portsc, i;
 	struct usb_dev *dev;
 
+	dprintf("%s: enter\n", __func__);
 	num_ports = read_reg32(&ehcd->cap_regs->hcsparams) & HCS_NPORTS_MASK;
 	for (i = 0; i < num_ports; i++) {
+		dprintf("%s: device %d\n", __func__, i);
 		portsc = read_reg32(&ehcd->op_regs->portsc[i]);
 		if (portsc & PORT_CONNECT) { /* Device present */
 			dprintf("usb-ehci: Device present on port %d\n", i);
@@ -73,14 +76,14 @@ static int ehci_hub_check_ports(struct ehci_hcd *ehcd)
 			write_reg32(&ehcd->op_regs->portsc[i], portsc);
 			SLOF_msleep(20);
 			dev = usb_devpool_get();
-			printf("usb-ehci: allocated device %p\n", dev);
+			dprintf("usb-ehci: allocated device %p\n", dev);
 			dev->hcidev = ehcd->hcidev;
 			dev->speed = USB_HIGH_SPEED; /* TODO: Check for Low/Full speed device */
 			if (!setup_new_device(dev, i))
 				printf("usb-ehci: unable to setup device on port %d\n", i);
 		}
 	}
-
+	dprintf("%s: exit\n", __func__);
 	return 0;
 }
 
@@ -236,6 +239,27 @@ static void ehci_disconnect(void)
 
 }
 
+static int fill_qtd_buff(struct ehci_qtd *qtd, long data, uint32_t size)
+{
+	long i, rem;
+	long pos = (data + 0x1000) & ~0xfff;
+
+	qtd->buffer[0] = cpu_to_le32(PTR_U32(data));
+	for (i = 1; i < 5; i++) {
+		if ((data + size - 1) >= pos) {
+			//dprintf("data spans page boundary: %d, %p\n", i, pos);
+			qtd->buffer[i] = cpu_to_le32(pos);
+			pos += 0x1000;
+		} else
+			break;
+	}
+	if ((data + size) > pos)
+		rem = data + size - pos;
+	else
+		rem = 0;
+	return rem;
+}
+
 static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
 {
 	struct ehci_hcd *ehcd;
@@ -267,7 +291,7 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 			(3 << TOKEN_CERR_SHIFT) |
 			(PID_SETUP << TOKEN_PID_SHIFT) |
 			(QH_STS_ACTIVE << TOKEN_STATUS_SHIFT));
-	qtd->buffer[0] = cpu_to_le32(req_phys);
+	fill_qtd_buff(qtd, req_phys, sizeof(*req));
 
 	qtd++;
 	datalen = cpu_to_le16(req->wLength);
@@ -281,7 +305,7 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 				(3 << TOKEN_CERR_SHIFT) |
 				(pid << TOKEN_PID_SHIFT) |
 				(QH_STS_ACTIVE << TOKEN_STATUS_SHIFT));
-		qtd->buffer[0] = cpu_to_le32(data_phys);
+		fill_qtd_buff(qtd, data_phys, datalen);
 		qtd++;
 	}
 
@@ -335,6 +359,92 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	return ret;
 }
 
+static int ehci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
+			void *data_phys, int size)
+{
+	struct ehci_hcd *ehcd;
+	struct ehci_qtd *qtd, *qtd_phys;
+	struct ehci_pipe *epipe;
+	uint32_t pid;
+	int i, rem;
+	uint32_t time;
+	long ptr;
+
+	dprintf("usb-ehci: bulk transfer: data %p, size %d, td %p, td_phys %p\n",
+		data_phys, size, td, td_phys);
+
+	if (pipe->type != USB_EP_TYPE_BULK) {
+		printf("usb-ehci: Not a bulk pipe.\n");
+		return false;
+	}
+
+	if (size > QTD_MAX_TRANSFER_LEN) {
+		printf("usb-ehci: bulk transfer size too big\n");
+		return false;
+	}
+
+	ehcd = pipe->dev->hcidev->priv;
+	pid = (pipe->dir == USB_PIPE_OUT) ? PID_OUT : PID_IN;
+	qtd = (struct ehci_qtd *)td;
+	qtd_phys = (struct ehci_qtd *)td_phys;
+	ptr = (long)data_phys;
+	for (i = 0; i < NUM_BULK_QTDS; i++) {
+		memset(qtd, 0, sizeof(*qtd));
+		rem = fill_qtd_buff(qtd, ptr, size);
+		qtd->token = cpu_to_le32((1 << TOKEN_DT_SHIFT) |
+				((size - rem) << TOKEN_TBTT_SHIFT) |
+				(3 << TOKEN_CERR_SHIFT) |
+				(pid << TOKEN_PID_SHIFT) |
+				(QH_STS_ACTIVE << TOKEN_STATUS_SHIFT));
+		if (rem) {
+			qtd->next_qtd = cpu_to_le32(PTR_U32(&qtd_phys[i+1]));
+			qtd->alt_next_qtd = QH_PTR_TERM;
+			ptr += size - rem;
+			size = rem;
+			qtd++;
+		} else {
+			qtd->next_qtd = qtd->alt_next_qtd = QH_PTR_TERM;
+			break; /* no more data */
+		}
+	}
+
+	/* link qtd to qh and attach to ehcd */
+	barrier();
+	epipe = container_of(pipe, struct ehci_pipe, pipe);
+	epipe->qh.next_qtd = cpu_to_le32(PTR_U32(qtd_phys));
+	epipe->qh.qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
+	epipe->qh.ep_cap1 = cpu_to_le32((pipe->mps << QH_MPS_SHIFT) |
+				(pipe->speed << QH_EPS_SHIFT) |
+				(pipe->epno << QH_EP_SHIFT) |
+				(pipe->dev->addr << QH_DEV_ADDR_SHIFT));
+	barrier();
+
+	ehcd->qh_async->qh_ptr = cpu_to_le32(epipe->qh_phys | EHCI_TYP_QH);
+
+	/* transfer data */
+	barrier();
+	qtd = (struct ehci_qtd *)td;
+	for (i = 0; i < NUM_BULK_QTDS; i++) {
+		time = SLOF_GetTimer() + USB_TIMEOUT;
+		while ((time > SLOF_GetTimer()) &&
+			(le32_to_cpu(qtd->token) & (QH_STS_ACTIVE << TOKEN_STATUS_SHIFT)))
+			cpu_relax();
+		if (qtd->next_qtd == QH_PTR_TERM)
+			break;
+
+		if (le32_to_cpu(qtd->token) & (QH_STS_ACTIVE << TOKEN_STATUS_SHIFT)) {
+			printf("usb-ehci: bulk transfer timed out_\n");
+			return false;
+		}
+
+		qtd++;
+	}
+
+	ehcd->qh_async->qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
+
+	return true;
+}
+
 static struct usb_pipe *ehci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len)
 {
@@ -362,7 +472,8 @@ static struct usb_pipe *ehci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 	new->type = ep->bmAttributes & USB_EP_TYPE_MASK;
 	new->speed = dev->speed;
 	new->mps = ep->wMaxPacketSize;
-	new->dir = ep->bEndpointAddress & 0x80;
+	new->dir = (ep->bEndpointAddress & 0x80) >> 7;
+	new->epno = ep->bEndpointAddress & 0x0f;
 
 	return new;
 }
@@ -388,15 +499,16 @@ static void ehci_put_pipe(struct usb_pipe *pipe)
 }
 
 struct usb_hcd_ops ehci_ops = {
-	.name        = "ehci-hcd",
-	.init        = ehci_init,
-	.detect      = ehci_detect,
-	.disconnect  = ehci_disconnect,
-	.get_pipe    = ehci_get_pipe,
-	.put_pipe    = ehci_put_pipe,
-	.send_ctrl   = ehci_send_ctrl,
-	.usb_type    = USB_EHCI,
-	.next        = NULL,
+	.name          = "ehci-hcd",
+	.init          = ehci_init,
+	.detect        = ehci_detect,
+	.disconnect    = ehci_disconnect,
+	.get_pipe      = ehci_get_pipe,
+	.put_pipe      = ehci_put_pipe,
+	.send_ctrl     = ehci_send_ctrl,
+	.transfer_bulk = ehci_transfer_bulk,
+	.usb_type      = USB_EHCI,
+	.next          = NULL,
 };
 
 void usb_ehci_register(void)
