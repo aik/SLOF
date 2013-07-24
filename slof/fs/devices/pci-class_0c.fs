@@ -14,23 +14,31 @@ s" serial bus [ " type my-space pci-class-name type s"  ]" type cr
 
 my-space pci-device-generic-setup
 
-
 \ Handle USB OHCI controllers:
-: handle-usb-ohci-class  ( -- )
+: handle-usb-class  ( -- )
    \ set Memory Write and Invalidate Enable, SERR# Enable
    \ (see PCI 3.0 Spec Chapter 6.2.2 device control):
    4 config-w@ 110 or 4 config-w!
    pci-master-enable               \ set PCI Bus master bit and
    pci-mem-enable                  \ memory space enable for USB scan
-   \ Create an alias for this controller:
-   set-ohci-alias
 ;
 
 \ Check PCI sub-class and interface type of Serial Bus Controller
 \ to include the appropriate driver:
 : handle-sbc-subclass  ( -- )
-   my-space pci-class@ ffff and CASE         \ get PCI sub-class and interface
-      0310 OF handle-usb-ohci-class ENDOF    \ USB OHCI controller
+    my-space pci-class@ ffff and CASE         \ get PCI sub-class and interface
+	0310 OF                      \ OHCI controller
+	    handle-usb-class
+	    set-ohci-alias
+	ENDOF
+	0320 OF                      \ EHCI controller
+	    handle-usb-class
+	    set-ehci-alias
+	ENDOF
+	0330 OF                      \ XHCI controller
+	    handle-usb-class
+	    set-xhci-alias
+	ENDOF
    ENDCASE
 ;
 

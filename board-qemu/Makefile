@@ -14,7 +14,7 @@ BOARD_TARGETS = tools_build romfs_build clients_build netdrivers stage1 subdirs
 
 SUBDIRS = slof veth virtio-net
 
-COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall libvirtio
+COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall libvirtio libusb
 
 all: $(BOARD_TARGETS)
 	$(MAKE) boot_rom.bin
