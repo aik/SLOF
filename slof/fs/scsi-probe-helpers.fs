@@ -42,6 +42,21 @@
     nip
 ;
 
+8 CONSTANT MAX-ALIAS
+0 VALUE srplun
+: make-media-alias ( $name srplun -- )
+    TO srplun
+    2dup find-alias IF
+        drop MAX-ALIAS 1 DO
+            i $cathex 2dup find-alias 0= IF
+                strdup srplun make-disk-alias UNLOOP EXIT
+            ELSE drop THEN
+        LOOP
+    ELSE
+        srplun make-disk-alias
+    THEN
+;
+
 : scsi-find-disks      ( -- )
     ."        SCSI: Looking for devices" cr
     vscsi-report-luns
@@ -56,10 +71,10 @@
 		    \            and maybe provide better printout & more cases
 		    \ XXX FIXME: Actually check for LUNs
 		    sector inquiry-data>peripheral c@ CASE
-			0   OF ." DISK     : " " disk"  current-target make-disk-alias ENDOF
-			5   OF ." CD-ROM   : " " cdrom" current-target make-disk-alias ENDOF
-			7   OF ." OPTICAL  : " " cdrom" current-target make-disk-alias ENDOF
-			e   OF ." RED-BLOCK: " " disk"  current-target make-disk-alias ENDOF
+			0   OF ." DISK     : " " disk"  current-target make-media-alias ENDOF
+			5   OF ." CD-ROM   : " " cdrom" current-target make-media-alias ENDOF
+			7   OF ." OPTICAL  : " " cdrom" current-target make-media-alias ENDOF
+			e   OF ." RED-BLOCK: " " disk"  current-target make-media-alias ENDOF
 			dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
 		    ENDCASE
 		    sector .inquiry-text cr
