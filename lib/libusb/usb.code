@@ -24,3 +24,13 @@
 PRIM(USB_X2d_OHCI_X2d_REGISTER)
 	usb_ohci_register();
 MIRP
+
+/************************************************/
+/* Initialize hcidev with the usb-core          */
+/* SLOF:   USB-HCD-INIT  ( hcidev -- )          */
+/* LIBNEWUSB: usb_hcd_init(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_HCD_X2d_INIT)
+	void *hcidev = TOS.a; POP;
+	usb_hcd_init(hcidev);
+MIRP

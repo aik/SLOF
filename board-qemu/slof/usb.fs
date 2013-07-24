@@ -18,6 +18,9 @@ STRUCT
     /n FIELD hcd>base
     /n FIELD hcd>type
     /n FIELD hcd>num
+    /n FIELD hcd>ops
+    /n FIELD hcd>priv
+    /n FIELD hcd>nextaddr
 CONSTANT /hci-dev
 
 : usb-setup-hcidev ( num hci-dev -- )

@@ -38,7 +38,7 @@
 ;
 
 : usb-enumerate ( hcidev -- )
-    drop
+    USB-HCD-INIT
 ;
 
 : usb-scan ( -- )

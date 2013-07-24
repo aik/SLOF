@@ -1,3 +1,4 @@
+
 /******************************************************************************
  * Copyright (c) 2006, 2012, 2013 IBM Corporation
  * All rights reserved.
@@ -20,6 +21,10 @@
 /* SLOF:  USB-OHCI-REGISTER                */
 /*******************************************/
 extern void usb_ohci_register(void);
+/*******************************************/
+/* SLOF:  USB-HCD-INIT                     */
+/*******************************************/
+extern void usb_hcd_init(void *hcidev);
 
 #endif
 

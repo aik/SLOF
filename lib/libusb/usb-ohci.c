@@ -10,12 +10,21 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <string.h>
 #include "usb.h"
 #include "usb-core.h"
 
-static void ohci_init(void)
-{
+#undef DEBUG
+//#define DEBUG
+#ifdef DEBUG
+#define dprintf(_x ...) printf(_x)
+#else
+#define dprintf(_x ...)
+#endif
 
+static void ohci_init(struct usb_hcd_dev *hcidev)
+{
+	dprintf("In ohci_init: start resetting and configuring the device %p\n", hcidev->base);
 }
 
 static void ohci_detect(void)

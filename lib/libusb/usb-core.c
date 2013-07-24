@@ -12,9 +12,52 @@
 
 #include "usb-core.h"
 
+#undef DEBUG
+//#define DEBUG
+#ifdef DEBUG
+#define dprintf(_x ...) printf(_x)
+#else
+#define dprintf(_x ...)
+#endif
+
+struct usb_hcd_ops *head;
+
 void usb_hcd_register(struct usb_hcd_ops *ops)
 {
+	struct usb_hcd_ops *list;
+
 	if (!ops)
 		printf("Error");
-	printf("Registering %s\n", ops->name);
+	dprintf("Registering %s %d\n", ops->name, ops->usb_type);
+
+	if (head) {
+		list = head;
+		while (list->next)
+			list = list->next;
+		list->next = ops;
+	} else
+		head = ops;
+}
+
+void usb_hcd_init(void *hcidev)
+{
+	struct usb_hcd_dev *dev = hcidev;
+	struct usb_hcd_ops *list = head;
+
+	if (!dev) {
+		printf("Device Error");
+		return;
+	}
+
+	while (list) {
+		if (list->usb_type == dev->type) {
+			dprintf("usb_ops(%p) for the controller found\n", list);
+			dev->ops = list;
+			dev->ops->init(dev);
+			return;
+		}
+		list = list->next;
+	}
+
+	dprintf("usb_ops for the controller not found\n");
 }
