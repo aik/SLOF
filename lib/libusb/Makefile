@@ -14,7 +14,7 @@ TOPCMNDIR ?= ../..
 
 ASFLAGS = $(FLAG) $(RELEASE) $(CPUARCHDEF) -Wa,-mregnames
 CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) \
-	   -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH)
+	   -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH) -I$(SLOFCMNDIR)
 LDFLAGS = -nostdlib
 
 TARGET = ../libusb.a
@@ -22,7 +22,7 @@ TARGET = ../libusb.a
 
 all: $(TARGET)
 
-SRCS =  usb-core.c usb-ohci.c usb-ehci.c
+SRCS =  usb-core.c usb-ohci.c usb-ehci.c usb-slof.c
 
 OBJS = $(SRCS:%.c=%.o)
 

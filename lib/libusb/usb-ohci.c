@@ -62,7 +62,7 @@ static void ohci_dump_regs(struct ohci_regs *regs)
 static int ohci_hcd_reset(struct ohci_regs *regs)
 {
 	uint32_t time;
-	time = SLOF_GetTimer() + 20;
+	time = SLOF_GetTimer() + USB_TIMEOUT;
 	write_reg(&regs->cmd_status, OHCI_CMD_STATUS_HCR);
 	while ((time > SLOF_GetTimer()) &&
 		(read_reg(&regs->cmd_status) & OHCI_CMD_STATUS_HCR))
@@ -135,6 +135,7 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 {
 	struct ohci_regs *regs;
+	struct usb_dev *dev;
 	unsigned int ports, i, port_status, port_clear = 0;
 
 	regs = ohcd->regs;
@@ -152,12 +153,16 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 				dprintf("Start enumerating device\n");
 				SLOF_msleep(10);
 			} else
-				dprintf("Start removing device\n");
+				printf("Start removing device\n");
 		}
 		port_status = read_reg(&regs->rh_ps[i]);
 		if (port_status & RH_PS_PRSC) {
 			port_clear |= RH_PS_PRSC;
-			dprintf("Device reset\n");
+			dev = usb_devpool_get();
+			dprintf("usb-ohci: Device reset, setting up %p\n", dev);
+			dev->hcidev = ohcd->hcidev;
+			if (!setup_new_device(dev, i))
+				printf("usb-ohci: unable to setup device on port %d\n", i);
 		}
 		if (port_status & RH_PS_PESC) {
 			port_clear |= RH_PS_PESC;
@@ -393,7 +398,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	write_reg(&regs->cntl_head_ed, ohci_pipe_get_ed_phys(pipe));
 	write_reg(&regs->cmd_status, OHCI_CMD_STATUS_CLF);
 
-	time = SLOF_GetTimer() + 20;
+	time = SLOF_GetTimer() + USB_TIMEOUT;
 	while ((time > SLOF_GetTimer()) &&
 		((ed->headp & EDA_HEADP_MASK_LE) != ed->tailp))
 		cpu_relax();
