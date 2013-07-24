@@ -14,6 +14,8 @@
 #define __USB_CORE_H
 
 #include <stdio.h>
+#include <stdbool.h>
+#include "helpers.h"
 #include "usb.h"
 #include "tools.h"
 
