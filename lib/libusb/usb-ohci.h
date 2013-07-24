@@ -59,6 +59,9 @@ struct ohci_regs {
 #define EDA_FORMAT_ISO   (1 << 15)
 #define EDA_MPS(x)       ((x & 0x7FF) << 16)
 
+#define EDA_HEADP_MASK    (0xFFFFFFFC)
+#define EDA_HEADP_MASK_LE (cpu_to_le32(EDA_HEADP_MASK))
+
 struct ohci_ed {
 	uint32_t attr;
 	uint32_t tailp;

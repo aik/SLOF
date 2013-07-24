@@ -181,7 +181,7 @@ static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe)
 	struct ohci_pipe *opipe;
 
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
-
+	dprintf("%s: ed is %p\n", __func__, &opipe->ed);
 	return &opipe->ed;
 }
 
@@ -296,9 +296,121 @@ static void ohci_disconnect(void)
 
 }
 
+#define OHCI_CTRL_TDS 3
+
+static void ohci_fill_td(struct ohci_td *td, long next,
+			long req, size_t size, unsigned int attr)
+{
+	if (size && req) {
+		write_reg(&td->cbp, req);
+		write_reg(&td->be, req + size - 1);
+	} else {
+		td->cbp = 0;
+		td->be = 0;
+	}
+	write_reg(&td->attr, attr);
+	write_reg(&td->next_td, next);
+
+	dprintf("%s: cbp %08X attr %08X next_td %08X be %08X\n", __func__,
+		read_reg(&td->cbp), read_reg(&td->attr),
+		read_reg(&td->next_td), read_reg(&td->be));
+}
+
+static void ohci_fill_ed(struct ohci_ed *ed, long headp, long tailp,
+			unsigned int attr, long next_ed)
+{
+	write_reg(&ed->attr, attr);
+	write_reg(&ed->headp, headp);
+	write_reg(&ed->tailp, tailp);
+	write_reg(&ed->next_ed, next_ed);
+}
+
+static long ohci_get_td_phys(struct ohci_td *curr, struct ohci_td *start, long td_phys)
+{
+	//dprintf("position %d\n", curr - start);
+	return td_phys + (curr - start) * sizeof(*start);
+}
+
+/*
+ * OHCI Spec:
+ *           4.2 Endpoint Descriptor
+ *           4.3.1 General Transfer Descriptor
+ *           5.2.8 Transfer Descriptor Queues
+ */
 static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
 {
-	return false;
+	struct ohci_ed *ed;
+	struct ohci_td *tds, *td, *td_phys;
+	struct ohci_regs *regs;
+	struct ohci_hcd *ohcd;
+	uint32_t datalen;
+	uint32_t dir, attr = 0;
+	uint32_t time;
+	int ret = true;
+	long req_phys = 0, data_phys = 0, td_next = 0;
+
+	datalen = read_reg16(&req->wLength);
+	dir = (req->bmRequestType & REQT_DIR_IN) ? 1 : 0;
+
+	dprintf("usb-ohci: %s len %d DIR_IN %d\n", __func__, datalen, dir);
+
+	tds = td = (struct ohci_td *) SLOF_dma_alloc(sizeof(*td) * OHCI_CTRL_TDS);
+	td_phys = (struct ohci_td *) SLOF_dma_map_in(td, sizeof(*td) * OHCI_CTRL_TDS, true);
+	memset(td, 0, sizeof(*td) * OHCI_CTRL_TDS);
+
+	req_phys = SLOF_dma_map_in(req, sizeof(struct usb_dev_req), true);
+	attr = TDA_DP_SETUP | TDA_CC | TDA_TOGGLE_DATA0;
+	td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
+	ohci_fill_td(td, td_next, req_phys, sizeof(*req), attr);
+	td++;
+
+	if (datalen) {
+		data_phys = SLOF_dma_map_in(data, datalen, true);
+		attr = 0;
+		attr = (dir ? TDA_DP_IN : TDA_DP_OUT) | TDA_TOGGLE_DATA1 | TDA_CC;
+		td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
+		ohci_fill_td(td, td_next, data_phys, datalen, attr);
+		td++;
+	}
+
+	attr = 0;
+	attr = (dir ? TDA_DP_OUT : TDA_DP_IN) | TDA_CC | TDA_TOGGLE_DATA1;
+	td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
+	ohci_fill_td(td, td_next, 0, 0, attr);
+	td++;
+
+	ed = ohci_pipe_get_ed(pipe);
+	attr = 0;
+	attr = EDA_FADDR(pipe->dev->addr) | EDA_MPS(pipe->mps) | EDA_SKIP;
+	ohci_fill_ed(ed, PTR_U32(td_phys), td_next, attr, 0);
+	dprintf("usb-ohci: %s - td_start %x td_end %x req %x\n", __func__,
+		td_phys, td_next, req_phys);
+	barrier();
+	write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+
+	ohcd = pipe->dev->hcidev->priv;
+	regs = ohcd->regs;
+	write_reg(&regs->cntl_head_ed, ohci_pipe_get_ed_phys(pipe));
+	write_reg(&regs->cmd_status, OHCI_CMD_STATUS_CLF);
+
+	time = SLOF_GetTimer() + 20;
+	while ((time > SLOF_GetTimer()) &&
+		((ed->headp & EDA_HEADP_MASK_LE) != ed->tailp))
+		cpu_relax();
+
+	if ((ed->headp & EDA_HEADP_MASK_LE) == ed->tailp)
+		dprintf("%s: packet sent\n", __func__);
+	else {
+		printf("%s: timed out - failed headp %08x tailp %08x\n",
+			__func__, ed->headp, ed->tailp);
+		ret = false;
+	}
+
+	SLOF_dma_map_out(req_phys, req, sizeof(struct usb_dev_req));
+	if (datalen)
+		SLOF_dma_map_out(data_phys, data, datalen);
+	SLOF_dma_map_out(PTR_U32(td_phys), td, sizeof(*td) * OHCI_CTRL_TDS);
+	return ret;
 }
 
 static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
@@ -330,7 +442,7 @@ static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 	new->speed = dev->speed;
 	new->mps = read_reg16(&ep->wMaxPacketSize);
 	new->dir = ep->bEndpointAddress & 0x80;
-	dprintf("usb-ohci: %s exit\n", __func__);
+	dprintf("usb-ohci: %s exit %p\n", __func__, new);
 	return new;
 }
 
