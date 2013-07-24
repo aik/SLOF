@@ -45,7 +45,8 @@ FPPINCLUDES = -I. -I$(SLOFCMNDIR)/fs -I$(SLOFCMNDIR)
 
 USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/devices/pci-class_02.fs \
-	$(SLOFCMNDIR)/fs/devices/pci-class_0c.fs
+	$(SLOFCMNDIR)/fs/devices/pci-class_0c.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-hci.fs
 
 VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1000.fs \
