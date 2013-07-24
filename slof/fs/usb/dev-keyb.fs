@@ -21,9 +21,6 @@ s" dev-parent-calls.fs" included
     open-count 0= IF
 	udev USB-HID-INIT 0= IF
 	    ." USB keyboard setup failed " pwd cr false EXIT
-	ELSE
-	    \ drop all the keys
-	    begin udev USB-READ-KEYB 0 = until
 	THEN
     THEN
     open-count 1 + to open-count

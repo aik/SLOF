@@ -58,6 +58,20 @@ static int usb_hid_set_idle(struct usb_dev *dev, uint16_t ms_delay)
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
+/* HID SPEC - 7.2.1 Get Report Request */
+static int usb_hid_get_report(struct usb_dev *dev, void *data, size_t size)
+{
+	struct usb_dev_req req;
+	if (!dev)
+		return false;
+	req.bmRequestType = REQT_TYPE_CLASS | REQT_REC_INTERFACE | REQT_DIR_IN;
+	req.bRequest = HID_REQ_GET_REPORT;
+	write_reg16(&req.wIndex, dev->intf_num);
+	write_reg16(&req.wLength, (uint16_t)size);
+	write_reg16(&req.wValue, 1 << 8);
+	return usb_send_ctrl(dev->control, &req, data);
+}
+
 /* ring buffer with RD/WR indices for key buffering */
 static uint8_t keybuf[256];	/* size fixed to byte range !   */
 uint8_t r_ptr = 0;		/* RD-index for Keyboard-Buffer */
@@ -365,8 +379,14 @@ uint32_t *kbd_buffer;
 int usb_hid_kbd_init(struct usb_dev *dev)
 {
 	int i;
+	uint8_t key[8];
+
 	usb_hid_set_protocol(dev, 0);
 	usb_hid_set_idle(dev, 500);
+
+	memset(key, 0, 8);
+	if (usb_hid_get_report(dev, key, 8))
+		check_key_code(key);
 
 	kbd_buffer = SLOF_dma_alloc(USB_HID_SIZE);
 	if (!kbd_buffer) {
