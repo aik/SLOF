@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include "usb.h"
+#include "tools.h"
 
 enum usb_hcd_type {
 	USB_OHCI = 1,
