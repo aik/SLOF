@@ -108,6 +108,7 @@ struct ohci_hcd {
 	struct usb_hcd_dev *hcidev;
 	struct usb_pipe *freelist;
 	struct usb_pipe *end;
+	struct usb_dev rhdev;
 	long hcca_phys;
 };
 
@@ -163,5 +164,10 @@ struct ohci_hcd {
 /*********************************************************************/
 #define FRAME_INTERVAL		(((((11999 - 210) * 6) / 7) << 16) | 11999)
 #define PERIODIC_START		((11999 * 9) / 10)
+
+
+static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe);
+static inline long ohci_pipe_get_ed_phys(struct usb_pipe *pipe);
+static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd);
 
 #endif	/* USB_OHCI_H */

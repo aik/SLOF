@@ -86,23 +86,31 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 	long ed_phys = 0;
 	unsigned int i;
 	uint32_t oldrwc;
+	struct usb_dev *rhdev = NULL;
+	struct usb_ep_descr ep;
 
 	if (!ohcd)
 		return -1;
 
+	regs = ohcd->regs;
+	rhdev = &ohcd->rhdev;
 	dprintf("%s: HCCA memory %p\n", __func__, ohcd->hcca);
 	dprintf("%s: OHCI Regs   %p\n", __func__, regs);
 
-	ed = SLOF_dma_alloc(sizeof(struct ohci_ed));
-	if (!ed) {
-		printf("usb-ohci: Unable to allocate memory - ed\n");
+	rhdev->hcidev = ohcd->hcidev;
+	ep.bmAttributes = USB_EP_TYPE_INTR;
+	ep.wMaxPacketSize = 8;
+	rhdev->intr = usb_get_pipe(rhdev, &ep, NULL, 0);
+	if (!rhdev->intr) {
+		printf("usb-ohci: oops could not allocate intr_pipe\n");
 		return -1;
 	}
-	ed_phys = SLOF_dma_map_in(ed, sizeof(struct ohci_ed), true);
 
 	/*
 	 * OHCI Spec 4.4: Host Controller Communications Area
 	 */
+	ed = ohci_pipe_get_ed(rhdev->intr);
+	ed_phys = ohci_pipe_get_ed_phys(rhdev->intr);
 	memset(ohcd->hcca, 0, HCCA_SIZE);
 	memset(ed, 0, sizeof(struct ohci_ed));
 	write_reg(&ed->attr, EDA_SKIP);
@@ -288,11 +296,66 @@ static void ohci_disconnect(void)
 
 }
 
+static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
+				char *buf, size_t buflen)
+{
+	struct ohci_hcd *ohcd;
+	struct usb_pipe *new = NULL;
+
+	dprintf("usb-ohci: %s enter %p\n", __func__, dev);
+	if (!dev)
+		return NULL;
+
+	ohcd = (struct ohci_hcd *)dev->hcidev->priv;
+	if (!ohcd->freelist) {
+		dprintf("usb-ohci: %s allocating pool\n", __func__);
+		if (!ohci_alloc_pipe_pool(ohcd))
+			return NULL;
+	}
+
+	new = ohcd->freelist;
+	ohcd->freelist = ohcd->freelist->next;
+	if (!ohcd->freelist)
+		ohcd->end = NULL;
+
+	memset(new, 0, sizeof(*new));
+	new->dev = dev;
+	new->next = NULL;
+	new->type = ep->bmAttributes & USB_EP_TYPE_MASK;
+	new->speed = dev->speed;
+	new->mps = read_reg16(&ep->wMaxPacketSize);
+	new->dir = ep->bEndpointAddress & 0x80;
+	dprintf("usb-ohci: %s exit\n", __func__);
+	return new;
+}
+
+static void ohci_put_pipe(struct usb_pipe *pipe)
+{
+	struct ohci_hcd *ohcd;
+
+	dprintf("usb-ohci: %s enter - %p\n", __func__, pipe);
+	if (!pipe || !pipe->dev)
+		return;
+	ohcd = pipe->dev->hcidev->priv;
+	if (ohcd->end)
+		ohcd->end->next = pipe;
+	else
+		ohcd->freelist = pipe;
+
+	ohcd->end = pipe;
+	pipe->next = NULL;
+	pipe->dev = NULL;
+	memset(pipe, 0, sizeof(*pipe));
+	dprintf("usb-ohci: %s exit\n", __func__);
+}
+
 struct usb_hcd_ops ohci_ops = {
 	.name        = "ohci-hcd",
 	.init        = ohci_init,
 	.detect      = ohci_detect,
 	.disconnect  = ohci_disconnect,
+	.get_pipe    = ohci_get_pipe,
+	.put_pipe    = ohci_put_pipe,
 	.usb_type    = USB_OHCI,
 	.next        = NULL,
 };

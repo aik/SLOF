@@ -71,11 +71,24 @@ static void ehci_disconnect(void)
 
 }
 
+static struct usb_pipe *ehci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
+				char *buf, size_t len)
+{
+	return NULL;
+}
+
+static void ehci_put_pipe(struct usb_pipe *pipe)
+{
+
+}
+
 struct usb_hcd_ops ehci_ops = {
 	.name        = "ehci-hcd",
 	.init        = ehci_init,
 	.detect      = ehci_detect,
 	.disconnect  = ehci_disconnect,
+	.get_pipe    = ehci_get_pipe,
+	.put_pipe    = ehci_put_pipe,
 	.usb_type    = USB_EHCI,
 	.next        = NULL,
 };

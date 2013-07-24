@@ -22,6 +22,46 @@
 
 struct usb_hcd_ops *head;
 
+#ifndef DEBUG
+#define validate_hcd_ops(dev) (dev && dev->hcidev && dev->hcidev->ops)
+#else
+int validate_hcd_ops(struct usb_dev *dev)
+{
+	int ret = true;
+
+	if (!dev) {
+		printf("dev is NULL\n");
+		ret = false;
+	} else if (!dev->hcidev) {
+		printf("hcidev is NULL\n");
+		ret = false;
+	} else if (!dev->hcidev->ops)  {
+		printf("ops is NULL\n");
+		ret = false;
+	}
+	return ret;
+}
+#endif
+
+struct usb_pipe *usb_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
+			char *buf, size_t len)
+{
+	if (validate_hcd_ops(dev) && dev->hcidev->ops->get_pipe)
+		return dev->hcidev->ops->get_pipe(dev, ep, buf, len);
+	else
+		return NULL;
+}
+
+void usb_put_pipe(struct usb_pipe *pipe)
+{
+	struct usb_dev *dev = NULL;
+	if (pipe && pipe->dev) {
+		dev = pipe->dev;
+		if (validate_hcd_ops(dev) && dev->hcidev->ops->put_pipe)
+			dev->hcidev->ops->put_pipe(pipe);
+	}
+}
+
 void usb_hcd_register(struct usb_hcd_ops *ops)
 {
 	struct usb_hcd_ops *list;
