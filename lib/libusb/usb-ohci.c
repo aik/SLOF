@@ -123,8 +123,9 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 
 	/* OHCI Spec 7.1.2 HcControl Register */
 	oldrwc = read_reg(&regs->control) & OHCI_CTRL_RWC;
-	write_reg(&regs->control, (OHCI_CTRL_CBSR | OHCI_CTRL_CLE
-					| OHCI_CTRL_PLE | OHCI_USB_OPER | oldrwc));
+	write_reg(&regs->control, (OHCI_CTRL_CBSR | OHCI_CTRL_CLE |
+					OHCI_CTRL_BLE | OHCI_CTRL_PLE |
+					OHCI_USB_OPER | oldrwc));
 	ohci_dump_regs(regs);
 	return 0;
 }
@@ -424,6 +425,91 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	return ret;
 }
 
+static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
+			void *td_phys_ptr, void *data_phys, int datalen)
+{
+	struct ohci_ed *ed;
+	struct ohci_td *td, *tds;
+	struct ohci_regs *regs;
+	struct ohci_hcd *ohcd;
+	long td_phys = 0, td_next, ed_phys, ptr;
+	uint32_t dir, attr = 0, count;
+	size_t len, packet_len;
+	uint32_t time;
+	int ret = true;
+
+	if (pipe->type != USB_EP_TYPE_BULK) {
+		printf("usb-ohci: Not a bulk pipe.\n");
+		ret = false;
+		goto end;
+	}
+
+	dir = (pipe->dir == USB_PIPE_OUT) ? 0 : 1;
+	count = datalen / pipe->mps;
+	if (count > OHCI_MAX_TDS) {
+		printf("usb-ohci: buffer size not supported - %d\n", datalen);
+		ret = false;
+		goto end;
+	}
+
+	td = tds = (struct ohci_td *) td_ptr;
+	td_phys = (long)td_phys_ptr;
+	dprintf("usb-ohci: %s pipe %p data_phys %p len %d DIR_IN %d td %p td_phys %p\n",
+		__func__, pipe, data_phys, datalen, dir, td, td_phys);
+
+	if (!tds) {
+		printf("%s: tds NULL recieved\n", __func__);
+		ret = false;
+		goto end;
+	}
+	memset(td, 0, sizeof(*td) * OHCI_MAX_TDS);
+
+	len = datalen;
+	ptr = (long)data_phys;
+	attr = 0;
+	attr = (dir ? TDA_DP_IN : TDA_DP_OUT) | TDA_CC;
+	while (len) {
+		packet_len = (pipe->mps < len)? pipe->mps : len;
+		td_next = ohci_get_td_phys((td + 1), tds, td_phys);
+		ohci_fill_td(td, td_next, ptr, packet_len, attr);
+		ptr = ptr + packet_len;
+		len = len - packet_len;
+		td++;
+	}
+
+	ed = ohci_pipe_get_ed(pipe);
+	attr = 0;
+	dir = pipe->dir ? EDA_DIR_IN : EDA_DIR_OUT;
+	attr = dir | EDA_FADDR(pipe->dev->addr) | EDA_MPS(pipe->mps)
+		| EDA_SKIP | pipe->dev->speed | EDA_EP(pipe->epno);
+	td_next = ohci_get_td_phys(td, tds, td_phys);
+	ohci_fill_ed(ed, td_phys, td_next, attr, 0);
+	dprintf("usb-ohci: %s - tds %p td %p\n", __func__, td_phys, td_next);
+	barrier();
+	write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+
+	ohcd = pipe->dev->hcidev->priv;
+	regs = ohcd->regs;
+	ed_phys = ohci_pipe_get_ed_phys(pipe);
+	write_reg(&regs->bulk_head_ed, ed_phys);
+	write_reg(&regs->cmd_status, 0x4);
+
+	time = SLOF_GetTimer() + USB_TIMEOUT;
+	while ((time > SLOF_GetTimer()) &&
+		((ed->headp & EDA_HEADP_MASK_LE) != ed->tailp))
+		cpu_relax();
+
+	if ((ed->headp & EDA_HEADP_MASK_LE) == ed->tailp)
+		dprintf("%s: packet sent\n", __func__);
+	else {
+		printf("%s: timed out - failed headp %08x tailp %08x\n",
+			__func__, ed->headp, ed->tailp);
+		ret = false;
+	}
+end:
+	return ret;
+}
+
 /* Populate the hcca intr region with periodic intr */
 static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 			char *buf, size_t buflen)
@@ -569,6 +655,26 @@ static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
 	return true;
 }
 
+static int ohci_init_bulk_ed(struct usb_dev *dev, struct usb_pipe *pipe)
+{
+	struct ohci_pipe *opipe;
+	struct ohci_ed *ed;
+	uint32_t dir;
+
+	if (!pipe || !dev)
+		return false;
+
+	opipe = ohci_pipe_get_opipe(pipe);
+	ed = &(opipe->ed);
+	dir = pipe->dir ? EDA_DIR_IN : EDA_DIR_OUT;
+
+	write_reg(&ed->attr, dir | EDA_FADDR(dev->addr) | dev->speed |
+		EDA_MPS(pipe->mps) | EDA_SKIP | EDA_EP(pipe->epno));
+	dprintf("%s: pipe %p attr %x\n", __func__, pipe,
+		read_reg(&ed->attr));
+	return true;
+}
+
 static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t buflen)
 {
@@ -603,6 +709,8 @@ static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 		if (!ohci_get_pipe_intr(new, ohcd, buf, buflen))
 			dprintf("usb-ohci: %s alloc_intr failed  %p\n",
 				__func__, new);
+	if (new->type == USB_EP_TYPE_BULK)
+		ohci_init_bulk_ed(dev, new);
 
 	dprintf("usb-ohci: %s exit %p\n", __func__, new);
 	return new;
@@ -715,6 +823,7 @@ struct usb_hcd_ops ohci_ops = {
 	.get_pipe    = ohci_get_pipe,
 	.put_pipe    = ohci_put_pipe,
 	.send_ctrl   = ohci_send_ctrl,
+	.transfer_bulk = ohci_transfer_bulk,
 	.poll_intr   = ohci_poll_intr,
 	.usb_type    = USB_OHCI,
 	.next        = NULL,

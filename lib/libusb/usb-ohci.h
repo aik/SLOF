@@ -110,6 +110,7 @@ struct ohci_pipe {
 }__attribute__((packed));
 
 #define OHCI_PIPE_POOL_SIZE 4096
+#define OHCI_MAX_TDS        256 /* supports 16k buffers, i.e. 64 * 256 */
 
 struct ohci_hcd {
 	struct ohci_hcca *hcca;
