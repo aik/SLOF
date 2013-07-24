@@ -22,7 +22,7 @@ TARGET = ../libusb.a
 
 all: $(TARGET)
 
-SRCS =  usb-core.c usb-ohci.c usb-ehci.c usb-slof.c usb-key.c usb-hid.c
+SRCS =  usb-core.c usb-ohci.c usb-ehci.c usb-slof.c usb-key.c usb-hid.c usb-hub.c
 
 OBJS = $(SRCS:%.c=%.o)
 

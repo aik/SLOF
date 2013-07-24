@@ -85,3 +85,13 @@ PRIM(USB_X2d_KEY_X2d_AVAILABLE)
 	void *dev = TOS.a;
 	TOS.n = usb_key_available(dev);
 MIRP
+
+/************************************************/
+/* Initialize and enumerate generic hub         */
+/* SLOF: USB-HUB-INIT ( dev -- true | false )   */
+/* LIBNEWUSB: usb_hub_init                      */
+/************************************************/
+PRIM(USB_X2d_HUB_X2d_INIT)
+	void *dev = TOS.a;
+	TOS.n = usb_hub_init(dev);
+MIRP

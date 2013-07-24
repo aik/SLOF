@@ -44,5 +44,9 @@ extern unsigned char usb_read_keyb(void *dev);
 /* SLOF:  USB-KEY-AVAILABLE                */
 /*******************************************/
 extern unsigned char usb_key_available(void *dev);
+/*******************************************/
+/* SLOF:  USB-HUB-INIT                     */
+/*******************************************/
+extern unsigned int usb_hub_init(void *dev);
 
 #endif

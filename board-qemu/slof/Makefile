@@ -51,7 +51,9 @@ USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/usb/dev-parent-calls.fs \
 	$(SLOFCMNDIR)/fs/usb/dev-keyb.fs \
 	$(SLOFCMNDIR)/fs/usb/dev-mouse.fs \
-	$(SLOFCMNDIR)/fs/usb/dev-storage.fs
+	$(SLOFCMNDIR)/fs/usb/dev-storage.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-hub.fs
+
 
 VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1000.fs \

@@ -50,6 +50,12 @@ int slof_usb_handle(struct usb_dev *dev)
 		sdev.devtype = DEVICE_DISK;
 		forth_push((long)&sdev);
 		forth_eval("s\" dev-storage.fs\" INCLUDED");
+	} else if (dev->class == DEV_HUB) {
+		dprintf("Generic hub device %ld %ld\n", dev->hcidev->type,
+			dev->hcidev->num);
+		sdev.devtype = DEVICE_HUB;
+		forth_push((long)&sdev);
+		forth_eval("s\" dev-hub.fs\" INCLUDED");
 	}
 	return true;
 }

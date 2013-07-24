@@ -266,7 +266,7 @@ static void ohci_init(struct usb_hcd_dev *hcidev)
 		goto out;
 	}
 
-	/* Addressing BusID - 7:5, Device ID: 4:0 */
+	/* Addressing hcidev - 7:5, Device ID: 4:0 */
 	hcidev->nextaddr = (hcidev->num << 5) | 1;
 	hcidev->priv = ohcd;
 	memset(ohcd, 0, sizeof(*ohcd));
@@ -433,7 +433,7 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 	struct ohci_ed *ed;
 	struct usb_dev *dev;
 	struct ohci_td *tds, *td;
-	int32_t count, i;
+	int32_t count = 0, i;
 	uint8_t *ptr;
 	uint16_t mps;
 	long ed_phys, td_phys, td_next, buf_phys;
@@ -443,7 +443,7 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 
 	hcca = ohcd->hcca;
 	dev = pipe->dev;
-	if (dev->class != DEV_HID_KEYB)
+	if (dev->class != DEV_HID_KEYB && dev->class != DEV_HUB)
 		return false;
 
 	opipe = ohci_pipe_get_opipe(pipe);
@@ -503,7 +503,13 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 		write_reg(&hcca->intr_table[24], ed_phys);
 		write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
 		break;
+
 	case DEV_HUB:
+		dprintf("%s: HUB class %x\n", __func__, dev->class);
+		write_reg(&hcca->intr_table[1], ed_phys);
+		write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+		break;
+
 	default:
 		dprintf("%s: unhandled class %d\n", __func__, dev->class);
 	}
@@ -525,7 +531,7 @@ static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
 	hcca = ohcd->hcca;
 	dev = pipe->dev;
 
-	if (dev->class != DEV_HID_KEYB)
+	if (dev->class != DEV_HID_KEYB && dev->class != DEV_HUB)
 		return false;
 
 	opipe = ohci_pipe_get_opipe(pipe);
@@ -553,6 +559,10 @@ static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
 		break;
 
 	case DEV_HUB:
+		dprintf("%s: HUB class %d\n", __func__, dev->class);
+		write_reg(&hcca->intr_table[1],  ed_phys);
+		break;
+
 	default:
 		dprintf("%s: unhandled class %d\n", __func__, dev->class);
 	}
@@ -639,7 +649,7 @@ static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 	struct ohci_ed *ed;
 	struct ohci_td *head, *tail, *curr, *next;
 	struct ohci_td *head_phys, *tail_phys, *curr_phys;
-	uint8_t *ptr;
+	uint8_t *ptr = NULL;
 	unsigned int i, pos;
 	static uint16_t last_frame;
 	long ptr_phys = 0;
