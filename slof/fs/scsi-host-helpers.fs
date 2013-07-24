@@ -109,3 +109,14 @@ CREATE cdb 10 allot
     \ Success ?
     0= IF sector true ELSE drop false THEN
 ;
+
+\ This routine creates a disk alias for the first found disk/cdrom
+: make-disk-alias                               ( $name srplun -- )
+    >r 2dup r> -rot                             ( $name srplun $name)
+    find-alias 0<> IF 4drop exit THEN
+    get-node node>path
+    20 allot
+    " /disk@" string-cat                        ( $name srplun npath npathl )
+    rot base @ >r hex (u.) r> base ! string-cat ( $name $diskpath )
+    set-alias
+;

@@ -499,26 +499,6 @@ TRUE VALUE first-time-init?
     10000 \ Larger value seem to have problems with some CDROMs
 ;
 
-\ FIXME: Make these two common somewhat, possibly passing the
-\        unit "name" as an argument
-: make-disk-alias	( srplun -- )
-    " disk" find-alias 0<> IF drop THEN
-    get-node node>path
-    20 allot
-    " /disk@" string-cat                      \ srplun npath npathl
-    rot base @ >r hex (u.) r> base ! string-cat
-    " disk" 2swap set-alias
-;
-
-: make-cdrom-alias	( srplun -- )
-    " cdrom" find-alias 0<> IF drop THEN
-    get-node node>path
-    20 allot
-    " /disk@" string-cat                      \ srplun npath npathl
-    rot base @ >r hex (u.) r> base ! string-cat
-    " cdrom" 2swap set-alias
-;
-
 \ FIXME: Most of the stuff below should be made common
 
 : wrapped-inquiry ( -- true | false )
@@ -578,10 +558,10 @@ TRUE VALUE first-time-init?
 	        \            and maybe provide better printout & more cases
                 \ XXX FIXME: Actually check for LUNs
 	        sector inquiry-data>peripheral c@ CASE
-                   0   OF ." DISK     : " current-target make-disk-alias  ENDOF
-                   5   OF ." CD-ROM   : " current-target make-cdrom-alias ENDOF
-                   7   OF ." OPTICAL  : " current-target make-cdrom-alias ENDOF
-                   e   OF ." RED-BLOCK: " current-target make-disk-alias  ENDOF
+                   0   OF ." DISK     : " " disk"  current-target make-disk-alias ENDOF
+                   5   OF ." CD-ROM   : " " cdrom" current-target make-disk-alias ENDOF
+                   7   OF ." OPTICAL  : " " cdrom" current-target make-disk-alias ENDOF
+                   e   OF ." RED-BLOCK: " " disk"  current-target make-disk-alias ENDOF
                    dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
                 ENDCASE
 	        sector .inquiry-text cr
