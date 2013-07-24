@@ -93,10 +93,21 @@ struct ohci_hcca {
 	uint32_t  reserved[120];
 } __attribute__((packed));
 
+struct ohci_pipe {
+	struct ohci_ed  ed; /* has to be aligned at 16 byte address*/
+	struct usb_pipe pipe;
+	long ed_phys;
+	uint8_t pad[8];
+}__attribute__((packed));
+
+#define OHCI_PIPE_POOL_SIZE 4096
+
 struct ohci_hcd {
 	struct ohci_hcca *hcca;
 	struct ohci_regs *regs;
 	struct usb_hcd_dev *hcidev;
+	struct usb_pipe *freelist;
+	struct usb_pipe *end;
 	long hcca_phys;
 };
 

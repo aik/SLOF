@@ -45,6 +45,15 @@ struct usb_hcd_dev {
 	long nextaddr; /* address for devices */
 };
 
+struct usb_pipe {
+	struct usb_pipe *next;
+	uint32_t type;
+	uint32_t speed;
+	uint32_t dir;
+	uint16_t epno;
+	uint16_t mps;
+} __attribute__((packed));
+
 extern void usb_hcd_register(struct usb_hcd_ops *ops);
 
 #endif

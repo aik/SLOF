@@ -168,6 +168,72 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 	}
 }
 
+static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe)
+{
+	struct ohci_pipe *opipe;
+
+	opipe = container_of(pipe, struct ohci_pipe, pipe);
+
+	return &opipe->ed;
+}
+
+static inline long ohci_pipe_get_ed_phys(struct usb_pipe *pipe)
+{
+	struct ohci_pipe *opipe;
+
+	opipe = container_of(pipe, struct ohci_pipe, pipe);
+	dprintf("%s: ed_phys is %x\n", __func__, opipe->ed_phys);
+	return opipe->ed_phys;
+}
+
+static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd)
+{
+	struct ohci_pipe *opipe, *curr, *prev;
+	long opipe_phys = 0;
+	unsigned int i, count;
+#ifdef DEBUG
+	struct usb_pipe *pipe;
+#endif
+
+	dprintf("usb-ohci: %s enter\n", __func__);
+	count = OHCI_PIPE_POOL_SIZE/sizeof(*opipe);
+	opipe = SLOF_dma_alloc(OHCI_PIPE_POOL_SIZE);
+	if (!opipe)
+		return false;
+
+	opipe_phys = SLOF_dma_map_in(opipe, OHCI_PIPE_POOL_SIZE, true);
+	dprintf("usb-ohci: %s opipe %x, opipe_phys %x size %d count %d\n",
+		__func__, opipe, opipe_phys, sizeof(*opipe), count);
+	/* Although an array, link them*/
+	for (i = 0, curr = opipe, prev = NULL; i < count; i++, curr++) {
+		if (prev)
+			prev->pipe.next = &curr->pipe;
+		curr->pipe.next = NULL;
+		prev = curr;
+
+		if (((uint64_t)&curr->ed) % 16)
+			printf("usb-ohci: Warning ED not aligned to 16byte boundary");
+		curr->ed_phys = opipe_phys + (curr - opipe) * sizeof(*curr) +
+			offset_of(struct ohci_pipe, ed);
+	}
+
+	if (!ohcd->freelist)
+		ohcd->freelist = &opipe->pipe;
+	else
+		ohcd->end->next = &opipe->pipe;
+	ohcd->end = &prev->pipe;
+
+#ifdef DEBUG
+	for (i = 0, pipe = ohcd->freelist; pipe; pipe = pipe->next)
+		dprintf("usb-ohci: %d: pipe cur %p ed %p ed_phys %x\n",
+			i++, pipe, ohci_pipe_get_ed(pipe),
+			ohci_pipe_get_ed_phys(pipe));
+#endif
+
+	dprintf("usb-ohci: %s exit\n", __func__);
+	return true;
+}
+
 static void ohci_init(struct usb_hcd_dev *hcidev)
 {
 	struct ohci_hcd *ohcd;
@@ -184,7 +250,10 @@ static void ohci_init(struct usb_hcd_dev *hcidev)
 	/* Addressing BusID - 7:5, Device ID: 4:0 */
 	hcidev->nextaddr = (hcidev->num << 5) | 1;
 	hcidev->priv = ohcd;
+	memset(ohcd, 0, sizeof(*ohcd));
 	ohcd->hcidev = hcidev;
+	ohcd->freelist = NULL;
+	ohcd->end = NULL;
 	ohcd->regs = (struct ohci_regs *)(hcidev->base);
 	ohcd->hcca = SLOF_dma_alloc(sizeof(struct ohci_hcca));
 	if (!ohcd->hcca || PTR_U32(ohcd->hcca) & HCCA_ALIGN) {
