@@ -10,6 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <string.h>
 #include "usb-core.h"
 
 #undef DEBUG
@@ -21,6 +22,65 @@
 #endif
 
 struct usb_hcd_ops *head;
+struct usb_dev *devpool;
+#define USB_DEVPOOL_SIZE 4096
+
+static struct usb_dev *usb_alloc_devpool(void)
+{
+	struct usb_dev *head, *curr, *prev;
+	unsigned int dev_count = 0, i;
+
+	head = SLOF_dma_alloc(USB_DEVPOOL_SIZE);
+	if (!head)
+		return NULL;
+
+	dev_count = USB_DEVPOOL_SIZE/sizeof(struct usb_dev);
+	dprintf("%s: %d number of devices\n", __func__, dev_count);
+	/* Although an array, link them*/
+	for (i = 0, curr = head, prev = NULL; i < dev_count; i++, curr++) {
+		if (prev)
+			prev->next = curr;
+		curr->next = NULL;
+		prev = curr;
+	}
+
+#ifdef DEBUG
+	for (i = 0, curr = head; curr; curr = curr->next)
+		printf("%s: %d dev %p\n", __func__, i++, curr);
+#endif
+
+	return head;
+}
+
+struct usb_dev *usb_devpool_get(void)
+{
+	struct usb_dev *new;
+
+	if (!devpool) {
+		devpool = usb_alloc_devpool();
+		if (!devpool)
+			return NULL;
+	}
+
+	new = devpool;
+	devpool = devpool->next;
+	memset(new, 0, sizeof(*new));
+	new->next = NULL;
+	return new;
+}
+
+void usb_devpool_put(struct usb_dev *dev)
+{
+	struct usb_dev *curr;
+	if (!dev && !devpool)
+		return;
+
+	curr = devpool;
+	while (curr->next)
+		curr = curr->next;
+	curr->next = dev;
+	dev->next = NULL;
+}
 
 #ifndef DEBUG
 #define validate_hcd_ops(dev) (dev && dev->hcidev && dev->hcidev->ops)

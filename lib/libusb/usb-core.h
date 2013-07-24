@@ -61,6 +61,7 @@ struct usb_ep_descr {
 #define USB_DEV_EP_MAX 4
 
 struct usb_dev {
+	struct usb_dev     *next;
 	struct usb_hcd_dev *hcidev;
 	struct usb_pipe    *intr;
 	struct usb_pipe    *control;
@@ -133,5 +134,7 @@ extern struct usb_pipe *usb_get_pipe(struct usb_dev *dev, struct usb_ep_descr *e
 				char *buf, size_t len);
 extern void usb_put_pipe(struct usb_pipe *pipe);
 extern int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);
+extern struct usb_dev *usb_devpool_get(void);
+extern void usb_devpool_put(struct usb_dev *);
 
 #endif
