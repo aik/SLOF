@@ -48,5 +48,22 @@ extern unsigned char usb_key_available(void *dev);
 /* SLOF:  USB-HUB-INIT                     */
 /*******************************************/
 extern unsigned int usb_hub_init(void *dev);
+/*******************************************/
+/* SLOF:  USB-MSC-INIT                     */
+/*******************************************/
+extern int usb_msc_init(void *dev);
+/*******************************************/
+/* SLOF:  USB-MSC-EXIT                     */
+/*******************************************/
+extern int usb_msc_exit(void *dev);
+/*******************************************/
+/* SLOF:  USB-TRANSFER-CTRL                */
+/*******************************************/
+extern int usb_transfer_ctrl(void *dev, void *req, void *data);
+/*******************************************/
+/* SLOF:  USB-TRANSFER-BULK                */
+/*******************************************/
+extern int usb_transfer_bulk(void *dev, int dir, void *td,
+			void *td_phys, void *data, int size);
 
 #endif

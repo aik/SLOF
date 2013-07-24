@@ -95,3 +95,49 @@ PRIM(USB_X2d_HUB_X2d_INIT)
 	void *dev = TOS.a;
 	TOS.n = usb_hub_init(dev);
 MIRP
+
+/************************************************/
+/* Initialize msc                               */
+/* SLOF:   USB-MSC-INIT  ( dev -- true | false )*/
+/* LIBNEWUSB: usb_msc_init(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_MSC_X2d_INIT)
+	void *dev = TOS.a;
+	TOS.n = usb_msc_init(dev);
+MIRP
+
+/************************************************/
+/* Exit msc                                     */
+/* SLOF:   USB-MSC-EXIT  ( dev -- true | false )*/
+/* LIBNEWUSB: usb_msc_exit(hcidev)              */
+/************************************************/
+PRIM(USB_X2d_MSC_X2d_EXIT)
+	void *dev = TOS.a;
+	TOS.n = usb_msc_exit(dev);
+MIRP
+
+/*****************************************************************************/
+/* Transfer data through control endpoint                                    */
+/* SLOF:   USB-TRANSFER_CTRL ( dev req data -- true | false )                */
+/* LIBNEWUSB: int usb_transfer_ctrl(void *dev, void *req, void *data)        */
+/*****************************************************************************/
+PRIM(USB_X2d_TRANSFER_X2d_CTRL)
+	void *data = TOS.a; POP;
+	void *req = TOS.a; POP;
+	TOS.n = usb_transfer_ctrl(TOS.a, req, data);
+MIRP
+
+/*****************************************************************************/
+/* Transfer data through bulk endpoint                                       */
+/* SLOF:  USB-TRANSFER_BULK ( dev dir td td-phys data size -- true | false ) */
+/* LIBNEWUSB: int usb_transfer_bulk(void *dev, int dir, void *td,            */
+/*                                  void *td_phys, void *data, int size)     */
+/*****************************************************************************/
+PRIM(USB_X2d_TRANSFER_X2d_BULK)
+	int size = TOS.u; POP;
+	void *data = TOS.a; POP;
+	void *td_phys = TOS.a; POP;
+	void *td = TOS.a; POP;
+	int dir = TOS.u; POP;
+	TOS.n = usb_transfer_bulk(TOS.a, dir, td, td_phys, data, size);
+MIRP

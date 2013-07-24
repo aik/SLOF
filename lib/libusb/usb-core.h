@@ -108,6 +108,11 @@ struct slof_usb_dev {
 	uint32_t devtype;
 } __attribute__((packed));
 
+enum USB_PIPE_DIR {
+	USB_PIPE_OUT = 0,
+	USB_PIPE_IN,
+};
+
 struct usb_pipe {
 	struct usb_dev *dev;
 	struct usb_pipe *next;
@@ -243,6 +248,7 @@ struct usb_hcd_ops {
 	int  (*send_ctrl)(struct usb_pipe *pipe, struct usb_dev_req *req, void *data);
 	struct usb_pipe* (*get_pipe)(struct usb_dev *dev, struct usb_ep_descr *ep,
 				char *buf, size_t len);
+	int  (*transfer_bulk)(struct usb_pipe *pipe, void *td, void *td_phys, void *data, int size);
 	void (*put_pipe)(struct usb_pipe *);
 	int (*poll_intr)(struct usb_pipe *, uint8_t *);
 	struct usb_hcd_ops *next;

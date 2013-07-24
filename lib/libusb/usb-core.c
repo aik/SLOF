@@ -189,6 +189,37 @@ int usb_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *data)
 	}
 }
 
+int usb_transfer_ctrl(void *dev, void *req, void *data)
+{
+	struct usb_pipe *pipe = NULL;
+	struct usb_dev *usbdev;
+
+	if (!dev)
+		return false;
+	usbdev = (struct usb_dev *)dev;
+	pipe = usbdev->control;
+	return usb_send_ctrl(pipe, req, data);
+}
+
+int usb_transfer_bulk(void *dev, int dir, void *td, void *td_phys, void *data, int size)
+{
+	struct usb_pipe *pipe = NULL;
+	struct usb_dev *usbdev;
+
+	if (!dev)
+		return false;
+	usbdev = (struct usb_dev *)dev;
+	pipe = (dir == USB_PIPE_OUT) ? usbdev->bulk_out : usbdev->bulk_in;
+	if (!pipe)
+		return false;
+	if (validate_hcd_ops(usbdev) && usbdev->hcidev->ops->transfer_bulk)
+		return usbdev->hcidev->ops->transfer_bulk(pipe, td, td_phys, data, size);
+	else {
+		printf("%s: Failed\n", __func__);
+		return false;
+	}
+}
+
 /*
  * USB Specification 1.1
  *     9.3 USB Device Requests
@@ -317,6 +348,58 @@ int usb_hid_exit(void *vdev)
 	return true;
 }
 
+#define usb_get_intf_class(x) ((x & 0x00FF0000) >> 16)
+
+int usb_msc_init(void *vdev)
+{
+	struct usb_dev *dev;
+	int i;
+
+	dev = (struct usb_dev *) vdev;
+	dprintf("%s: enter %x\n", __func__, dev->class);
+	if (!dev)
+		return false;
+	if (usb_get_intf_class(dev->class) == 8) {
+		for (i = 0; i < dev->ep_cnt; i++) {
+			if ((dev->ep[i].bmAttributes & USB_EP_TYPE_MASK)
+				== USB_EP_TYPE_BULK)
+				usb_dev_populate_pipe(dev, &dev->ep[i], NULL, 0);
+		}
+	}
+	return true;
+}
+
+int usb_msc_exit(void *vdev)
+{
+	struct  usb_dev *dev;
+	dev = (struct usb_dev *) vdev;
+	dprintf("%s: enter %x\n", __func__, dev->class);
+	if (!dev)
+		return false;
+	if (usb_get_intf_class(dev->class) == 8) {
+		if (dev->bulk_in)
+			usb_put_pipe(dev->bulk_in);
+		if (dev->bulk_out)
+			usb_put_pipe(dev->bulk_out);
+	}
+	return true;
+}
+
+static int usb_msc_reset(struct usb_dev *dev)
+{
+	struct usb_dev_req req;
+
+	if (!dev)
+		return false;
+
+	req.bmRequestType = REQT_TYPE_CLASS | REQT_REC_INTERFACE | REQT_DIR_OUT;
+	req.bRequest = 0xFF;
+	req.wLength = 0;
+	req.wValue = 0;
+	write_reg16(&req.wIndex, dev->intf_num);
+	return usb_send_ctrl(dev->control, &req, NULL);
+}
+
 static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *cfg,
 		uint8_t *ptr, uint16_t len)
 {
@@ -358,8 +441,6 @@ static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *c
 	}
 	return true;
 }
-
-#define usb_get_intf_class(x) ((x & 0x00FF0000) >> 16)
 
 int setup_new_device(struct usb_dev *dev, unsigned int port)
 {
