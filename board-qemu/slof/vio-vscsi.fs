@@ -483,6 +483,11 @@ TRUE VALUE first-time-init?
 : (set-target)
     to current-target
 ;
+
+: dev-generate-srplun ( target lun -- )
+    swap 8 << 8000 or or 30 <<
+;
+
 \ We obtain here a unit address on the stack, since our #address-cells
 \ is 2, the 64-bit srplun is split in two cells that we need to join
 \
@@ -517,12 +522,16 @@ TRUE VALUE first-time-init?
   ENDCASE
 ;
 
+: get-max-target ( -- #dev )
+    #dev
+;
+
 : vscsi-report-luns ( -- array ndev )
   \ array of pointers, up to 8 devices
-  #dev 3 << alloc-mem dup
+  get-max-target 3 << alloc-mem dup
   0                                    ( devarray devcur ndev )   
-  #dev 0 DO
-     i 8 << 8000 or 30 << (set-target)
+  get-max-target 0 DO
+     i 0 dev-generate-srplun (set-target)
      report-luns nip IF
         sector l@                     ( devarray devcur ndev size )
         sector 8 + swap               ( devarray devcur ndev lunarray size )
@@ -531,7 +540,7 @@ TRUE VALUE first-time-init?
         dup >r swap move r>           ( devarray devcur ndev mem )
         dup sector l@ 3 >> 0 DO       ( devarray devcur ndev mem memcur )
            dup dup vscsi-read-lun IF
-              j 8 << 8000 or or 30 << swap x! 8 +
+              j swap dev-generate-srplun  swap x! 8 +
            ELSE
               2drop
            THEN
