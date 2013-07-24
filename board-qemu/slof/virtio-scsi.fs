@@ -143,6 +143,11 @@ scsi-open
 : (set-target)
     to current-target
 ;
+
+: dev-generate-srplun ( target lun-id -- srplun )
+    swap 0100 or 10 << or 20 <<
+;
+
 \ We obtain here a unit address on the stack, since our #address-cells
 \ is 2, the 64-bit srplun is split in two cells that we need to join
 \
@@ -162,37 +167,71 @@ scsi-open
 \ Get rid of that when report-lun returns an allocated buffer
 CREATE sectorlun d# 512 allot
 
+100 CONSTANT #targets
+: virtio-scsi-read-lun     ( addr -- lun true | false )
+  dup c@ C0 AND CASE
+     40 OF w@-be 3FFF AND TRUE ENDOF
+     0  OF w@-be          TRUE ENDOF
+     dup dup OF ." Unsupported LUN format = " . cr FALSE ENDOF
+  ENDCASE
+;
+
+: virtio-scsi-report-luns ( -- array ndev )
+    ." VIRTIO-SCSI: report luns "
+    \ virtiodev 0 vs-cfg>max-target 4 virtio-get-config . cr
+    #targets 3 << alloc-mem dup
+    0
+    #targets 0 DO
+	." Looping " i . cr
+	i 0 dev-generate-srplun (set-target)
+	report-luns nip IF
+	    sector l@                     ( devarray devcur ndev size )
+	    sector 8 + swap               ( devarray devcur ndev lunarray size )
+	    dup 8 + dup alloc-mem         ( devarray devcur ndev lunarray size size+ mem )
+	    dup rot 0 fill                ( devarray devcur ndev lunarray size mem )
+	    dup >r swap move r>           ( devarray devcur ndev mem )
+	    dup sector l@ 3 >> 0 DO       ( devarray devcur ndev mem memcur )
+		dup dup virtio-scsi-read-lun IF
+		    j dev-generate-srplun swap x! 8 +
+		ELSE
+		    2drop
+		THEN
+	    LOOP drop
+	    rot                           ( devarray ndev mem devcur )
+	    dup >r x! r> 8 +              ( devarray ndev devcur )
+	    swap 1 +
+	THEN
+    LOOP
+    nip
+;
+
 : virtio-scsi-find-disks      ( -- )
     ." VIRTIO-SCSI: Looking for devices" cr
-    0100000000000000 (set-target)
-    \ XXX FIXME: Iterate targets, not only luns, base code on vscsi
-    \ or better, make it generic (using an encode-target method that
-    \ takes ID,lun as argument maybe
-    report-luns IF
-    	sectorlun 200 move \ copy report-luns result to sectorlun
-                           \ will go away when report-lun returns
-                           \ an allocated block
-	sectorlun 8 +                    ( lunarray )
-	dup sectorlun l@ 3 >> 0 DO       ( lunarray lunarraycur )
-	    dup w@ 32 << 0100000000000000 or
-            (set-target) wrapped-inquiry IF
-		."   " current-target (u.) type ."  "
-		\ XXX FIXME: Check top bits to ignore unsupported units
-		\            and maybe provide better printout & more cases
-		\ XXX FIXME: Actually check for LUNs
-		sector inquiry-data>peripheral c@ CASE
-		    0   OF ." DISK     : " " disk"  current-target make-disk-alias ENDOF
-		    5   OF ." CD-ROM   : " " cdrom" current-target make-disk-alias ENDOF
-		    7   OF ." OPTICAL  : " " cdrom" current-target make-disk-alias ENDOF
-		    e   OF ." RED-BLOCK: " " disk"  current-target make-disk-alias ENDOF
-		    dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
-		ENDCASE
-		sector .inquiry-text cr
-	    THEN
-	    8 +
-	LOOP drop
-    THEN
-    drop
+    virtio-scsi-report-luns
+    0 ?DO
+       dup x@
+       BEGIN
+          dup x@
+          dup 0= IF drop TRUE ELSE
+             (set-target) wrapped-inquiry IF
+	        ."   " current-target (u.) type ."  "
+	        \ XXX FIXME: Check top bits to ignore unsupported units
+	        \            and maybe provide better printout & more cases
+                \ XXX FIXME: Actually check for LUNs
+	        sector inquiry-data>peripheral c@ CASE
+                   0   OF ." DISK     : " " disk"  current-target make-disk-alias ENDOF
+                   5   OF ." CD-ROM   : " " cdrom" current-target make-disk-alias ENDOF
+                   7   OF ." OPTICAL  : " " cdrom" current-target make-disk-alias ENDOF
+                   e   OF ." RED-BLOCK: " " disk"  current-target make-disk-alias ENDOF
+                   dup dup OF ." ? (" . 8 emit 29 emit 5 spaces ENDOF
+                ENDCASE
+	        sector .inquiry-text cr
+	     THEN
+             8 + FALSE
+          THEN
+       UNTIL drop
+       8 +
+    LOOP drop
 ;
 
 scsi-close        \ no further scsi words required
