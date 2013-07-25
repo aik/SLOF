@@ -11,6 +11,7 @@
  *****************************************************************************/
 
 #include <string.h>
+#include <byteorder.h>
 #include "usb.h"
 #include "usb-core.h"
 #include "usb-ohci.h"
@@ -31,27 +32,27 @@
  */
 static void ohci_dump_regs(struct ohci_regs *regs)
 {
-	dprintf("\n - HcRevision         %08X", read_reg(&regs->rev));
-	dprintf("   - HcControl          %08X", read_reg(&regs->control));
-	dprintf("\n - HcCommandStatus    %08X", read_reg(&regs->cmd_status));
-	dprintf("   - HcInterruptStatus  %08X", read_reg(&regs->intr_status));
-	dprintf("\n - HcInterruptEnable  %08X", read_reg(&regs->intr_enable));
-	dprintf("   - HcInterruptDisable %08X", read_reg(&regs->intr_disable));
-	dprintf("\n - HcHCCA             %08X", read_reg(&regs->hcca));
-	dprintf("   - HcPeriodCurrentED  %08X", read_reg(&regs->period_curr_ed));
-	dprintf("\n - HcControlHeadED    %08X", read_reg(&regs->cntl_head_ed));
-	dprintf("   - HcControlCurrentED %08X", read_reg(&regs->cntl_curr_ed));
-	dprintf("\n - HcBulkHeadED       %08X", read_reg(&regs->bulk_head_ed));
-	dprintf("   - HcBulkCurrentED    %08X", read_reg(&regs->bulk_curr_ed));
-	dprintf("\n - HcDoneHead         %08X", read_reg(&regs->done_head));
-	dprintf("   - HcFmInterval       %08X", read_reg(&regs->fm_interval));
-	dprintf("\n - HcFmRemaining      %08X", read_reg(&regs->fm_remaining));
-	dprintf("   - HcFmNumber         %08X", read_reg(&regs->fm_num));
-	dprintf("\n - HcPeriodicStart    %08X", read_reg(&regs->period_start));
-	dprintf("   - HcLSThreshold      %08X", read_reg(&regs->ls_threshold));
-	dprintf("\n - HcRhDescriptorA    %08X", read_reg(&regs->rh_desc_a));
-	dprintf("   - HcRhDescriptorB    %08X", read_reg(&regs->rh_desc_b));
-	dprintf("\n - HcRhStatus         %08X", read_reg(&regs->rh_status));
+	dprintf("\n - HcRevision         %08X", read_reg32(&regs->rev));
+	dprintf("   - HcControl          %08X", read_reg32(&regs->control));
+	dprintf("\n - HcCommandStatus    %08X", read_reg32(&regs->cmd_status));
+	dprintf("   - HcInterruptStatus  %08X", read_reg32(&regs->intr_status));
+	dprintf("\n - HcInterruptEnable  %08X", read_reg32(&regs->intr_enable));
+	dprintf("   - HcInterruptDisable %08X", read_reg32(&regs->intr_disable));
+	dprintf("\n - HcHCCA             %08X", read_reg32(&regs->hcca));
+	dprintf("   - HcPeriodCurrentED  %08X", read_reg32(&regs->period_curr_ed));
+	dprintf("\n - HcControlHeadED    %08X", read_reg32(&regs->cntl_head_ed));
+	dprintf("   - HcControlCurrentED %08X", read_reg32(&regs->cntl_curr_ed));
+	dprintf("\n - HcBulkHeadED       %08X", read_reg32(&regs->bulk_head_ed));
+	dprintf("   - HcBulkCurrentED    %08X", read_reg32(&regs->bulk_curr_ed));
+	dprintf("\n - HcDoneHead         %08X", read_reg32(&regs->done_head));
+	dprintf("   - HcFmInterval       %08X", read_reg32(&regs->fm_interval));
+	dprintf("\n - HcFmRemaining      %08X", read_reg32(&regs->fm_remaining));
+	dprintf("   - HcFmNumber         %08X", read_reg32(&regs->fm_num));
+	dprintf("\n - HcPeriodicStart    %08X", read_reg32(&regs->period_start));
+	dprintf("   - HcLSThreshold      %08X", read_reg32(&regs->ls_threshold));
+	dprintf("\n - HcRhDescriptorA    %08X", read_reg32(&regs->rh_desc_a));
+	dprintf("   - HcRhDescriptorB    %08X", read_reg32(&regs->rh_desc_b));
+	dprintf("\n - HcRhStatus         %08X", read_reg32(&regs->rh_status));
 	dprintf("\n");
 }
 
@@ -63,19 +64,19 @@ static int ohci_hcd_reset(struct ohci_regs *regs)
 {
 	uint32_t time;
 	time = SLOF_GetTimer() + USB_TIMEOUT;
-	write_reg(&regs->cmd_status, OHCI_CMD_STATUS_HCR);
+	write_reg32(&regs->cmd_status, OHCI_CMD_STATUS_HCR);
 	while ((time > SLOF_GetTimer()) &&
-		(read_reg(&regs->cmd_status) & OHCI_CMD_STATUS_HCR))
+		(read_reg32(&regs->cmd_status) & OHCI_CMD_STATUS_HCR))
 		cpu_relax();
-	if (read_reg(&regs->cmd_status) & OHCI_CMD_STATUS_HCR) {
+	if (read_reg32(&regs->cmd_status) & OHCI_CMD_STATUS_HCR) {
 		printf(" ** HCD Reset failed...");
 		return -1;
 	}
 
-	write_reg(&regs->rh_desc_a, RHDA_PSM_INDIVIDUAL | RHDA_OCPM_PERPORT);
-	write_reg(&regs->rh_desc_b, RHDB_PPCM_PORT_POWER);
-	write_reg(&regs->fm_interval, FRAME_INTERVAL);
-	write_reg(&regs->period_start, PERIODIC_START);
+	write_reg32(&regs->rh_desc_a, RHDA_PSM_INDIVIDUAL | RHDA_OCPM_PERPORT);
+	write_reg32(&regs->rh_desc_b, RHDB_PPCM_PORT_POWER);
+	write_reg32(&regs->fm_interval, FRAME_INTERVAL);
+	write_reg32(&regs->period_start, PERIODIC_START);
 	return 0;
 }
 
@@ -113,17 +114,17 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 	ed_phys = ohci_pipe_get_ed_phys(rhdev->intr);
 	memset(ohcd->hcca, 0, HCCA_SIZE);
 	memset(ed, 0, sizeof(struct ohci_ed));
-	write_reg(&ed->attr, EDA_SKIP);
+	ed->attr = cpu_to_le32(EDA_SKIP);
 	for (i = 0; i < HCCA_INTR_NUM; i++)
-		write_reg(&ohcd->hcca->intr_table[i], ed_phys);
+		ohcd->hcca->intr_table[i] = cpu_to_le32(ed_phys);
 
-	write_reg(&regs->hcca, ohcd->hcca_phys);
-	write_reg(&regs->cntl_head_ed, 0);
-	write_reg(&regs->bulk_head_ed, 0);
+	write_reg32(&regs->hcca, ohcd->hcca_phys);
+	write_reg32(&regs->cntl_head_ed, 0);
+	write_reg32(&regs->bulk_head_ed, 0);
 
 	/* OHCI Spec 7.1.2 HcControl Register */
-	oldrwc = read_reg(&regs->control) & OHCI_CTRL_RWC;
-	write_reg(&regs->control, (OHCI_CTRL_CBSR | OHCI_CTRL_CLE |
+	oldrwc = read_reg32(&regs->control) & OHCI_CTRL_RWC;
+	write_reg32(&regs->control, (OHCI_CTRL_CBSR | OHCI_CTRL_CLE |
 					OHCI_CTRL_BLE | OHCI_CTRL_PLE |
 					OHCI_USB_OPER | oldrwc));
 	ohci_dump_regs(regs);
@@ -140,23 +141,23 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 	unsigned int ports, i, port_status, port_clear = 0;
 
 	regs = ohcd->regs;
-	ports = read_reg(&regs->rh_desc_a) & RHDA_NDP;
-	write_reg(&regs->rh_status, RH_STATUS_LPSC);
+	ports = read_reg32(&regs->rh_desc_a) & RHDA_NDP;
+	write_reg32(&regs->rh_status, RH_STATUS_LPSC);
 	SLOF_msleep(5);
 	dprintf("usb-ohci: ports connected %d\n", ports);
 	for (i = 0; i < ports; i++) {
 		dprintf("usb-ohci: ports scanning %d\n", i);
-		port_status = read_reg(&regs->rh_ps[i]);
+		port_status = read_reg32(&regs->rh_ps[i]);
 		if (port_status & RH_PS_CSC) {
 			if (port_status & RH_PS_CCS) {
-				write_reg(&regs->rh_ps[i], RH_PS_PRS);
+				write_reg32(&regs->rh_ps[i], RH_PS_PRS);
 				port_clear |= RH_PS_CSC;
 				dprintf("Start enumerating device\n");
 				SLOF_msleep(10);
 			} else
 				printf("Start removing device\n");
 		}
-		port_status = read_reg(&regs->rh_ps[i]);
+		port_status = read_reg32(&regs->rh_ps[i]);
 		if (port_status & RH_PS_PRSC) {
 			port_clear |= RH_PS_PRSC;
 			dev = usb_devpool_get();
@@ -178,7 +179,7 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 		}
 		port_clear &= 0xFFFF0000;
 		if (port_clear)
-			write_reg(&regs->rh_ps[i], port_clear);
+			write_reg32(&regs->rh_ps[i], port_clear);
 	}
 }
 
@@ -313,7 +314,7 @@ static void ohci_exit(struct usb_hcd_dev *hcidev)
 		return;
 	}
 	ohcd = hcidev->priv;
-	write_reg(&ohcd->regs->hcca, 0);
+	write_reg32(&ohcd->regs->hcca, cpu_to_le32(0));
 	SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
 	SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);
 	SLOF_dma_map_out(ohcd->hcca_phys, ohcd->hcca, sizeof(struct ohci_hcca));
@@ -338,27 +339,27 @@ static void ohci_fill_td(struct ohci_td *td, long next,
 			long req, size_t size, unsigned int attr)
 {
 	if (size && req) {
-		write_reg(&td->cbp, req);
-		write_reg(&td->be, req + size - 1);
+		td->cbp = cpu_to_le32(req);
+		td->be = cpu_to_le32(req + size - 1);
 	} else {
 		td->cbp = 0;
 		td->be = 0;
 	}
-	write_reg(&td->attr, attr);
-	write_reg(&td->next_td, next);
+	td->attr = cpu_to_le32(attr);
+	td->next_td = cpu_to_le32(next);
 
 	dprintf("%s: cbp %08X attr %08X next_td %08X be %08X\n", __func__,
-		read_reg(&td->cbp), read_reg(&td->attr),
-		read_reg(&td->next_td), read_reg(&td->be));
+		le32_to_cpu(td->cbp), le32_to_cpu(td->attr),
+		le32_to_cpu(td->next_td), le32_to_cpu(td->be));
 }
 
 static void ohci_fill_ed(struct ohci_ed *ed, long headp, long tailp,
 			unsigned int attr, long next_ed)
 {
-	write_reg(&ed->attr, attr);
-	write_reg(&ed->headp, headp);
-	write_reg(&ed->tailp, tailp);
-	write_reg(&ed->next_ed, next_ed);
+	ed->attr = cpu_to_le32(attr);
+	ed->headp = cpu_to_le32(headp);
+	ed->tailp = cpu_to_le32(tailp);
+	ed->next_ed = cpu_to_le32(next_ed);
 }
 
 static long ohci_get_td_phys(struct ohci_td *curr, struct ohci_td *start, long td_phys)
@@ -385,7 +386,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	int ret = true;
 	long req_phys = 0, data_phys = 0, td_next = 0;
 
-	datalen = read_reg16(&req->wLength);
+	datalen = le16_to_cpu(req->wLength);
 	dir = (req->bmRequestType & REQT_DIR_IN) ? 1 : 0;
 
 	dprintf("usb-ohci: %s len %d DIR_IN %d\n", __func__, datalen, dir);
@@ -422,12 +423,12 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	dprintf("usb-ohci: %s - td_start %x td_end %x req %x\n", __func__,
 		td_phys, td_next, req_phys);
 	barrier();
-	write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+	ed->attr &= cpu_to_le32(~EDA_SKIP);
 
 	ohcd = pipe->dev->hcidev->priv;
 	regs = ohcd->regs;
-	write_reg(&regs->cntl_head_ed, ohci_pipe_get_ed_phys(pipe));
-	write_reg(&regs->cmd_status, OHCI_CMD_STATUS_CLF);
+	write_reg32(&regs->cntl_head_ed, ohci_pipe_get_ed_phys(pipe));
+	write_reg32(&regs->cmd_status, OHCI_CMD_STATUS_CLF);
 
 	time = SLOF_GetTimer() + USB_TIMEOUT;
 	while ((time > SLOF_GetTimer()) &&
@@ -510,13 +511,13 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	ohci_fill_ed(ed, td_phys, td_next, attr, 0);
 	dprintf("usb-ohci: %s - tds %p td %p\n", __func__, td_phys, td_next);
 	barrier();
-	write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+	ed->attr &= cpu_to_le32(~EDA_SKIP);
 
 	ohcd = pipe->dev->hcidev->priv;
 	regs = ohcd->regs;
 	ed_phys = ohci_pipe_get_ed_phys(pipe);
-	write_reg(&regs->bulk_head_ed, ed_phys);
-	write_reg(&regs->cmd_status, 0x4);
+	write_reg32(&regs->bulk_head_ed, ed_phys);
+	write_reg32(&regs->cmd_status, 0x4);
 
 	time = SLOF_GetTimer() + USB_TIMEOUT;
 	while ((time > SLOF_GetTimer()) &&
@@ -560,9 +561,14 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 	ed = &(opipe->ed);
 	ed_phys = opipe->ed_phys;
 	mps = pipe->mps;
-	write_reg(&ed->attr, EDA_DIR_IN | EDA_FADDR(dev->addr) | dev->speed |
-		EDA_MPS(pipe->mps) | EDA_SKIP | EDA_EP(pipe->epno));
-	dprintf("%s: pipe %p ed %p dev %p opipe %p\n", __func__, pipe, ed, dev, opipe);
+	ed->attr = cpu_to_le32(EDA_DIR_IN |
+			       EDA_FADDR(dev->addr) |
+			       dev->speed |
+			       EDA_MPS(pipe->mps) |
+			       EDA_SKIP |
+			       EDA_EP(pipe->epno));
+	dprintf("%s: pipe %p ed %p dev %p opipe %p\n", __func__,
+		pipe, ed, dev, opipe);
 	count = (buflen/mps) + 1;
 	tds = td = SLOF_dma_alloc(sizeof(*td) * count);
 	if (!tds) {
@@ -585,21 +591,22 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 	for (i = 0; i < count - 1; i++, ptr += mps) {
 		td = &tds[i];
 		td_next = ohci_get_td_phys(td + 1, &tds[0], td_phys);
-		write_reg(&td->cbp, PTR_U32(ptr));
-		write_reg(&td->attr, TDA_DP_IN | TDA_ROUNDING | TDA_CC);
-		write_reg(&td->next_td, td_next);
-		write_reg(&td->be, PTR_U32(ptr) + mps - 1);
+		td->cbp = cpu_to_le32(PTR_U32(ptr));
+		td->attr = cpu_to_le32(TDA_DP_IN | TDA_ROUNDING | TDA_CC);
+		td->next_td = cpu_to_le32(td_next);
+		td->be = cpu_to_le32(PTR_U32(ptr) + mps - 1);
 		dprintf("td %x td++ %x ptr %x be %x\n",
-			td, read_reg(&td->next_td), ptr, (PTR_U32(ptr) + mps - 1));
+			td, le32_to_cpu(td->next_td),
+			ptr, (PTR_U32(ptr) + mps - 1));
 	}
 	td->next_td = 0;
 	td_next = ohci_get_td_phys(td, &tds[0], td_phys);
-	write_reg(&ed->headp, td_phys);
-	write_reg(&ed->tailp, td_next);
+	ed->headp = cpu_to_le32(td_phys);
+	ed->tailp = cpu_to_le32(td_next);
 
 	dprintf("%s: head %08X tail %08X, count %d, mps %d\n", __func__,
-		read_reg(&ed->headp),
-		read_reg(&ed->tailp),
+		le32_to_cpu(ed->headp),
+		le32_to_cpu(ed->tailp),
 		count, mps);
 	ed->next_ed = 0;
 
@@ -607,17 +614,17 @@ static int ohci_get_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd,
 	switch (dev->class) {
 	case DEV_HID_KEYB:
 		dprintf("%s: Keyboard class %d\n", __func__, dev->class);
-		write_reg(&hcca->intr_table[0],  ed_phys);
-		write_reg(&hcca->intr_table[8],  ed_phys);
-		write_reg(&hcca->intr_table[16], ed_phys);
-		write_reg(&hcca->intr_table[24], ed_phys);
-		write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+		hcca->intr_table[0] = cpu_to_le32(ed_phys);
+		hcca->intr_table[8] = cpu_to_le32(ed_phys);
+		hcca->intr_table[16] = cpu_to_le32(ed_phys);
+		hcca->intr_table[24] = cpu_to_le32(ed_phys);
+		ed->attr &= cpu_to_le32(~EDA_SKIP);
 		break;
 
 	case DEV_HUB:
 		dprintf("%s: HUB class %x\n", __func__, dev->class);
-		write_reg(&hcca->intr_table[1], ed_phys);
-		write_reg(&ed->attr, read_reg(&ed->attr) & ~EDA_SKIP);
+		hcca->intr_table[1] = cpu_to_le32(ed_phys);
+		ed->attr &= cpu_to_le32(~EDA_SKIP);
 		break;
 
 	default:
@@ -650,8 +657,8 @@ static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
 	dprintf("%s: td %p td_phys %08lx buf %p buf_phys %08lx\n", __func__,
 		opipe->td, opipe->td_phys, opipe->buf, opipe->buf_phys);
 
-	write_reg(&ed->attr, read_reg(&ed->attr) | EDA_SKIP);
-	barrier();
+	ed->attr |= cpu_to_le32(EDA_SKIP);
+	mb();
 	ed->headp = 0;
 	ed->tailp = 0;
 	ed->next_ed = 0;
@@ -662,15 +669,15 @@ static int ohci_put_pipe_intr(struct usb_pipe *pipe, struct ohci_hcd *ohcd)
 	switch (dev->class) {
 	case DEV_HID_KEYB:
 		dprintf("%s: Keyboard class %d\n", __func__, dev->class);
-		write_reg(&hcca->intr_table[0],  ed_phys);
-		write_reg(&hcca->intr_table[8],  ed_phys);
-		write_reg(&hcca->intr_table[16], ed_phys);
-		write_reg(&hcca->intr_table[24], ed_phys);
+		hcca->intr_table[0] = cpu_to_le32(ed_phys);
+		hcca->intr_table[8] = cpu_to_le32(ed_phys);
+		hcca->intr_table[16] = cpu_to_le32(ed_phys);
+		hcca->intr_table[24] = cpu_to_le32(ed_phys);
 		break;
 
 	case DEV_HUB:
 		dprintf("%s: HUB class %d\n", __func__, dev->class);
-		write_reg(&hcca->intr_table[1],  ed_phys);
+		hcca->intr_table[1] = cpu_to_le32(ed_phys);
 		break;
 
 	default:
@@ -692,10 +699,15 @@ static int ohci_init_bulk_ed(struct usb_dev *dev, struct usb_pipe *pipe)
 	ed = &(opipe->ed);
 	dir = pipe->dir ? EDA_DIR_IN : EDA_DIR_OUT;
 
-	write_reg(&ed->attr, dir | EDA_FADDR(dev->addr) | dev->speed |
-		EDA_MPS(pipe->mps) | EDA_SKIP | EDA_EP(pipe->epno));
+	ed->attr = cpu_to_le32(dir |
+			       EDA_FADDR(dev->addr) |
+			       dev->speed |
+			       EDA_MPS(pipe->mps) |
+			       EDA_SKIP |
+			       EDA_EP(pipe->epno));
+
 	dprintf("%s: pipe %p attr %x\n", __func__, pipe,
-		read_reg(&ed->attr));
+		le32_to_cpu(ed->attr));
 	return true;
 }
 
@@ -726,7 +738,7 @@ static struct usb_pipe *ohci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 	new->next = NULL;
 	new->type = ep->bmAttributes & USB_EP_TYPE_MASK;
 	new->speed = dev->speed;
-	new->mps = read_reg16(&ep->wMaxPacketSize);
+	new->mps = le16_to_cpu(ep->wMaxPacketSize);
 	new->epno = ep->bEndpointAddress & 0xF;
 	new->dir = ep->bEndpointAddress & 0x80;
 	if (new->type == USB_EP_TYPE_INTR)
@@ -772,7 +784,7 @@ static uint16_t ohci_get_last_frame(struct usb_dev *dev)
 
 	ohcd = dev->hcidev->priv;
 	regs = ohcd->regs;
-	return read_reg(&regs->fm_num);
+	return read_reg32(&regs->fm_num);
 }
 
 static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
@@ -796,8 +808,8 @@ static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 	opipe = ohci_pipe_get_opipe(pipe);
 	ed = &opipe->ed;
 
-	head_phys = (struct ohci_td *)(long)(read_reg32(&ed->headp) & EDA_HEADP_MASK);
-	tail_phys = (struct ohci_td *)(long) read_reg32(&ed->tailp);
+	head_phys = (struct ohci_td *)(long)(le32_to_cpu(ed->headp) & EDA_HEADP_MASK);
+	tail_phys = (struct ohci_td *)(long)le32_to_cpu(ed->tailp);
 	curr_phys = (struct ohci_td *) opipe->td_phys;
 	pos = (tail_phys - curr_phys + 1) % (opipe->count - 1);
 	dprintf("pos %d %ld -- %d\n", pos, (tail_phys - curr_phys + 1),
@@ -813,7 +825,7 @@ static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 	if (curr != head) {
 		ptr = (uint8_t *) ((long)opipe->buf + pipe->mps * pos);
 		ptr_phys = opipe->buf_phys + pipe->mps * pos;
-		if (read_reg((uint32_t *)ptr) != 0) {
+		if (le32_to_cpu(*(uint32_t *)ptr) != 0) {
 			for (i = 0; i < 8; i++)
 				data[i] = *(ptr + i);
 		}
@@ -822,16 +834,16 @@ static int ohci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 		if (next == (opipe->td + opipe->count - 1))
 			next = opipe->td;
 
-		write_reg(&curr->attr, TDA_DP_IN | TDA_ROUNDING | TDA_CC);
-		write_reg(&curr->next_td, 0);
-		write_reg(&curr->cbp, PTR_U32(ptr_phys));
-		write_reg(&curr->be, PTR_U32(ptr_phys + pipe->mps - 1));
+		curr->attr = cpu_to_le32(TDA_DP_IN | TDA_ROUNDING | TDA_CC);
+		curr->next_td = cpu_to_le32(0);
+		curr->cbp = cpu_to_le32(PTR_U32(ptr_phys));
+		curr->be = cpu_to_le32(PTR_U32(ptr_phys + pipe->mps - 1));
 		td_next = ohci_get_td_phys(curr, opipe->td, opipe->td_phys);
-		dprintf("Connecting %p to %p(phys %08lx) ptr %p, ptr_phys %08lx\n",
-			tail, curr, td_next, ptr, ptr_phys);
-		write_reg(&tail->next_td, td_next);
-		barrier();
-		write_reg(&ed->tailp, td_next);
+		dprintf("Connecting %p to %p(phys %08lx) ptr %p, "
+			"ptr_phys %08lx\n" tail, curr, td_next, ptr, ptr_phys);
+		tail->next_td = cpu_to_le32(td_next);
+		mb();
+		ed->tailp = cpu_to_le32(td_next);
 	} else
 		return 0;
 
