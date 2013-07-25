@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <cpu.h>
 #include "helpers.h"
 #include "paflof.h"
 

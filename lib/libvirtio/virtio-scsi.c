@@ -12,10 +12,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <cpu.h>
 #include "virtio.h"
 #include "virtio-scsi.h"
-
-#define sync()  asm volatile (" sync \n" ::: "memory")
 
 int virtioscsi_send(struct virtio_device *dev,
 		    struct virtio_scsi_req_cmd *req,
@@ -69,7 +68,7 @@ int virtioscsi_send(struct virtio_device *dev,
                 desc->flags &= ~VRING_DESC_F_NEXT;
 
         vq_avail->ring[vq_avail->idx % vq_size] = id;
-        sync();
+        mb();
         vq_avail->idx += 1;
 
         /* Tell HV that the vq is ready */
@@ -79,7 +78,7 @@ int virtioscsi_send(struct virtio_device *dev,
         i = 10000000;
         while (*current_used_idx == last_used_idx && i-- > 0) {
                 // do something better
-                sync();
+                mb();
         }
 
         return 0;

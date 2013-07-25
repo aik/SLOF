@@ -19,15 +19,12 @@
  */
 
 #include <stdint.h>
+#include <cpu.h>
 #include "netdriver_int.h"
 #include <libhvcall.h>
 #include <virtio.h>
 #include <string.h>
 #include "virtio-net.h"
-
-
-#define sync()  asm volatile (" sync \n" ::: "memory")
-
 
 struct virtio_device virtiodev;
 struct vqs vq[2];     /* Information about virtqueues */
@@ -100,7 +97,7 @@ static int virtionet_init(void)
 
 		vq[VQ_RX].avail->ring[i] = i*2;
 	}
-	sync();
+	mb();
 	vq[VQ_RX].avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
 	vq[VQ_RX].avail->idx = RX_QUEUE_SIZE;
 
@@ -184,7 +181,7 @@ static int virtionet_xmit(char *buf, int len)
 	desc->next = 0;
 
 	vq[VQ_TX].avail->ring[vq[VQ_TX].avail->idx % vq[VQ_TX].size] = id;
-	sync();
+	mb();
 	vq[VQ_TX].avail->idx += 1;
 
 	/* Tell HV that TX queue is ready */
@@ -239,7 +236,7 @@ static int virtionet_receive(char *buf, int maxlen)
 	last_rx_idx = last_rx_idx + 1;
 
 	vq[VQ_RX].avail->ring[vq[VQ_RX].avail->idx % vq[VQ_RX].size] = id - 1;
-	sync();
+	mb();
 	vq[VQ_RX].avail->idx += 1;
 
 	/* Tell HV that RX queue entry is ready */

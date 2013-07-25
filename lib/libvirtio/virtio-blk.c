@@ -11,11 +11,9 @@
  *****************************************************************************/
 
 #include <stdio.h>
+#include <cpu.h>
 #include "virtio.h"
 #include "virtio-blk.h"
-
-#define sync()  asm volatile (" sync \n" ::: "memory")
-
 
 /**
  * Initialize virtio-block device.
@@ -140,7 +138,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	desc->next = 0;
 
 	vq_avail->ring[vq_avail->idx % vq_size] = id;
-	sync();
+	mb();
 	vq_avail->idx += 1;
 
 	/* Tell HV that the queue is ready */
@@ -150,7 +148,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	i = 10000000;
 	while (*current_used_idx == last_used_idx && i-- > 0) {
 		// do something better
-		sync();
+		mb();
 	}
 
 	if (status == 0)
