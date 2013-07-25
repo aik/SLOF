@@ -365,7 +365,7 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 			(QH_STS_ACTIVE << TOKEN_STATUS_SHIFT));
 
 	/* link qtd to qh and attach to ehcd */
-	barrier();
+	mb();
 	epipe = container_of(pipe, struct ehci_pipe, pipe);
 	epipe->qh.next_qtd = cpu_to_le32(PTR_U32(qtds_phys));
 	epipe->qh.qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
@@ -373,17 +373,17 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 				(pipe->speed << QH_EPS_SHIFT) |
 				(pipe->epno << QH_EP_SHIFT) |
 				(pipe->dev->addr << QH_DEV_ADDR_SHIFT));
-	barrier();
+	mb();
 
 	ehcd->qh_async->qh_ptr = cpu_to_le32(epipe->qh_phys | EHCI_TYP_QH);
 
 	/* transfer data */
-	barrier();
+	mb();
 	qtd = &qtds[0];
 	time = SLOF_GetTimer() + USB_TIMEOUT;
 	do {
 		if (le32_to_cpu(qtd->token) & (QH_STS_ACTIVE << TOKEN_STATUS_SHIFT))
-			barrier();
+			mb();
 		else
 			qtd++;
 
@@ -453,7 +453,7 @@ static int ehci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 	}
 
 	/* link qtd to qh and attach to ehcd */
-	barrier();
+	mb();
 	epipe = container_of(pipe, struct ehci_pipe, pipe);
 	epipe->qh.next_qtd = cpu_to_le32(PTR_U32(qtd_phys));
 	epipe->qh.qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
@@ -461,12 +461,12 @@ static int ehci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 				(pipe->speed << QH_EPS_SHIFT) |
 				(pipe->epno << QH_EP_SHIFT) |
 				(pipe->dev->addr << QH_DEV_ADDR_SHIFT));
-	barrier();
+	mb();
 
 	ehcd->qh_async->qh_ptr = cpu_to_le32(epipe->qh_phys | EHCI_TYP_QH);
 
 	/* transfer data */
-	barrier();
+	mb();
 	qtd = (struct ehci_qtd *)td;
 	for (i = 0; i < NUM_BULK_QTDS; i++) {
 		time = SLOF_GetTimer() + USB_TIMEOUT;
