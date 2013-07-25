@@ -314,6 +314,7 @@ static void ohci_exit(struct usb_hcd_dev *hcidev)
 		return;
 	}
 	ohcd = hcidev->priv;
+	ohci_hcd_reset(ohcd->regs);
 	write_reg32(&ohcd->regs->hcca, cpu_to_le32(0));
 	SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
 	SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);
