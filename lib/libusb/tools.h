@@ -26,6 +26,7 @@ static inline uint32_t read_reg32(uint32_t *reg)
 
 static inline void write_reg32(uint32_t *reg, uint32_t value)
 {
+	mb();
 	ci_write_32(reg, bswap_32(value));
 }
 
@@ -36,6 +37,7 @@ static inline uint8_t read_reg8(uint8_t *reg)
 
 static inline void write_reg8(uint8_t *reg, uint8_t value)
 {
+	mb();
 	ci_write_8(reg, value);
 }
 
@@ -46,6 +48,7 @@ static inline uint16_t read_reg16(uint16_t *reg)
 
 static inline void write_reg16(uint16_t *reg, uint16_t value)
 {
+	mb();
 	ci_write_16(reg, bswap_16(value));
 }
 
@@ -56,6 +59,7 @@ static inline uint64_t read_reg64(uint64_t *reg)
 
 static inline void write_reg64(uint64_t *reg, uint64_t value)
 {
+	mb();
 	ci_write_64(reg, bswap_64(value));
 }
 
@@ -66,6 +70,7 @@ static inline uint32_t ci_read_reg(uint32_t *reg)
 
 static inline void ci_write_reg(uint32_t *reg, uint32_t value)
 {
+	mb();
 	ci_write_32(reg, bswap_32(value));
 }
 
