@@ -131,6 +131,7 @@ struct ohci_hcd {
 #define OHCI_CTRL_HCFS  (3 << 6)
 #define OHCI_USB_RESET   (0 << 6)
 #define OHCI_USB_OPER    (2 << 6)
+#define OHCI_USB_SUSPEND (3 << 6)
 #define OHCI_CTRL_RWC   (1 << 9)
 
 /* OHCI Command Status */
