@@ -424,6 +424,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	ohcd = pipe->dev->hcidev->priv;
 	regs = ohcd->regs;
 	write_reg32(&regs->cntl_head_ed, ohci_pipe_get_ed_phys(pipe));
+	mb();
 	write_reg32(&regs->cmd_status, OHCI_CMD_STATUS_CLF);
 
 	time = SLOF_GetTimer() + USB_TIMEOUT;
@@ -438,6 +439,9 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 			__func__, ed->headp, ed->tailp);
 		ret = false;
 	}
+	ed->attr |= cpu_to_le32(EDA_SKIP);
+	mb();
+	write_reg32(&regs->cntl_head_ed, 0);
 
 	SLOF_dma_map_out(req_phys, req, sizeof(struct usb_dev_req));
 	if (datalen)
@@ -513,6 +517,7 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	regs = ohcd->regs;
 	ed_phys = ohci_pipe_get_ed_phys(pipe);
 	write_reg32(&regs->bulk_head_ed, ed_phys);
+	mb();
 	write_reg32(&regs->cmd_status, 0x4);
 
 	time = SLOF_GetTimer() + USB_TIMEOUT;
@@ -527,6 +532,9 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 			__func__, ed->headp, ed->tailp);
 		ret = false;
 	}
+	ed->attr |= cpu_to_le32(EDA_SKIP);
+	mb();
+	write_reg32(&regs->bulk_head_ed, 0);
 end:
 	return ret;
 }
