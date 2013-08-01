@@ -283,6 +283,29 @@ static void ehci_disconnect(void)
 
 }
 
+static int ehci_handshake(struct ehci_hcd *ehcd, uint32_t timeout)
+{
+	uint32_t usbsts = 0, time;
+	uint32_t usbcmd;
+	mb();
+	usbcmd = read_reg32(&ehcd->op_regs->usbcmd);
+	/* Ring a doorbell */
+	write_reg32(&ehcd->op_regs->usbcmd, usbcmd | CMD_IAAD);
+	mb();
+	time = SLOF_GetTimer() + timeout;
+	while ((time > SLOF_GetTimer())) {
+		/* Wait for controller to confirm */
+		usbsts = read_reg32(&ehcd->op_regs->usbsts);
+		if (usbsts & STS_IAA) {
+			/* Acknowledge it, for next doorbell to work */
+			write_reg32(&ehcd->op_regs->usbsts, STS_IAA);
+			return true;
+		}
+		cpu_relax();
+	}
+	return false;
+}
+
 static int fill_qtd_buff(struct ehci_qtd *qtd, long data, uint32_t size)
 {
 	long i, rem;
@@ -394,11 +417,17 @@ static int ehci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 		}
 	} while (qtd->next_qtd != QH_PTR_TERM);
 
+	ehcd->qh_async->qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
+	mb();
+	if (!ehci_handshake(ehcd, USB_TIMEOUT)) {
+		printf("%s: handshake failed\n", __func__);
+		ret = false;
+	}
+
 	SLOF_dma_map_out(req_phys, req, sizeof(struct usb_dev_req));
 	SLOF_dma_map_out(data_phys, data, datalen);
 	SLOF_dma_map_out(PTR_U32(qtds_phys), qtds, sizeof(*qtds) * 3);
 	SLOF_dma_free(qtds, sizeof(*qtds) * 3);
-	ehcd->qh_async->qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
 
 	return ret;
 }
@@ -410,7 +439,7 @@ static int ehci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 	struct ehci_qtd *qtd, *qtd_phys;
 	struct ehci_pipe *epipe;
 	uint32_t pid;
-	int i, rem;
+	int i, rem, ret = true;
 	uint32_t time;
 	long ptr;
 
@@ -473,20 +502,25 @@ static int ehci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 		while ((time > SLOF_GetTimer()) &&
 			(le32_to_cpu(qtd->token) & (QH_STS_ACTIVE << TOKEN_STATUS_SHIFT)))
 			cpu_relax();
+		mb();
 		if (qtd->next_qtd == QH_PTR_TERM)
 			break;
 
 		if (le32_to_cpu(qtd->token) & (QH_STS_ACTIVE << TOKEN_STATUS_SHIFT)) {
 			printf("usb-ehci: bulk transfer timed out_\n");
-			return false;
+			ret = false;
+			break;
 		}
-
 		qtd++;
 	}
 
 	ehcd->qh_async->qh_ptr = cpu_to_le32(ehcd->qh_async_phys | EHCI_TYP_QH);
-
-	return true;
+	mb();
+	if (!ehci_handshake(ehcd, USB_TIMEOUT)) {
+		printf("%s: handshake failed\n", __func__);
+		ret = false;
+	}
+	return ret;
 }
 
 static struct usb_pipe *ehci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,

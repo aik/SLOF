@@ -101,11 +101,14 @@ struct ehci_pipe {
 
 #define HCS_NPORTS_MASK        0x000f
 
+#define CMD_IAAD	(1 << 6)
 #define CMD_ASE		(1 << 5)
 #define CMD_PSE		(1 << 4)
 #define CMD_FLS_MASK	(3 << 2)
 #define CMD_HCRESET	(1 << 1)
 #define CMD_RUN		(1 << 0)
+
+#define STS_IAA		(1 << 5)
 
 #define PORT_RESET	(1 << 8)
 #define PORT_PE		(1 << 2)
