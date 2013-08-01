@@ -302,19 +302,14 @@ out:
 static void ohci_exit(struct usb_hcd_dev *hcidev)
 {
 	struct ohci_hcd *ohcd = NULL;
-	static int count = 0;
 
 	dprintf("%s: enter \n", __func__);
 	if (!hcidev && !hcidev->priv)
 		return;
 
-	count++;
-	if (count > 1) {
-		printf("%s: already called once \n", __func__);
-		return;
-	}
 	ohcd = hcidev->priv;
-	ohci_hcd_reset(ohcd->regs);
+	write_reg32(&ohcd->regs->control, (OHCI_CTRL_CBSR | OHCI_USB_SUSPEND));
+	SLOF_msleep(20);
 	write_reg32(&ohcd->regs->hcca, cpu_to_le32(0));
 	SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
 	SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);

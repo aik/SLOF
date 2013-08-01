@@ -36,12 +36,6 @@ TRUE VALUE first-time-init?
 
 false VALUE dev-hci-debug?
 
-: get-base-address ( -- baseaddr )
-    hcidev hcd>base @
-;
-
-get-base-address CONSTANT baseaddrs
-
 1 encode-int s" #address-cells" property
 0 encode-int s" #size-cells" property
 
@@ -55,26 +49,10 @@ get-base-address CONSTANT baseaddrs
     hcidev
 ;
 
-\ set HCI into suspend mode
-\ this disables all activities to shared RAM
-\ called when linux starts (quiesce)
-: hc-suspend  ( -- )
-   hcidev hcd>type @ dup 1 = IF
-      00C3 baseaddrs 4  + rl!-le             \ Suspend OHCI controller
-   THEN
-   2 = IF
-      baseaddrs dup c@ + rl@-le FFFFFFFE and
-      baseaddrs dup c@ + rl!-le              \ Stop EHCI controller
-   ELSE
-      drop
-   THEN
-;
-
 : hc-cleanup ( -- )
     my-phandle set-node
     dev-hci-debug? IF ." USB-HCI: Cleaning up " pwd cr THEN
     hcidev USB-HCD-EXIT
-    hc-suspend
     0 set-node
 ;
 
