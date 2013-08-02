@@ -24,6 +24,15 @@
 #define dprintf(_x ...)
 #endif
 
+#undef OHCI_DEBUG_PACKET
+//#define OHCI_DEBUG_PACKET
+#ifdef OHCI_DEBUG_PACKET
+#define dpprintf(_x ...) printf(_x)
+#else
+#define dpprintf(_x ...)
+#endif
+
+
 /*
  * Dump OHCI register
  *
@@ -187,7 +196,7 @@ static inline struct ohci_ed *ohci_pipe_get_ed(struct usb_pipe *pipe)
 {
 	struct ohci_pipe *opipe;
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
-	dprintf("%s: ed is %p\n", __func__, &opipe->ed);
+	dpprintf("%s: ed is %p\n", __func__, &opipe->ed);
 	return &opipe->ed;
 }
 
@@ -195,7 +204,7 @@ static inline long ohci_pipe_get_ed_phys(struct usb_pipe *pipe)
 {
 	struct ohci_pipe *opipe;
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
-	dprintf("%s: ed_phys is %x\n", __func__, opipe->ed_phys);
+	dpprintf("%s: ed_phys is %x\n", __func__, opipe->ed_phys);
 	return opipe->ed_phys;
 }
 
@@ -203,7 +212,7 @@ static inline struct ohci_pipe *ohci_pipe_get_opipe(struct usb_pipe *pipe)
 {
 	struct ohci_pipe *opipe;
 	opipe = container_of(pipe, struct ohci_pipe, pipe);
-	dprintf("%s: opipe is %p\n", __func__, opipe);
+	dpprintf("%s: opipe is %p\n", __func__, opipe);
 	return opipe;
 }
 
@@ -212,7 +221,7 @@ static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd)
 	struct ohci_pipe *opipe, *curr, *prev;
 	long opipe_phys = 0;
 	unsigned int i, count;
-#ifdef DEBUG
+#ifdef OHCI_DEBUG_PACKET
 	struct usb_pipe *pipe;
 #endif
 
@@ -244,7 +253,7 @@ static int ohci_alloc_pipe_pool(struct ohci_hcd *ohcd)
 		ohcd->end->next = &opipe->pipe;
 	ohcd->end = &prev->pipe;
 
-#ifdef DEBUG
+#ifdef OHCI_DEBUG_PACKET
 	for (i = 0, pipe = ohcd->freelist; pipe; pipe = pipe->next)
 		dprintf("usb-ohci: %d: pipe cur %p ed %p ed_phys %x\n",
 			i++, pipe, ohci_pipe_get_ed(pipe),
@@ -360,8 +369,89 @@ static void ohci_fill_ed(struct ohci_ed *ed, long headp, long tailp,
 
 static long ohci_get_td_phys(struct ohci_td *curr, struct ohci_td *start, long td_phys)
 {
-	//dprintf("position %d\n", curr - start);
+	dpprintf("position %d\n", curr - start);
 	return td_phys + (curr - start) * sizeof(*start);
+}
+
+static long ohci_get_td_virt(struct ohci_td *curr, struct ohci_td *start, long td_virt, long total_count)
+{
+	dpprintf("position %d\n", curr - start);
+	if ( (curr - start) >= total_count) {
+		/* busted position, should ignore this */
+		return 0;
+	}
+	return td_virt + (curr - start) * sizeof(*start);
+}
+
+/* OHCI Spec: 4.4.2.3 HccaDoneHead*/
+static int ohci_process_done_head(struct ohci_hcd *ohcd,
+				struct ohci_td *td_start,
+				long __td_start_phys, long total_count)
+{
+	struct ohci_hcca *hcca;
+	struct ohci_td *td_phys = NULL, *td_start_phys;
+	struct ohci_td *td, *prev_td = NULL;
+	uint32_t reg = 0, start_frame = 0, time = 0, ret = true;
+	long count;
+
+	count = total_count;
+	td_start_phys = (struct ohci_td *) __td_start_phys;
+	hcca = ohcd->hcca;
+	start_frame = hcca->frame_num;
+	time = SLOF_GetTimer() + USB_TIMEOUT;
+	dpprintf("Claiming %ld\n", count);
+
+	while(time > SLOF_GetTimer()) {
+		if (hcca->frame_num != start_frame)
+			break;
+		cpu_relax();
+	}
+	if (hcca->frame_num == start_frame)
+		dprintf("frame not changed %x\n", start_frame);
+
+	time = SLOF_GetTimer() + USB_TIMEOUT;
+	while (count > 0) {
+		while(time > SLOF_GetTimer()) {
+			td_phys = (struct ohci_td *)(uint64_t) le32_to_cpu(hcca->done_head);
+			if (td_phys)
+				break;
+			cpu_relax();
+		}
+		mb();
+		hcca->done_head = 0;
+		mb();
+		td = (struct ohci_td *)(uint64_t) ohci_get_td_virt(td_phys,
+								   td_start_phys,
+								PTR_U32(td_start), total_count);
+
+		while ((td != NULL) && (count > 0)) {
+			count--;
+			dpprintf("Claimed %p(%p) td_start %p count %ld\n",
+				td, td_phys, td_start_phys, count);
+			dpprintf("%s: cbp %08X attr %08X next_td %08X be %08X\n",
+				 __func__,
+				 le32_to_cpu(td->cbp), le32_to_cpu(td->attr),
+				 le32_to_cpu(td->next_td), le32_to_cpu(td->be));
+			mb();
+			reg = (le32_to_cpu(td->attr) & TDA_CC) >> 28;
+			if (reg) {
+				printf("USB: Error %s %p\n", tda_cc_error[reg], td);
+				ret = false;
+			}
+			prev_td = td;
+			td = (struct ohci_td *)(uint64_t) le32_to_cpu(td->next_td);
+			mb();
+			prev_td->attr |= cpu_to_le32(TDA_DONE);
+			prev_td->next_td = 0;
+			mb();
+		}
+		/* clear the WD interrupt status*/
+		write_reg32(&ohcd->regs->intr_status, OHCI_INTR_STATUS_WD);
+		mb();
+		read_reg32(&ohcd->regs->intr_status);
+	}
+	dpprintf("TDs left to be claimed td %p %ld\n", td, count);
+	return ret;
 }
 
 /*
@@ -380,7 +470,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	uint32_t dir, attr = 0;
 	uint32_t time;
 	int ret = true;
-	long req_phys = 0, data_phys = 0, td_next = 0;
+	long req_phys = 0, data_phys = 0, td_next = 0, td_count = 0;
 
 	datalen = le16_to_cpu(req->wLength);
 	dir = (req->bmRequestType & REQT_DIR_IN) ? 1 : 0;
@@ -395,7 +485,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	attr = TDA_DP_SETUP | TDA_CC | TDA_TOGGLE_DATA0;
 	td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
 	ohci_fill_td(td, td_next, req_phys, sizeof(*req), attr);
-	td++;
+	td++; td_count++;
 
 	if (datalen) {
 		data_phys = SLOF_dma_map_in(data, datalen, true);
@@ -403,14 +493,14 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 		attr = (dir ? TDA_DP_IN : TDA_DP_OUT) | TDA_TOGGLE_DATA1 | TDA_CC;
 		td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
 		ohci_fill_td(td, td_next, data_phys, datalen, attr);
-		td++;
+		td++; td_count++;
 	}
 
 	attr = 0;
 	attr = (dir ? TDA_DP_OUT : TDA_DP_IN) | TDA_CC | TDA_TOGGLE_DATA1;
 	td_next = ohci_get_td_phys(td + 1, tds, PTR_U32(td_phys));
 	ohci_fill_td(td, td_next, 0, 0, attr);
-	td++;
+	td_count++;
 
 	ed = ohci_pipe_get_ed(pipe);
 	attr = 0;
@@ -443,6 +533,8 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	mb();
 	write_reg32(&regs->cntl_head_ed, 0);
 
+	ohci_process_done_head(ohcd, tds, (long)td_phys, td_count);
+
 	SLOF_dma_map_out(req_phys, req, sizeof(struct usb_dev_req));
 	if (datalen)
 		SLOF_dma_map_out(data_phys, data, datalen);
@@ -457,7 +549,7 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	struct ohci_td *td, *tds;
 	struct ohci_regs *regs;
 	struct ohci_hcd *ohcd;
-	long td_phys = 0, td_next, ed_phys, ptr;
+	long td_phys = 0, td_next, ed_phys, ptr, td_count = 0;
 	uint32_t dir, attr = 0, count;
 	size_t len, packet_len;
 	uint32_t time;
@@ -470,7 +562,7 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	}
 
 	dir = (pipe->dir == USB_PIPE_OUT) ? 0 : 1;
-	count = datalen / pipe->mps;
+	count = datalen / OHCI_MAX_BULK_SIZE;
 	if (count > OHCI_MAX_TDS) {
 		printf("usb-ohci: buffer size not supported - %d\n", datalen);
 		ret = false;
@@ -494,12 +586,12 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	attr = 0;
 	attr = (dir ? TDA_DP_IN : TDA_DP_OUT) | TDA_CC;
 	while (len) {
-		packet_len = (pipe->mps < len)? pipe->mps : len;
+		packet_len = (OHCI_MAX_BULK_SIZE < len)? OHCI_MAX_BULK_SIZE : len;
 		td_next = ohci_get_td_phys((td + 1), tds, td_phys);
 		ohci_fill_td(td, td_next, ptr, packet_len, attr);
 		ptr = ptr + packet_len;
 		len = len - packet_len;
-		td++;
+		td++; td_count++;
 	}
 
 	ed = ohci_pipe_get_ed(pipe);
@@ -535,6 +627,8 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	ed->attr |= cpu_to_le32(EDA_SKIP);
 	mb();
 	write_reg32(&regs->bulk_head_ed, 0);
+
+	ohci_process_done_head(ohcd, tds, td_phys, td_count);
 end:
 	return ret;
 }

@@ -69,6 +69,7 @@ struct ohci_ed {
 	uint32_t next_ed;
 } __attribute__((packed));
 
+#define TDA_DONE         (1 << 17)
 #define TDA_ROUNDING     (1 << 18)
 #define TDA_DP_SETUP     (0 << 19)
 #define TDA_DP_OUT       (1 << 19)
@@ -77,6 +78,26 @@ struct ohci_ed {
 #define TDA_TOGGLE_DATA0 (1 << 24)
 #define TDA_TOGGLE_DATA1 (1 << 25)
 #define TDA_CC           (0xF << 28)
+
+/* Table 4-7: Completion Codes */
+const char *tda_cc_error[] = {
+	"NOERROR",
+	"CRC",
+	"BITSTUFFING",
+	"DATATOGGLEMISMATCH",
+	"STALL",
+	"DEVICENOTRESPONDING",
+	"PIDCHECKFAILURE",
+	"UNEXPECTEDPID",
+	"DATAOVERRUN",
+	"DATAUNDERRUN",
+	"reserved",
+	"reserved",
+	"BUFFEROVERRUN",
+	"BUFFERUNDERRUN",
+	"NOT ACCESSED",
+	"NOT ACCESSED",
+};
 
 struct ohci_td {
 	uint32_t attr;
@@ -111,6 +132,7 @@ struct ohci_pipe {
 
 #define OHCI_PIPE_POOL_SIZE 4096
 #define OHCI_MAX_TDS        256 /* supports 16k buffers, i.e. 64 * 256 */
+#define OHCI_MAX_BULK_SIZE  4096
 
 struct ohci_hcd {
 	struct ohci_hcca *hcca;
@@ -138,6 +160,9 @@ struct ohci_hcd {
 #define OHCI_CMD_STATUS_HCR   (1 << 0)
 #define OHCI_CMD_STATUS_CLF   (1 << 1)
 #define OHCI_CMD_STATUS_BLF   (1 << 2)
+
+/* OHCI Interrupt status */
+#define OHCI_INTR_STATUS_WD   (1 << 1)
 
 /* Root Hub Descriptor A bits */
 #define RHDA_NDP                 (0xFF)
