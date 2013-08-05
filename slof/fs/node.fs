@@ -13,6 +13,8 @@
 
 \ Device nodes.
 
+false VALUE debug-find-component?
+
 VARIABLE device-tree
 VARIABLE current-node
 : get-node  current-node @ dup 0= ABORT" No active device tree node" ;
@@ -218,7 +220,11 @@ CREATE $indent 100 allot  VARIABLE indent 0 indent !
 
 : $cat-instance-unit
    dup parent 0= IF drop EXIT THEN
-   dup instance>#units 0= IF drop EXIT THEN
+   \ No instance unit, use node unit
+   dup instance>#units @ 0= IF
+      ihandle>phandle $cat-unit
+      EXIT
+   THEN
    dup >r push-my-self
    ['] my-unit CATCH IF pop-my-self r> drop EXIT THEN
    pop-my-self
@@ -529,6 +535,7 @@ CREATE search-unit 4 cells allot
 \ XXX This is an old hack that allows wildcard nodes to work
 \     by not having a #address-cells in the parent and no
 \     decode unit. This should be removed.
+\     (It appears to be still used on js2x)
 : set-instance-unit  ( unitaddr len -- )
    dup 0= IF 2drop  0 to user-instance-#units  EXIT THEN
    2dup 0 -rot bounds ?DO
@@ -548,7 +555,14 @@ CREATE search-unit 4 cells allot
 ;
 
 : find-component  ( path len -- path' len' args len node|0 )
+   debug-find-component? IF
+      ." find-component for " 2dup type cr
+   THEN
    split-component           ( path'. args. name. unit. )
+   debug-find-component? IF
+      ." -> unit  =" 2dup type cr
+      ." -> stack =" .s cr
+   THEN
    ['] set-search-unit CATCH IF
       \ XXX: See comment in set-instance-unit
       ." WARNING: Obsolete old wildcard hack " .s cr
