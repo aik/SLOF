@@ -109,9 +109,13 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 #include <scsi-loader.fs>
 
-360 cp
+340 cp
 
 #include "fdt.fs"
+
+360 cp
+
+#include <root.fs>
 
 370 cp
 
