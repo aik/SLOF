@@ -19,11 +19,19 @@ defer client-exec
 defer callback
 defer continue-client
 
+0 VALUE chosen-node
+
+: chosen
+  chosen-node dup 0= IF
+    drop s" /chosen" find-node dup to chosen-node
+  THEN
+;
+
 : set-chosen ( prop len name len -- )
-  s" /chosen" find-node set-property ;
+  chosen set-property ;
 
 : get-chosen ( name len -- [ prop len ] success )
-  s" /chosen" find-node get-property 0= ;
+  chosen get-property 0= ;
 
 \ Look for an exising root, create one if needed
 " /" find-node dup 0= IF
