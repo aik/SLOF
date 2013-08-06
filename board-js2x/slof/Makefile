@@ -19,14 +19,17 @@ include $(TOPCMNDIR)/make.rules
 
 all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
-CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libnvram
+CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libnvram \
+	   -I$(LIBCMNDIR)/libusb
 SLOF_LIBS = \
 	$(LIBCMNDIR)/libbootmsg.a \
 	$(LIBCMNDIR)/libelf.a \
+	$(LIBCMNDIR)/libusb.a \
 	$(LIBCMNDIR)/libnvram.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
 	$(LIBCMNDIR)/libelf/libelf.in \
+	$(LIBCMNDIR)/libusb/usb.in \
 	$(LIBCMNDIR)/libbases/libbases.in  \
 	$(LIBCMNDIR)/libnvram/libnvram.in \
 	$(LIBCMNDIR)/libnativeio/nativeio.in
@@ -38,19 +41,13 @@ FPPINCLUDES = -I. -I$(SLOFCMNDIR)/fs -I$(SLOFCMNDIR)
 
 USB_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/devices/pci-class_0c.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-ohci.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-support.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-hub.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-enumerate.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-storage.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-storage-support.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-storage-wrapper.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-keyboard.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-kbd-device-support.fs \
-	$(SLOFCMNDIR)/fs/usb/usb-mouse.fs \
-	$(SLOFCMNDIR)/fs/scsi-support.fs
-
-
+	$(SLOFCMNDIR)/fs/usb/dev-hci.fs \
+	$(SLOFCMNDIR)/fs/usb/slofdev.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-parent-calls.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-keyb.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-mouse.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-storage.fs \
+	$(SLOFCMNDIR)/fs/usb/dev-hub.fs
 
 # Files that should go into the ROM fs (and so have to be listed in OF.ffs):
 OF_FFS_FILES = \
