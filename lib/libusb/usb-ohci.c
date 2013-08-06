@@ -418,7 +418,7 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	ohci_fill_ed(ed, PTR_U32(td_phys), td_next, attr, 0);
 	dprintf("usb-ohci: %s - td_start %x td_end %x req %x\n", __func__,
 		td_phys, td_next, req_phys);
-	barrier();
+	mb();
 	ed->attr &= cpu_to_le32(~EDA_SKIP);
 
 	ohcd = pipe->dev->hcidev->priv;
@@ -510,7 +510,7 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	td_next = ohci_get_td_phys(td, tds, td_phys);
 	ohci_fill_ed(ed, td_phys, td_next, attr, 0);
 	dprintf("usb-ohci: %s - tds %p td %p\n", __func__, td_phys, td_next);
-	barrier();
+	mb();
 	ed->attr &= cpu_to_le32(~EDA_SKIP);
 
 	ohcd = pipe->dev->hcidev->priv;
