@@ -21,6 +21,8 @@
 #define dprintf(_x ...)
 #endif
 
+#define __unused __attribute__((unused))
+
 struct usb_hcd_ops *head;
 struct usb_dev *devpool;
 #define USB_DEVPOOL_SIZE 4096
@@ -419,7 +421,7 @@ static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *c
 {
 	struct usb_dev_intf_descr *intf = NULL;
 	struct usb_ep_descr *ep = NULL;
-	struct usb_dev_hid_descr *hid = NULL;
+	struct usb_dev_hid_descr *hid __unused = NULL;
 	uint8_t desc_len, desc_type;
 
 	len -= sizeof(struct usb_dev_config_descr);

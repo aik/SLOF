@@ -91,6 +91,7 @@ static int hub_set_port_feature(struct usb_dev *dev, int port, int feature)
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
+#if 0
 static int hub_clear_port_feature(struct usb_dev *dev, int port, int feature)
 {
 	struct usb_dev_req req;
@@ -103,6 +104,7 @@ static int hub_clear_port_feature(struct usb_dev *dev, int port, int feature)
 	write_reg16(&req.wIndex,  (uint16_t)(port + 1));
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
+#endif
 
 static int hub_check_port(struct usb_dev *dev, int port)
 {
