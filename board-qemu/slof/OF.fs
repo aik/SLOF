@@ -128,10 +128,6 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 3f0 cp
 
-#include "usb.fs"
-
-400 cp
-
 #include "tree.fs"
 
 800 cp

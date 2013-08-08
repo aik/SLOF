@@ -73,6 +73,10 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/ide.fs \
 	$(SLOFCMNDIR)/fs/fbuffer.fs \
 	$(SLOFCMNDIR)/fs/generic-disk.fs \
+	$(SLOFCMNDIR)/fs/scsi-disk.fs \
+	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
+	$(SLOFCMNDIR)/fs/scsi-probe-helpers.fs \
+	$(SLOFCMNDIR)/fs/scsi-support.fs \
 	$(SLOFCMNDIR)/fs/pci-device.fs \
 	$(SLOFCMNDIR)/fs/pci-bridge.fs \
 	$(SLOFCMNDIR)/fs/pci-properties.fs \

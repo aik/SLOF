@@ -14,6 +14,26 @@ s" serial bus [ " type my-space pci-class-name type s"  ]" type cr
 
 my-space pci-device-generic-setup
 
+STRUCT
+    /n FIELD hcd>base
+    /n FIELD hcd>type
+    /n FIELD hcd>num
+    /n FIELD hcd>ops
+    /n FIELD hcd>priv
+    /n FIELD hcd>nextaddr
+CONSTANT /hci-dev
+
+: usb-setup-hcidev ( num hci-dev -- )
+    >r
+    10 config-l@ translate-my-address
+    3 not AND
+    ( io-base ) r@ hcd>base !
+    08 config-l@ 8 rshift  0000000F0 AND 4 rshift
+    ( usb-type ) r@ hcd>type !
+    ( usb-num )  r@ hcd>num !
+    r> drop
+;
+
 \ Handle USB OHCI controllers:
 : handle-usb-class  ( -- )
    \ set Memory Write and Invalidate Enable, SERR# Enable
