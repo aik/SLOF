@@ -60,8 +60,8 @@ static int usb_get_hub_desc(struct usb_dev *dev, void *data, size_t size)
 	req.bmRequestType = REQT_DIR_IN | REQT_TYPE_CLASS | REQT_REC_DEVICE;
 	req.bRequest = REQ_GET_DESCRIPTOR;
 	req.wIndex = 0;
-	write_reg16(&req.wLength, (uint16_t)size);
-	write_reg16(&req.wValue, DESCR_TYPE_HUB << 8);
+	req.wLength = cpu_to_le16((uint16_t) size);
+	req.wValue = cpu_to_le16(DESCR_TYPE_HUB << 8);
 	return usb_send_ctrl(dev->control, &req, data);
 }
 
@@ -73,8 +73,8 @@ static int hub_get_port_status(struct usb_dev *dev, int port, void *data, size_t
 	req.bmRequestType = REQT_DIR_IN | REQT_TYPE_CLASS | REQT_REC_OTHER;
 	req.bRequest = REQ_GET_STATUS;
 	req.wValue = 0;
-	write_reg16(&req.wIndex,  (uint16_t)(port + 1));
-	write_reg16(&req.wLength, (uint16_t)size);
+	req.wIndex = cpu_to_le16((uint16_t)(port + 1));
+	req.wLength = cpu_to_le16((uint16_t)size);
 	return usb_send_ctrl(dev->control, &req, data);
 }
 
@@ -86,8 +86,8 @@ static int hub_set_port_feature(struct usb_dev *dev, int port, int feature)
 	req.bmRequestType = REQT_DIR_OUT | REQT_TYPE_CLASS | REQT_REC_OTHER;
 	req.bRequest = REQ_SET_FEATURE;
 	req.wLength = 0;
-	write_reg16(&req.wValue,  (uint16_t)(feature));
-	write_reg16(&req.wIndex,  (uint16_t)(port + 1));
+	req.wValue = cpu_to_le16((uint16_t)feature);
+	req.wIndex = cpu_to_le16((uint16_t)(port + 1));
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
@@ -100,8 +100,8 @@ static int hub_clear_port_feature(struct usb_dev *dev, int port, int feature)
 	req.bmRequestType = REQT_DIR_OUT | REQT_TYPE_CLASS | REQT_REC_OTHER;
 	req.bRequest = REQ_CLEAR_FEATURE;
 	req.wLength = 0;
-	write_reg16(&req.wValue,  (uint16_t)(feature));
-	write_reg16(&req.wIndex,  (uint16_t)(port + 1));
+	req.wValue = cpu_to_le16((uint16_t)feature);
+	req.wIndex = cpu_to_le16((uint16_t)(port + 1));
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 #endif
@@ -113,27 +113,27 @@ static int hub_check_port(struct usb_dev *dev, int port)
 
 	hub_get_port_status(dev, port, &ps, sizeof(ps));
 	dprintf("Port Status %04X Port Change %04X\n",
-		read_reg16(&ps.wPortStatus),
-		read_reg16(&ps.wPortChange));
+		le16_to_cpu(ps.wPortStatus),
+		le16_to_cpu(ps.wPortChange));
 
-	if (read_reg16(&ps.wPortStatus) & HUB_PS_CONNECTION) {
+	if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
 		hub_set_port_feature(dev, port, HUB_PF_POWER);
 		time = SLOF_GetTimer() + 20;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();
 			hub_get_port_status(dev, port, &ps, sizeof(ps));
-			if (read_reg16(&ps.wPortStatus) & HUB_PS_CONNECTION)
+			if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION)
 				break;
 		}
 	}
 
-	if (read_reg16(&ps.wPortStatus) & HUB_PS_CONNECTION) {
+	if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
 		hub_set_port_feature(dev, port, HUB_PF_RESET);
 		time = SLOF_GetTimer() + 20;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();
 			hub_get_port_status(dev, port, &ps, sizeof(ps));
-			if (!(read_reg16(&ps.wPortStatus) & HUB_PS_RESET))
+			if (!(le16_to_cpu(ps.wPortStatus) & HUB_PS_RESET))
 				return true;
 		}
 	}

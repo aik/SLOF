@@ -38,8 +38,8 @@ static int usb_hid_set_protocol(struct usb_dev *dev, uint16_t value)
 		return false;
 	req.bmRequestType = REQT_TYPE_CLASS | REQT_REC_INTERFACE | REQT_DIR_OUT;
 	req.bRequest = HID_REQ_SET_PROTOCOL;
-	write_reg16(&req.wValue, value);
-	write_reg16(&req.wIndex, dev->intf_num);
+	req.wValue = cpu_to_le16(value);
+	req.wIndex = cpu_to_le16(dev->intf_num);
 	req.wLength = 0;
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
@@ -52,8 +52,8 @@ static int usb_hid_set_idle(struct usb_dev *dev, uint16_t ms_delay)
 		return false;
 	req.bmRequestType = REQT_TYPE_CLASS | REQT_REC_INTERFACE | REQT_DIR_OUT;
 	req.bRequest = HID_REQ_SET_IDLE;
-	write_reg16(&req.wValue, (ms_delay/4) << 8);
-	write_reg16(&req.wIndex, dev->intf_num);
+	req.wValue = cpu_to_le16((ms_delay/4) << 8);
+	req.wIndex = cpu_to_le16(dev->intf_num);
 	req.wLength = 0;
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
@@ -66,9 +66,10 @@ static int usb_hid_get_report(struct usb_dev *dev, void *data, size_t size)
 		return false;
 	req.bmRequestType = REQT_TYPE_CLASS | REQT_REC_INTERFACE | REQT_DIR_IN;
 	req.bRequest = HID_REQ_GET_REPORT;
-	write_reg16(&req.wIndex, dev->intf_num);
-	write_reg16(&req.wLength, (uint16_t)size);
-	write_reg16(&req.wValue, 1 << 8);
+	req.wIndex = cpu_to_le16(dev->intf_num);
+
+	req.wLength = cpu_to_le16((uint16_t)size);
+	req.wValue = cpu_to_le16(1 << 8);
 	return usb_send_ctrl(dev->control, &req, data);
 }
 

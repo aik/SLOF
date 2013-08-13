@@ -254,7 +254,7 @@ static int usb_set_address(struct usb_dev *dev, uint32_t port)
 	req.bRequest = REQ_SET_ADDRESS;
 	req.wIndex = 0;
 	req.wLength = 0;
-	write_reg16(&req.wValue, (uint16_t)hcidev->nextaddr);
+	req.wValue = cpu_to_le16((uint16_t)(hcidev->nextaddr));
 	if (usb_send_ctrl(dev->control, &req, NULL)) {
 		dev->addr = hcidev->nextaddr++;
 		return true;
@@ -272,8 +272,8 @@ static int usb_get_device_descr(struct usb_dev *dev, void *data, size_t size)
 	req.bmRequestType = 0x80;
 	req.bRequest = REQ_GET_DESCRIPTOR;
 	req.wIndex = 0;
-	write_reg16(&req.wLength, (uint16_t)size);
-	write_reg16(&req.wValue, DESCR_TYPE_DEVICE << 8);
+	req.wLength = cpu_to_le16((uint16_t) size);
+	req.wValue = cpu_to_le16(DESCR_TYPE_DEVICE << 8);
 	return usb_send_ctrl(dev->control, &req, data);
 }
 
@@ -287,8 +287,8 @@ static int usb_get_config_descr(struct usb_dev *dev, void *data, size_t size)
 	req.bmRequestType = 0x80;
 	req.bRequest = REQ_GET_DESCRIPTOR;
 	req.wIndex = 0;
-	write_reg16(&req.wLength, (uint16_t)size);
-	write_reg16(&req.wValue, DESCR_TYPE_CONFIGURATION << 8);
+	req.wLength = cpu_to_le16((uint16_t) size);
+	req.wValue = cpu_to_le16(DESCR_TYPE_CONFIGURATION << 8);
 	return usb_send_ctrl(dev->control, &req, data);
 
 }
@@ -304,7 +304,7 @@ static int usb_set_config(struct usb_dev *dev, uint8_t cfg_value)
 	req.bRequest = REQ_SET_CONFIGURATION;
 	req.wIndex = 0;
 	req.wLength = 0;
-	write_reg16(&req.wValue, 0x00FF & cfg_value);
+	req.wValue = cpu_to_le16(0x00FF & cfg_value);
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
@@ -317,7 +317,7 @@ int usb_dev_populate_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 	type = ep->bmAttributes & USB_EP_TYPE_MASK;
 
 	dprintf("EP: %s: %d size %d type %d\n", dir ? "IN " : "OUT",
-		ep->bEndpointAddress & 0xF, read_reg16(&ep->wMaxPacketSize),
+		ep->bEndpointAddress & 0xF, le16_to_cpu(ep->wMaxPacketSize),
 		type);
 	if (type == USB_EP_TYPE_BULK) {
 		if (dir)
@@ -412,7 +412,7 @@ static int usb_msc_reset(struct usb_dev *dev)
 	req.bRequest = 0xFF;
 	req.wLength = 0;
 	req.wValue = 0;
-	write_reg16(&req.wIndex, dev->intf_num);
+	req.wIndex = cpu_to_le16(dev->intf_num);
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
@@ -445,7 +445,7 @@ static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *c
 		case DESCR_TYPE_HID:
 			hid = (struct usb_dev_hid_descr *)ptr;
 			dprintf("hid-report %d size %d\n",
-				hid->bReportType, read_reg16(&hid->wReportLength));
+				hid->bReportType, le16_to_cpu(hid->wReportLength));
 			break;
 		case DESCR_TYPE_HUB:
 			break;
@@ -472,7 +472,7 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 	dev->port = port;
 	ep.bEndpointAddress = 0;
 	ep.bmAttributes = USB_EP_TYPE_CONTROL;
-	write_reg16(&ep.wMaxPacketSize, 8);
+	ep.wMaxPacketSize = cpu_to_le16(8);
 	dev->control = usb_get_pipe(dev, &ep, NULL, 0);
 
 	if (!usb_get_device_descr(dev, &descr, sizeof(struct usb_dev_descr)))
@@ -488,7 +488,7 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 	if (!usb_get_config_descr(dev, &cfg, sizeof(struct usb_dev_config_descr)))
 		goto fail;
 
-	len = read_reg16(&cfg.wTotalLength);
+	len = le16_to_cpu(cfg.wTotalLength);
 	/* No device config descriptor present */
 	if (len == sizeof(struct usb_dev_config_descr))
 		goto fail;
