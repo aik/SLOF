@@ -475,12 +475,14 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 	ep.wMaxPacketSize = cpu_to_le16(8);
 	dev->control = usb_get_pipe(dev, &ep, NULL, 0);
 
-	if (!usb_get_device_descr(dev, &descr, sizeof(struct usb_dev_descr)))
+	if (!usb_get_device_descr(dev, &descr, 8))
 		goto fail;
 	dev->control->mps = descr.bMaxPacketSize0;
 
 	if (!usb_set_address(dev, port))
 		goto fail;
+	mb();
+	SLOF_msleep(100);
 
 	if (!usb_get_device_descr(dev, &descr, sizeof(struct usb_dev_descr)))
 		goto fail;
@@ -503,6 +505,9 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 		goto fail_mem_free;
 	if (!usb_set_config(dev, cfg.bConfigurationValue))
 		goto fail_mem_free;
+	mb();
+	SLOF_msleep(100);
+
 	if (!usb_handle_device(dev, &cfg, data, len))
 		goto fail_mem_free;
 
@@ -513,7 +518,11 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 		break;
 	case 8:
 		dprintf("MASS STORAGE found %d\n", dev->intf_num);
-		usb_msc_reset(dev);
+		if (!usb_msc_reset(dev)) {
+			printf("%s: bulk reset failed\n", __func__);
+			goto fail_mem_free;
+		}
+		SLOF_msleep(100);
 		slof_usb_handle(dev);
 		break;
 	case 9:

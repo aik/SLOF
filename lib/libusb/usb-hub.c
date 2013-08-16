@@ -111,30 +111,42 @@ static int hub_check_port(struct usb_dev *dev, int port)
 	struct usb_hub_ps ps;
 	uint32_t time;
 
-	hub_get_port_status(dev, port, &ps, sizeof(ps));
+	if (!hub_get_port_status(dev, port, &ps, sizeof(ps)))
+		return false;
 	dprintf("Port Status %04X Port Change %04X\n",
 		le16_to_cpu(ps.wPortStatus),
 		le16_to_cpu(ps.wPortChange));
 
-	if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
+	if (!(le16_to_cpu(ps.wPortStatus) & HUB_PS_POWER)) {
 		hub_set_port_feature(dev, port, HUB_PF_POWER);
-		time = SLOF_GetTimer() + 20;
+		SLOF_msleep(200);
+		time = SLOF_GetTimer() + USB_TIMEOUT;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();
 			hub_get_port_status(dev, port, &ps, sizeof(ps));
-			if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION)
+			if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
+				dprintf("power on Port Status %04X Port Change %04X\n",
+					le16_to_cpu(ps.wPortStatus),
+					le16_to_cpu(ps.wPortChange));
 				break;
+			}
 		}
 	}
 
+	SLOF_msleep(200);
 	if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
 		hub_set_port_feature(dev, port, HUB_PF_RESET);
-		time = SLOF_GetTimer() + 20;
+		SLOF_msleep(200);
+		time = SLOF_GetTimer() + USB_TIMEOUT;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();
 			hub_get_port_status(dev, port, &ps, sizeof(ps));
-			if (!(le16_to_cpu(ps.wPortStatus) & HUB_PS_RESET))
+			if (!(le16_to_cpu(ps.wPortStatus) & HUB_PS_RESET)) {
+				dprintf("reset Port Status %04X Port Change %04X\n",
+					le16_to_cpu(ps.wPortStatus),
+					le16_to_cpu(ps.wPortChange));
 				return true;
+			}
 		}
 	}
 	return false;

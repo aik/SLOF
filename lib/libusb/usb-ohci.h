@@ -75,8 +75,8 @@ struct ohci_ed {
 #define TDA_DP_OUT       (1 << 19)
 #define TDA_DP_IN        (1 << 20)
 #define TDA_DI_NO        (0x7 << 21)
-#define TDA_TOGGLE_DATA0 (1 << 24)
-#define TDA_TOGGLE_DATA1 (1 << 25)
+#define TDA_TOGGLE_DATA0 (0x02000000)
+#define TDA_TOGGLE_DATA1 (0x03000000)
 #define TDA_CC           (0xF << 28)
 
 /* Table 4-7: Completion Codes */
