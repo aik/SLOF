@@ -479,6 +479,28 @@ CREATE user-instance-units 4 cells allot
 : hex-encode-unit ( addr.lo ... addr.hi ncells -- str len )
   base @ >r hex generic-encode-unit r> base ! ;
 
+: hex64-decode-unit ( str len ncells -- addr.lo ... addr.hi )
+  dup 2 <> IF
+     hex-decode-unit
+  ELSE
+     drop
+     base @ >r hex
+     $number IF 0 0 ELSE xlsplit THEN
+     r> base !
+  THEN
+;
+
+: hex64-encode-unit ( addr.lo ... addr.hi ncells -- str len )
+  dup 2 <> IF
+     hex-encode-unit
+  ELSE
+     drop
+     base @ >r hex
+     lxjoin (u.)
+     r> base !
+  THEN
+;
+
 : handle-leading-/ ( path len -- path' len' )
   dup IF over c@ [char] / = IF 1 /string device-tree @ set-node THEN THEN ;
 : match-name ( name len node -- match? )

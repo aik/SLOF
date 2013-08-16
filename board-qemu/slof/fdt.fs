@@ -107,28 +107,6 @@ fdt-check-header
   fdt-strings + dup from-cstring
 ;
 
-: hex64-decode-unit ( str len ncells -- addr.lo ... addr.hi )
-  dup 2 <> IF
-     hex-decode-unit
-  ELSE
-     drop
-     base @ >r hex
-     $number IF 0 0 ELSE xlsplit THEN
-     r> base !
-  THEN
-;
-
-: hex64-encode-unit ( addr.lo ... addr.hi ncells -- str len )
-  dup 2 <> IF
-     hex-encode-unit
-  ELSE
-     drop
-     base @ >r hex
-     lxjoin (u.)
-     r> base !
-  THEN
-;
-
 : fdt-create-dec  s" decode-unit" $CREATE , DOES> @ hex64-decode-unit ;
 : fdt-create-enc  s" encode-unit" $CREATE , DOES> @ hex64-encode-unit ;
 
