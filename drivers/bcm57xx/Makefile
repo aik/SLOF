@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS = -O2 -I. -I../common -I$(TOP)/clients/net-snk/include -I$(TOP)/lib/libc/include -fno-builtin -ffreestanding -msoft-float -Wall -nostdinc
+CFLAGS += -O2 -I. -I../common -I$(TOP)/clients/net-snk/include -I$(TOP)/lib/libc/include -fno-builtin -ffreestanding -msoft-float -Wall -nostdinc
 
 SRCS   = bcm57xx.c
 
