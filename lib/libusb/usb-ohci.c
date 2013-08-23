@@ -458,7 +458,10 @@ static int ohci_process_done_head(struct ohci_hcd *ohcd,
 				ret = false;
 			}
 			prev_td = td;
-			td = (struct ohci_td *)(uint64_t) le32_to_cpu(td->next_td);
+			td_phys = (struct ohci_td *)(uint64_t) le32_to_cpu(td->next_td);
+			td = (struct ohci_td *)(uint64_t) ohci_get_td_virt(td_phys,
+									td_start_phys,
+									PTR_U32(td_start), total_count);
 			mb();
 			prev_td->attr |= cpu_to_le32(TDA_DONE);
 			prev_td->next_td = 0;
