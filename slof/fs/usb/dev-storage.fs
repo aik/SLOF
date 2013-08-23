@@ -145,6 +145,12 @@ CONSTANT cbw-length
     cbw-addr cbw-length erase ( tag xfer-len dir lun cmd-len )
     cbw-addr cbw>cblen c!     ( tag xfer-len dir lun )
     cbw-addr cbw>lun c!       ( tag xfer-len dir )
+    \ dir is true or false
+    \ bmCBWFlags
+    \           BIT 7 Direction
+    \               0 - OUT
+    \               1 - IN
+    IF 80 ELSE 0 THEN
     cbw-addr cbw>flags c!     ( tag xfer-len )
     cbw-addr cbw>len l!-le    ( tag )
     cbw-addr cbw>tag l!-le    ( )
