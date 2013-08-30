@@ -103,3 +103,10 @@ PRIM(hv_X2d_logical_X2d_memop)
 	unsigned long dst   = TOS.u;
 	TOS.u = hv_logical_memop(dst, src, esize, count, op);
 MIRP
+
+PRIM(hv_X2d_cas)
+	unsigned long size   = TOS.u; POP;
+	unsigned long buf    = TOS.u; POP;
+	unsigned long vec    = TOS.u;
+	TOS.u = hv_cas(vec, buf, size);
+MIRP

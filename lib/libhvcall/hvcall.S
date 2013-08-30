@@ -110,6 +110,15 @@ ENTRY(hv_logical_memop)
 	HVCALL
 	blr
 
+ENTRY(hv_cas)
+	mr	r6,r5
+	mr	r5,r4
+	mr	r4,r3
+	lis	r3,KVMPPC_H_CAS@h
+	ori	r3,r3,KVMPPC_H_CAS@l
+	HVCALL
+	blr
+
 	.section ".bss"
 inbuf:	.space	16
 inlen:	.space	4
