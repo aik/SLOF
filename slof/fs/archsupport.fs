@@ -1,18 +1,32 @@
-4096 VALUE size
+\ *****************************************************************************
+\ * Copyright (c) 2011 IBM Corporation
+\ * All rights reserved.
+\ * This program and the accompanying materials
+\ * are made available under the terms of the BSD License
+\ * which accompanies this distribution, and is available at
+\ * http://www.opensource.org/licenses/bsd-license.php
+\ *
+\ * Contributors:
+\ *     IBM Corporation - initial implementation
+\ ****************************************************************************/
+
+1000 VALUE size
 : ibm,client-architecture-support         ( vec -- err? )
     \ Store require parameters in nvram
     \ to come back to right boot device
-
     \ Allocate memory for H_CALL
     size alloc-mem                        ( vec memaddr )
-    swap over
-    \ FIXME: convert memaddr to phys
-    size                                  ( memaddr vec memaddr size )
+    swap over size                        ( memaddr vec memaddr size )
     \ make h_call to hypervisor
-    hv-cas 0= IF
-	." hv-cas succeeded " cr
-	\ Make required changes
-	FALSE
+    hv-cas 0= IF                          ( memaddr )
+	dup @ 1 >= IF                     \ Version number >= 1
+	    \ Make required changes
+	    " /" find-node set-node
+	    dup 4 + fdt-init
+	    fdt-check-header
+	    fdt-struct fdt-fix-cas-node
+	THEN
+	drop FALSE
     ELSE
 	." hv-cas failed  " TRUE
     THEN

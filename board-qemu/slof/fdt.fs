@@ -344,5 +344,53 @@ fdt-claim-reserve
    drop
    device-end
 ;
+
+: fdt-fix-cas-node ( start -- end )
+    recursive
+    fdt-next-tag dup OF_DT_BEGIN_NODE <> IF
+	." Error " cr
+	-1 throw
+    THEN drop
+    fdt-fetch-unit
+    dup 0 = IF drop drop " /" THEN
+    40 left-parse-string
+    2swap ?dup 0 <> IF
+	nip
+	1 + + \ Add the string len +@
+    ELSE
+	drop
+    THEN
+    fdt-debug IF ." Setting node: " 2dup type cr THEN
+    find-node ?dup 0 <> IF set-node  THEN
+    fdt-debug IF ." Current  now: " pwd cr THEN
+    BEGIN
+	fdt-next-tag dup OF_DT_END_NODE <>
+    WHILE
+	dup OF_DT_PROP = IF
+	    fdt-debug IF ." Found property " cr THEN
+	    drop dup		( drop tag, dup addr     : a1 a1 )
+	    dup l@ dup rot 4 +	( fetch size, stack is   : a1 s s a2)
+	    dup l@ swap 4 +	( fetch nameid, stack is : a1 s s i a3 )
+	    rot			( we now have: a1 s i a3 s )
+	    fdt-encode-prop rot	( a1 s pa ps i)
+	    fdt-fetch-string		( a1 s pa ps na ns )
+	    property
+	    fdt-debug IF ." Setting property done " cr THEN
+	    + 8 + 3 + fffffffc and
+	ELSE dup OF_DT_BEGIN_NODE = IF
+		drop			( drop tag )
+		4 -
+		fdt-fix-cas-node
+		get-parent set-node
+		fdt-debug IF ." Returning back " pwd cr THEN
+	    ELSE
+		." Error " cr
+		drop -1 throw
+	    THEN
+	THEN
+    REPEAT
+    drop \ drop tag
+;
+
 s" /" find-node fdt-fix-phandles
 
