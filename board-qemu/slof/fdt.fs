@@ -36,14 +36,21 @@ h#        4 constant OF_DT_NOP
 h#        9 constant OF_DT_END
 
 \ Create some variables early
-fdt-start
-dup dup >fdth_struct_off l@ + value fdt-struct
-dup dup >fdth_string_off l@ + value fdt-strings
-drop
+0 value fdt-start-addr
+0 value fdt-struct
+0 value fdt-strings
+
+: fdt-init ( fdt-start -- )
+    dup to fdt-start-addr
+    dup dup >fdth_struct_off l@ + to fdt-struct
+    dup dup >fdth_string_off l@ + to fdt-strings
+    drop
+;
+fdt-start fdt-init
 
 \ Dump fdt header for all to see and check FDT validity
 : fdt-check-header ( -- )
-    fdt-start dup 0 = IF
+    fdt-start-addr dup 0 = IF
         ." No flat device tree !" cr drop -1 throw EXIT THEN
     hex
     fdt-debug IF
@@ -226,7 +233,7 @@ fdt-parse-memory
 
 \ Claim fdt memory and reserve map
 : fdt-claim-reserve
-    fdt-start
+    fdt-start-addr
     dup dup >fdth_tsize l@ 0 claim drop
     dup >fdth_rsvmap_off l@ +
     BEGIN
