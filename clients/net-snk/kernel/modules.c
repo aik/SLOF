@@ -38,7 +38,6 @@ typedef struct {
 static const mod_descriptor_t modules[] = {
 	{ "net_e1000",  MOD_TYPE_NETWORK },
 	{ "net_bcm",    MOD_TYPE_NETWORK },
-	{ "net_veth",   MOD_TYPE_NETWORK },
 	{ "net_virtio", MOD_TYPE_NETWORK },
 	{ NULL,         0                }
 };
