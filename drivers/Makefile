@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-SUBDIRS=common bcm57xx e1k
+SUBDIRS=common bcm57xx
 CLEANSUBDIRS = $(SUBDIRS) 
 
 
