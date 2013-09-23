@@ -21,7 +21,8 @@ all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libhvcall \
 	   -I$(LIBCMNDIR)/libvirtio -I$(LIBCMNDIR)/libnvram \
-	   -I$(LIBCMNDIR)/libusb -I$(LIBCMNDIR)/libveth
+	   -I$(LIBCMNDIR)/libusb -I$(LIBCMNDIR)/libveth \
+	   -I$(LIBCMNDIR)/libe1k
 SLOF_LIBS = \
 	$(LIBCMNDIR)/libbootmsg.a \
 	$(LIBCMNDIR)/libelf.a \
@@ -29,7 +30,8 @@ SLOF_LIBS = \
 	$(LIBCMNDIR)/libvirtio.a \
 	$(LIBCMNDIR)/libusb.a \
 	$(LIBCMNDIR)/libnvram.a \
-	$(LIBCMNDIR)/libveth.a
+	$(LIBCMNDIR)/libveth.a \
+	$(LIBCMNDIR)/libe1k.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libhvcall/hvcall.in \
 	$(LIBCMNDIR)/libvirtio/virtio.in \
@@ -38,7 +40,8 @@ BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libnvram/libnvram.in \
 	$(LIBCMNDIR)/libbases/libbases.in \
-	$(LIBCMNDIR)/libveth/veth.in
+	$(LIBCMNDIR)/libveth/veth.in \
+	$(LIBCMNDIR)/libe1k/e1k.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc
@@ -91,6 +94,8 @@ OF_FFS_FILES = \
 	$(SLOFBRDDIR)/rtas.fs \
 	$(SLOFBRDDIR)/pci-device_1234_1111.fs \
 	$(SLOFBRDDIR)/pci-device_1013_00b8.fs \
+	$(SLOFBRDDIR)/pci-device_8086_100e.fs \
+	$(SLOFBRDDIR)/e1k.fs \
 	$(FCODE_FFS_FILES)
 
 # Uncomment the following line to enable the USB code:
