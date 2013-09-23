@@ -93,3 +93,38 @@ void SLOF_dma_map_out(long phys, void *virt, long size)
 	forth_push(size);
 	forth_eval("dma-map-out");
 }
+
+long SLOF_pci_config_read32(long offset)
+{
+	forth_push(offset);
+	forth_eval("config-l@");
+	return forth_pop();
+}
+
+long SLOF_pci_config_read16(long offset)
+{
+	forth_push(offset);
+	forth_eval("config-w@");
+	return forth_pop();
+}
+
+void SLOF_pci_config_write32(long offset, long value)
+{
+	forth_push(value);
+	forth_push(offset);
+	forth_eval("config-l!");
+}
+
+void SLOF_pci_config_write16(long offset, long value)
+{
+	forth_push(value);
+	forth_push(offset);
+	forth_eval("config-w!");
+}
+
+void *SLOF_translate_my_address(void *addr)
+{
+	forth_push((long)addr);
+	forth_eval("translate-my-address");
+	return (void *)forth_pop();
+}
