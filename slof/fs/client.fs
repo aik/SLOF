@@ -162,7 +162,18 @@ ALSO client-voc DEFINITIONS
 
 \ VERY HACKISH
 : canon ( zstr buf len -- len' )
-  over >r move r> zcount nip ;
+   2dup erase
+   >r >r zcount
+   >r dup c@ [char] / = IF
+      r> r> swap r> over >r min move r>
+   ELSE
+      r> find-alias ?dup 0= IF
+         r> r> 2drop -1
+      ELSE
+         dup -rot r> swap r> min move
+      THEN
+   THEN
+;
 
 : nextprop ( phandle zstr buf -- flag ) \ -1 invalid, 0 end, 1 ok
   >r zcount rot next-property IF r> zplace 1 ELSE r> drop 0 THEN ; 
