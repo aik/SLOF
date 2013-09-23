@@ -40,6 +40,12 @@ void SLOF_msleep(uint32_t time)
 		cpu_relax();
 }
 
+void SLOF_usleep(uint32_t time)
+{
+	forth_push(time);
+	forth_eval("us");
+}
+
 void *SLOF_dma_alloc(long size)
 {
 	forth_push(size);
