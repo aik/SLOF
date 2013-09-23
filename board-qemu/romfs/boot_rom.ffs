@@ -18,4 +18,3 @@ xvect		slof/xvect.bin			0			0
 ofw_main	board-qemu/slof/paflof		0			0
 bootinfo	board-qemu/llfw/Cboot.bin	0			0
 snk		clients/net-snk.client		0			0
-net_e1000	drivers/e1k/net_e1k.elf		0			0
