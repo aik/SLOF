@@ -75,11 +75,13 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    my-self >r current-node @ >r  \ Save my-self
    (parse-line) open-dev dup  IF
       dup to my-self dup ihandle>phandle set-node
+      dup
       s" ping" rot ['] $call-method CATCH  IF
          cr
          ." Not a pingable device"
          cr 3drop
       THEN
+      swap close-dev
    ELSE
       cr
       ." Usage: ping device-path:[device-args,]server-ip,[client-ip],[gateway-ip][,timeout]"
