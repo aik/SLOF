@@ -36,7 +36,6 @@ typedef struct {
 } mod_descriptor_t;
 
 static const mod_descriptor_t modules[] = {
-	{ "net_bcm",    MOD_TYPE_NETWORK },
 	{ NULL,         0                }
 };
 

@@ -20,19 +20,21 @@ include $(TOPCMNDIR)/make.rules
 all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libnvram \
-	   -I$(LIBCMNDIR)/libusb
+	   -I$(LIBCMNDIR)/libusb -I$(LIBCMNDIR)/libbcm
 SLOF_LIBS = \
 	$(LIBCMNDIR)/libbootmsg.a \
 	$(LIBCMNDIR)/libelf.a \
 	$(LIBCMNDIR)/libusb.a \
-	$(LIBCMNDIR)/libnvram.a
+	$(LIBCMNDIR)/libnvram.a \
+	$(LIBCMNDIR)/libbcm.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libbootmsg/bootmsg.in \
 	$(LIBCMNDIR)/libelf/libelf.in \
 	$(LIBCMNDIR)/libusb/usb.in \
 	$(LIBCMNDIR)/libbases/libbases.in  \
 	$(LIBCMNDIR)/libnvram/libnvram.in \
-	$(LIBCMNDIR)/libnativeio/nativeio.in
+	$(LIBCMNDIR)/libnativeio/nativeio.in \
+	$(LIBCMNDIR)/libbcm/bcm.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc
@@ -61,6 +63,8 @@ OF_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1022_7468.fs \
 	$(SLOFBRDDIR)/pci-device_1022_7469.fs \
 	$(SLOFBRDDIR)/pci-device_1022_7451.fs \
+	$(SLOFBRDDIR)/pci-device_14e4_16a8.fs \
+	$(SLOFBRDDIR)/bcm57xx.fs \
 	$(SLOFBRDDIR)/pci-class_03.fs \
 	$(SLOFBRDDIR)/vga-display.fs \
 	$(SLOFBRDDIR)/freq.fs \
