@@ -18,21 +18,55 @@ INSTANCE VARIABLE obp-tftp-package
 
 /vd-len BUFFER: virtiodev
 virtiodev virtio-setup-vd
+0 VALUE virtio-net-priv
+0 VALUE open-count
 
 : open  ( -- okay? )
-   open IF
-      \ my-unit 1 rtas-set-tce-bypass
-      my-args s" obp-tftp" $open-package obp-tftp-package !
-      true
+   open-count 0= IF
+      open IF
+         \ my-unit 1 rtas-set-tce-bypass
+         my-args s" obp-tftp" $open-package obp-tftp-package !
+         s" local-mac-address" get-node get-property not IF
+            virtiodev virtio-net-open dup not IF ." virtio-net-open failed" EXIT THEN
+            drop TO virtio-net-priv
+         THEN
+         true
+      ELSE
+         false
+      THEN
    ELSE
-      false
+      true
+   THEN
+   open-count 1 + to open-count
+;
+
+
+: close  ( -- )
+    open-count 0> IF
+      open-count 1 - dup to open-count
+      0= IF
+         s" close" obp-tftp-package @ $call-method
+         virtio-net-priv virtio-net-close
+         \ my-unit 0 rtas-set-tce-bypass
+         close
+      THEN
    THEN
 ;
 
-: close  ( -- )
-   s" close" obp-tftp-package @ $call-method
-   \ my-unit 0 rtas-set-tce-bypass
-   close
+: read ( buf len -- actual )
+   dup IF
+      virtio-net-read
+   ELSE
+      nip
+   THEN
+;
+
+: write ( buf len -- actual )
+   dup IF
+      virtio-net-write
+   ELSE
+      nip
+   THEN
 ;
 
 : load  ( addr -- len )
