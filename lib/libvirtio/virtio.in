@@ -26,3 +26,8 @@ cod(virtio-scsi-send)
 cod(virtio-fs-init)
 cod(virtio-fs-shutdown)
 cod(virtio-fs-load)
+
+cod(virtio-net-open)
+cod(virtio-net-close)
+cod(virtio-net-read)
+cod(virtio-net-write)

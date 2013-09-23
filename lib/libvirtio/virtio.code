@@ -14,6 +14,7 @@
 #include <virtio-blk.h>
 #include <virtio-9p.h>
 #include <virtio-scsi.h>
+#include <virtio-net.h>
 
 /******** core virtio ********/
 
@@ -119,3 +120,45 @@ PRIM(virtio_X2d_scsi_X2d_send)
 	TOS.n = virtioscsi_send(dev, req, resp, is_read, buf, blen);
 MIRP
 
+/******** virtio-net ********/
+
+// : virtio-net-open ( mac-addr-str len dev -- false | [ driver true ] )
+PRIM(virtio_X2d_net_X2d_open)
+{
+	void *dev = TOS.a; POP;
+	int len = TOS.u; POP;
+        char *mac_addr = TOS.a;
+
+        net_driver_t *net_driver = virtionet_open(mac_addr, len, dev);
+
+        if (net_driver) {
+                TOS.u = (unsigned long)net_driver; PUSH;
+                TOS.n = -1;
+        } else
+                TOS.n = 0;
+}
+MIRP
+
+// : virtio-net-close ( driver -- )
+PRIM(virtio_X2d_net_X2d_close)
+{
+	net_driver_t *driver = TOS.a; POP;
+	virtionet_close(driver);
+}
+MIRP
+
+// : virtio-net-read ( addr len -- actual )
+PRIM(virtio_X2d_net_X2d_read)
+{
+	int len = TOS.u; POP;
+	TOS.n = virtionet_read(TOS.a, len);
+}
+MIRP
+
+// : virtio-net-write ( addr len -- actual )
+PRIM(virtio_X2d_net_X2d_write)
+{
+	int len = TOS.u; POP;
+	TOS.n = virtionet_write(TOS.a, len);
+}
+MIRP
