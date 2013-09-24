@@ -435,6 +435,14 @@ static int usb_msc_reset(struct usb_dev *dev)
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
+void usb_msc_resetrecovery(struct usb_dev *dev)
+{
+	// usb_msc_reset(dev);
+	usb_clear_halt(dev->bulk_in);
+	usb_clear_halt(dev->bulk_out);
+	SLOF_msleep(2);
+}
+
 static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *cfg,
 		uint8_t *ptr, uint16_t len)
 {
@@ -536,7 +544,13 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 		slof_usb_handle(dev);
 		break;
 	case 8:
-		dprintf("MASS STORAGE found %d\n", dev->intf_num);
+		dprintf("MASS STORAGE found %d %06X\n", dev->intf_num,
+			dev->class);
+		if ((dev->class & 0x50) != 0x50) { /* Bulk-only supported */
+			printf("Device not supported %06X\n", dev->class);
+			goto fail_mem_free;
+		}
+
 		if (!usb_msc_reset(dev)) {
 			printf("%s: bulk reset failed\n", __func__);
 			goto fail_mem_free;

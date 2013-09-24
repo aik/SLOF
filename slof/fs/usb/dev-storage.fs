@@ -109,11 +109,16 @@ scsi-open
     udev USB_PIPE_OUT td-buf td-buf-phys dma-buf-phys usb>cmd 1F
     usb-transfer-bulk IF \ transfer CBW
 	resp-size IF
+	    d# 125 us
 	    udev USB_PIPE_IN td-buf td-buf-phys resp-buffer resp-size
 	    usb-transfer-bulk 1 = not IF \ transfer data
-		FALSE EXIT
+	        usb-disk-debug?	IF ." Data phase failed " cr THEN
+		\ FALSE EXIT
+		\ in case of a stall/halted endpoint we clear the halt
+		\ Fall through and try reading the CSW
 	    THEN
 	THEN
+	d# 125 us
 	udev USB_PIPE_IN td-buf td-buf-phys dma-buf-phys usb>csw 0D
 	usb-transfer-bulk \ transfer CSW
     ELSE
@@ -162,15 +167,20 @@ CONSTANT cbw-length
 0 INSTANCE VALUE usb-dir
 0 INSTANCE VALUE usb-cmd-addr
 0 INSTANCE VALUE usb-cmd-len
+1 VALUE tag
 
 : execute-scsi-command ( buf-addr buf-len dir cmd-addr cmd-len -- ... )
                        ( ... [ sense-buf sense-len ] stat )
     \ Cleanup virtio request and response
     to usb-cmd-len to usb-cmd-addr to usb-dir to usb-buf-len to usb-buf-addr
 
-    1 usb-buf-len usb-dir lun usb-cmd-len dma-buf usb>cmd
+    dma-buf usb>cmd 40 0 fill
+    dma-buf usb>csw 20 0 fill
+
+    tag usb-buf-len usb-dir lun usb-cmd-len dma-buf usb>cmd
     ( tag transfer-len dir lun cmd-len addr )
     build-cbw
+    1 tag + to tag
 
     usb-cmd-addr
     dma-buf usb>cmd SCSI-COMMAND-OFFSET +
@@ -277,6 +287,7 @@ CONSTANT cbw-length
     dup 20 >> FFFF and to lun
     dup 30 >> FF and to port
     to current-target
+    usb-disk-debug? IF ." USB-DISK: udev " udev . ." lun:" lun . ." port:" port . cr THEN
 ;
 
 : dev-generate-srplun ( target lun-id -- srplun )
