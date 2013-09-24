@@ -381,7 +381,7 @@ static void ohci_fill_ed(struct ohci_ed *ed, long headp, long tailp,
 			unsigned int attr, long next_ed)
 {
 	ed->attr = cpu_to_le32(attr);
-	ed->headp = cpu_to_le32(headp);
+	ed->headp = cpu_to_le32(headp) | (ed->headp & ~EDA_HEADP_MASK_LE);
 	ed->tailp = cpu_to_le32(tailp);
 	ed->next_ed = cpu_to_le32(next_ed);
 	dpprintf("%s: headp %08X tailp %08X next_td %08X attr %08X\n", __func__,
@@ -693,6 +693,7 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	ed->attr |= cpu_to_le32(EDA_SKIP);
 	mb();
 	write_reg32(&regs->bulk_head_ed, 0);
+	write_reg32(&regs->bulk_curr_ed, 0);
 
 	if (le32_to_cpu(ed->headp) & EDA_HEADP_HALTED) {
 		printf("ED Halted\n");
