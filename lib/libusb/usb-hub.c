@@ -119,7 +119,7 @@ static int hub_check_port(struct usb_dev *dev, int port)
 
 	if (!(le16_to_cpu(ps.wPortStatus) & HUB_PS_POWER)) {
 		hub_set_port_feature(dev, port, HUB_PF_POWER);
-		SLOF_msleep(200);
+		SLOF_msleep(100);
 		time = SLOF_GetTimer() + USB_TIMEOUT;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();
@@ -133,10 +133,9 @@ static int hub_check_port(struct usb_dev *dev, int port)
 		}
 	}
 
-	SLOF_msleep(200);
 	if (le16_to_cpu(ps.wPortStatus) & HUB_PS_CONNECTION) {
 		hub_set_port_feature(dev, port, HUB_PF_RESET);
-		SLOF_msleep(200);
+		SLOF_msleep(100);
 		time = SLOF_GetTimer() + USB_TIMEOUT;
 		while (time > SLOF_GetTimer()) {
 			cpu_relax();

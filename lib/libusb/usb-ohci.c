@@ -75,22 +75,21 @@ static int ohci_hcd_reset(struct ohci_regs *regs)
 
 	/* USBRESET - 1sec */
 	write_reg32(&regs->control, 0);
-	SLOF_msleep(1000);
+	SLOF_msleep(100);
 
 	write_reg32(&regs->intr_disable, ~0);
 	write_reg32(&regs->cmd_status, OHCI_CMD_STATUS_HCR);
-	SLOF_msleep(100);
 	mb();
-	time = SLOF_GetTimer() + USB_TIMEOUT;
-	while ((time > SLOF_GetTimer()) &&
-		(read_reg32(&regs->cmd_status) & OHCI_CMD_STATUS_HCR))
-		cpu_relax();
 
-	if (read_reg32(&regs->cmd_status) & OHCI_CMD_STATUS_HCR) {
-		printf(" ** HCD Reset failed...");
-		return -1;
+	time = 30; /* wait for not more than 30usec */
+	while ((read_reg32(&regs->cmd_status) & OHCI_CMD_STATUS_HCR) != 0) {
+		time--;
+		if (!time) {
+			printf(" ** HCD Reset failed...");
+			return -1;
+		}
+		SLOF_usleep(1);
 	}
-
 	return 0;
 }
 
@@ -103,6 +102,7 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 	uint32_t oldrwc;
 	struct usb_dev *rhdev = NULL;
 	struct usb_ep_descr ep;
+	uint32_t reg;
 
 	if (!ohcd)
 		return -1;
@@ -148,6 +148,11 @@ static int ohci_hcd_init(struct ohci_hcd *ohcd)
 	 */
 	write_reg32(&regs->fm_interval, FRAME_INTERVAL);
 	write_reg32(&regs->period_start, PERIODIC_START);
+	reg = read_reg32(&regs->rh_desc_a);
+	reg &= ~( RHDA_PSM_INDIVIDUAL | RHDA_OCPM_PERPORT );
+	reg |= RHDA_NPS_ENABLE;
+	write_reg32(&regs->rh_desc_a, reg);
+	write_reg32(&regs->rh_desc_b, 0);
 	mb();
 	SLOF_msleep(100);
 	ohci_dump_regs(regs);
