@@ -136,6 +136,9 @@ struct usb_pipe {
 #define	REQ_SET_INTERFACE	     11
 #define	REQ_SYNCH_FRAME              12
 
+#define FEATURE_DEVICE_REMOTE_WAKEUP 1
+#define FEATURE_ENDPOINT_HALT        0
+
 #define REQT_REC_DEVICE              0
 #define REQT_REC_INTERFACE           1
 #define REQT_REC_EP                  2
