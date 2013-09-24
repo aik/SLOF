@@ -414,7 +414,8 @@ static int ohci_process_done_head(struct ohci_hcd *ohcd,
 	struct ohci_hcca *hcca;
 	struct ohci_td *td_phys = NULL, *td_start_phys;
 	struct ohci_td *td, *prev_td = NULL;
-	uint32_t reg = 0, start_frame = 0, time = 0, ret = true;
+	uint32_t reg = 0, start_frame = 0, time = 0;
+	int ret = true;
 	long count;
 
 	count = total_count;
@@ -442,8 +443,12 @@ static int ohci_process_done_head(struct ohci_hcd *ohcd,
 			cpu_relax();
 		}
 		mb();
-		hcca->done_head = 0;
-		mb();
+
+		if (time < SLOF_GetTimer()) {
+			ret = false;
+			break;
+		}
+
 		td = (struct ohci_td *)(uint64_t) ohci_get_td_virt(td_phys,
 								   td_start_phys,
 								PTR_U32(td_start), total_count);
@@ -459,8 +464,13 @@ static int ohci_process_done_head(struct ohci_hcd *ohcd,
 			mb();
 			reg = (le32_to_cpu(td->attr) & TDA_CC) >> 28;
 			if (reg) {
+			  dprintf("%s: cbp %08X attr %08X next_td %08X be %08X\n",
+				  __func__,
+				  le32_to_cpu(td->cbp), le32_to_cpu(td->attr),
+				  le32_to_cpu(td->next_td), le32_to_cpu(td->be));
 				printf("USB: Error %s %p\n", tda_cc_error[reg], td);
-				ret = false;
+				if (reg > 3) /* Return negative error code */
+					ret = reg * -1;
 			}
 			prev_td = td;
 			td_phys = (struct ohci_td *)(uint64_t) le32_to_cpu(td->next_td);
@@ -554,16 +564,16 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	if ((ed->headp & EDA_HEADP_MASK_LE) == ed->tailp) {
 		dprintf("%s: packet sent\n", __func__);
 #ifdef OHCI_DEBUG_PACKET
+		dpprintf("Request: ");
+		dbuf = (unsigned char *)req;
+		for(i = 0; i < 8; i++)
+			printf("%02X ", dbuf[i]);
+		dpprintf("\n");
 		if (datalen) {
-			dpprintf("Request: ");
-			dbuf = (unsigned char *)req;
-			for(i = 0; i < 8; i++)
-				dpprintf("%02X ", dbuf[i]);
-			dpprintf("\n");
 			dbuf = (unsigned char *)data;
 			dpprintf("Reply:   ");
 			for(i = 0; i < datalen; i++)
-				dpprintf("%02X ", dbuf[i]);
+				printf("%02X ", dbuf[i]);
 			dpprintf("\n");
 		}
 #endif
@@ -574,6 +584,11 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 			__func__,
 			le32_to_cpu(ed->headp), le32_to_cpu(ed->tailp),
 			le32_to_cpu(ed->next_ed), le32_to_cpu(ed->attr));
+		printf("Request: ");
+		dbuf = (unsigned char *)req;
+		for(i = 0; i < 8; i++)
+			printf("%02X ", dbuf[i]);
+		printf("\n");
 	}
 	ret = ohci_process_done_head(ohcd, tds, (long)td_phys, td_count);
 	mb();
@@ -582,20 +597,12 @@ static int ohci_send_ctrl(struct usb_pipe *pipe, struct usb_dev_req *req, void *
 	write_reg32(&regs->cntl_head_ed, 0);
 	write_reg32(&regs->cntl_curr_ed, 0);
 
-	if (!ret) {
-		printf("Request: ");
-		dbuf = (unsigned char *)req;
-		for(i = 0; i < 8; i++)
-			printf("%02X ", dbuf[i]);
-		printf("\n");
-	}
-
 	SLOF_dma_map_out(req_phys, req, sizeof(struct usb_dev_req));
 	if (datalen)
 		SLOF_dma_map_out(data_phys, data, datalen);
 	SLOF_dma_map_out(PTR_U32(td_phys), tds, sizeof(*td) * OHCI_CTRL_TDS);
 	SLOF_dma_free(tds, sizeof(*td) * OHCI_CTRL_TDS);
-	return ret;
+	return (ret > 0) ? true : false;
 }
 
 static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
@@ -610,10 +617,6 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	size_t len, packet_len;
 	uint32_t time;
 	int ret = true;
-#ifdef OHCI_DEBUG_PACKET
-	int i;
-	unsigned char *dbuf;
-#endif
 
 	if (pipe->type != USB_EP_TYPE_BULK) {
 		printf("usb-ohci: Not a bulk pipe.\n");
@@ -691,22 +694,19 @@ static int ohci_transfer_bulk(struct usb_pipe *pipe, void *td_ptr,
 	mb();
 	write_reg32(&regs->bulk_head_ed, 0);
 
-#ifdef OHCI_DEBUG_PACKET
-	if (datalen) {
-		len = ( datalen < 512 ) ? datalen : 512;
-		dbuf = data_phys;
-		dpprintf("Data :");
-		for (i = 0; i < len; i++) {
-			if (i % 32 == 0)
-				dpprintf("\n\t");
-			dpprintf("%02X ", dbuf[i]);
-		}
-		dpprintf("\n");
+	if (le32_to_cpu(ed->headp) & EDA_HEADP_HALTED) {
+		printf("ED Halted\n");
+		printf("%s: headp %08X tailp %08X next_td %08X attr %08X\n", __func__,
+			le32_to_cpu(ed->headp), le32_to_cpu(ed->tailp),
+			le32_to_cpu(ed->next_ed), le32_to_cpu(ed->attr));
+		ed->headp &= ~cpu_to_le32(EDA_HEADP_HALTED);
+		mb();
+		if (ret == USB_STALL) /* Call reset recovery */
+			usb_msc_resetrecovery(pipe->dev);
 	}
-#endif
 
 end:
-	return ret;
+	return (ret > 0) ? true : false;
 }
 
 /* Populate the hcca intr region with periodic intr */
