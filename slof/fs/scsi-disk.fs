@@ -90,17 +90,21 @@ CREATE cdb 10 allot
     dup 0<> IF " read-blocks" dump-scsi-error -65 throw ELSE drop THEN
 ;
 
-: inquiry ( -- buffer | NULL )
-    scsi-disk-debug? IF
-        ." SCSI-DISK: inquiry " .s cr
-    THEN
-    \ WARNING: ATAPI devices with libata seem to ignore the MSB of
-    \ the allocation length... let's only ask for ff bytes
-    ff cdb scsi-build-inquiry
+: (inquiry) ( size -- buffer | NULL )
+    dup cdb scsi-build-inquiry
     \ 16 retries for inquiry to flush out any UAs
-    scratch ff scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
+    scratch swap scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
     \ Success ?
     0= IF scratch ELSE 2drop 0 THEN
+;
+
+: inquiry ( -- buffer | NULL )
+    scsi-disk-debug? IF
+	." SCSI-DISK: inquiry " .s cr
+    THEN
+    d# 36 (inquiry) 0= IF 0 EXIT THEN
+    scratch inquiry-data>add-length c@ 5 +
+    (inquiry)
 ;
 
 : read-capacity ( -- blocksize #blocks )

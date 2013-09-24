@@ -92,14 +92,19 @@
 CREATE sector d# 512 allot
 CREATE cdb 10 allot
 
-: inquiry ( -- buffer | NULL )
-    \ WARNING: ATAPI devices with libata seem to ignore the MSB of
-    \ the allocation length... let's only ask for ff bytes
-    ff cdb scsi-build-inquiry
+: (inquiry) ( size -- buffer | NULL )
+    dup cdb scsi-build-inquiry
     \ 16 retries for inquiry to flush out any UAs
-    sector ff scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
+    sector swap scsi-dir-read cdb scsi-param-size 10 retry-scsi-command
     \ Success ?
     0= IF sector ELSE 2drop 0 THEN
+;
+
+\ Read the initial 36bytes and then decide how much more is to be read
+: inquiry ( -- buffer | NULL )
+    d# 36 (inquiry) 0= IF 0 EXIT THEN
+    sector inquiry-data>add-length c@ 5 +
+    (inquiry)
 ;
 
 : report-luns ( -- [ sector ] true | false )
