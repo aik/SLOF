@@ -37,6 +37,9 @@ s" disk-label" device-name
 0 INSTANCE VALUE args
 0 INSTANCE VALUE args-len
 
+0 INSTANCE VALUE gpt-part-size
+0 INSTANCE VALUE seek-pos
+
 
 INSTANCE VARIABLE block#  \ variable to store logical sector#
 INSTANCE VARIABLE hit#    \ partition counter
@@ -73,6 +76,34 @@ STRUCT
 
 CONSTANT /partition-entry
 
+STRUCT
+        8 field gpt>signature
+        4 field gpt>revision
+        4 field gpt>header-size
+        4 field gpt>header-crc32
+        4 field gpt>reserved
+        8 field gpt>current-lba
+        8 field gpt>backup-lba
+        8 field gpt>first-lba
+        8 field gpt>last-lba
+       10 field gpt>disk-guid
+        8 field gpt>part-entry-lba
+        4 field gpt>num-part-entry
+        4 field gpt>part-entry-size
+        4 field gpt>part-array-crc32
+      1a4 field gpt>reserved
+
+CONSTANT /gpt-header
+
+STRUCT
+       10 field gpt-part-entry>part-type-guid
+       10 field gpt-part-entry>part-guid
+        8 field gpt-part-entry>first-lba
+        8 field gpt-part-entry>last-lba
+        8 field gpt-part-entry>attribute
+       48 field gpt-part-entry>part-name
+
+CONSTANT /gpt-part-entry
 
 \ Defined by IEEE 1275-1994 (3.8.1)
 
@@ -128,10 +159,25 @@ CONSTANT /partition-entry
    THEN
 ;
 
+: partition>part-entry ( partition -- part-entry )
+   1- /partition-entry * block mbr>partition-table +
+;
+
+: partition>start-sector ( partition -- sector-offset )
+   partition>part-entry part-entry>sector-offset l@-le
+;
 
 \ This word returns true if the currently loaded block has _NO_ MBR magic
 : no-mbr? ( -- true|false )
-   0 read-sector block mbr>magic w@-le aa55 <>
+   0 read-sector
+   1 partition>part-entry part-entry>id c@ ee = IF TRUE EXIT THEN \ GPT partition found
+   block mbr>magic w@-le aa55 <>
+;
+
+\ This word returns true if the currently loaded block has _NO_ GPT partition id
+: no-gpt? ( -- true|false )
+   0 read-sector
+   1 partition>part-entry part-entry>id c@ ee <>
 ;
 
 : pc-extended-partition? ( part-entry-addr -- true|false )
@@ -140,14 +186,6 @@ CONSTANT /partition-entry
    dup f = swap          ( true|false true|false id )
    85 =                  ( true|false true|false true|false )
    or or                 ( true|false )
-;
-
-: partition>part-entry ( partition -- part-entry )
-   1- /partition-entry * block mbr>partition-table +
-;
-
-: partition>start-sector ( partition -- sector-offset )
-   partition>part-entry part-entry>sector-offset l@-le
 ;
 
 : count-dos-logical-partitions ( -- #logical-partitions )
@@ -313,11 +351,69 @@ CONSTANT /partition-entry
    drop 0
 ;
 
+\ Check for GPT PReP partition GUID
+9E1A2D38     CONSTANT GPT-PREP-PARTITION-1
+C612         CONSTANT GPT-PREP-PARTITION-2
+4316         CONSTANT GPT-PREP-PARTITION-3
+AA26         CONSTANT GPT-PREP-PARTITION-4
+8B49521E5A8B CONSTANT GPT-PREP-PARTITION-5
+
+: gpt-prep-partition? ( -- true|false )
+   block gpt-part-entry>part-type-guid l@-le GPT-PREP-PARTITION-1 = IF
+      block gpt-part-entry>part-type-guid 4 + w@-le
+      GPT-PREP-PARTITION-2 = IF
+         block gpt-part-entry>part-type-guid 6 + w@-le
+         GPT-PREP-PARTITION-3 = IF
+            block gpt-part-entry>part-type-guid 8 + w@
+            GPT-PREP-PARTITION-4 = IF
+               block gpt-part-entry>part-type-guid a + w@
+               block gpt-part-entry>part-type-guid c + l@ swap lxjoin
+               GPT-PREP-PARTITION-5 = IF
+                   TRUE EXIT
+               THEN
+            THEN
+         THEN
+      THEN
+   THEN
+   FALSE
+;
+
+: load-from-gpt-prep-partition ( addr -- size )
+   no-gpt? IF FALSE EXIT THEN
+   debug-disk-label? IF
+      cr ." GPT partition found " cr
+   THEN
+
+   1 read-sector block gpt>part-entry-lba l@-le
+   block-size * to seek-pos
+   block gpt>part-entry-size l@-le to gpt-part-size
+   block gpt>num-part-entry l@-le dup 0= IF FALSE EXIT THEN
+   1+ 1 ?DO
+      seek-pos 0 seek drop
+      block gpt-part-size read drop gpt-prep-partition? IF
+         debug-disk-label? IF
+            ." GPT PReP partition found " cr
+         THEN
+         block gpt-part-entry>first-lba x@ xbflip
+         block gpt-part-entry>last-lba x@ xbflip
+         over - 1+                 ( addr offset len )
+         swap                      ( addr len offset )
+         block-size * to part-offset
+         0 0 seek drop             ( addr len )
+         block-size * read         ( size )
+         UNLOOP EXIT
+      THEN
+      seek-pos gpt-part-size i * + to seek-pos
+   LOOP
+   FALSE
+;
 
 \ load from a bootable partition
 
 : load-from-boot-partition ( addr -- size )
-   load-from-dos-boot-partition
+   load-from-dos-boot-partition dup 0= IF
+     drop load-from-gpt-prep-partition
+   THEN
    \ More boot partition formats ...
 ;
 
