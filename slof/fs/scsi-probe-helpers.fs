@@ -37,6 +37,20 @@
 	    rot                           ( devarray ndev mem devcur )
 	    dup >r x! r> 8 +              ( devarray ndev devcur )
 	    swap 1 +
+	ELSE
+	    dev-max-target 1 = IF
+		\ Some USB MSC devices do not implement report
+		\ luns. That will stall the bulk pipe. These devices are
+		\ single lun devices, report it accordingly
+
+		( devarray devcur ndev )
+		16 alloc-mem ( devarray devcur ndev mem )
+		dup 16 0 fill ( devarray devcur ndev mem )
+		dup 0 0 dev-generate-srplun swap x!  ( devarray devcur ndev mem )
+		rot x!  ( devarray ndev )
+		1 +
+		UNLOOP EXIT
+	    THEN
 	THEN
     LOOP
     nip
