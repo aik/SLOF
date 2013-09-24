@@ -273,5 +273,5 @@ extern int usb_dev_populate_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 				void *buf, size_t len);
 extern int usb_hid_kbd_init(struct usb_dev *dev);
 extern int usb_hid_kbd_exit(struct usb_dev *dev);
-
+extern void usb_msc_resetrecovery(struct usb_dev *dev);
 #endif
