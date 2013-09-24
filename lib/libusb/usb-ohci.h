@@ -61,6 +61,8 @@ struct ohci_regs {
 
 #define EDA_HEADP_MASK    (0xFFFFFFFC)
 #define EDA_HEADP_MASK_LE (cpu_to_le32(EDA_HEADP_MASK))
+#define EDA_HEADP_HALTED  (0x1)
+#define EDA_HEADP_CARRY   (0x2)
 
 struct ohci_ed {
 	uint32_t attr;
@@ -79,12 +81,16 @@ struct ohci_ed {
 #define TDA_TOGGLE_DATA1 (0x03000000)
 #define TDA_CC           (0xF << 28)
 
+#define TDA_ERROR(x)         ((x) * -1)
+
 /* Table 4-7: Completion Codes */
 const char *tda_cc_error[] = {
+#define USB_NOERROR TDA_ERROR(0)
 	"NOERROR",
 	"CRC",
 	"BITSTUFFING",
 	"DATATOGGLEMISMATCH",
+#define USB_STALL TDA_ERROR(4)
 	"STALL",
 	"DEVICENOTRESPONDING",
 	"PIDCHECKFAILURE",
