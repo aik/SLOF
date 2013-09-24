@@ -308,6 +308,25 @@ static int usb_set_config(struct usb_dev *dev, uint8_t cfg_value)
 	return usb_send_ctrl(dev->control, &req, NULL);
 }
 
+static int usb_clear_halt(struct usb_pipe *pipe)
+{
+	struct usb_dev_req req;
+	struct usb_dev *dev;
+
+	if (pipe && pipe->dev) {
+		dev = pipe->dev;
+		dprintf("Clearing port %d dir %d type %d\n",
+			pipe->epno, pipe->dir, pipe->type);
+		req.bmRequestType = REQT_DIR_OUT | REQT_REC_EP;
+		req.bRequest = REQ_CLEAR_FEATURE;
+		req.wValue = FEATURE_ENDPOINT_HALT;
+		req.wIndex = cpu_to_le16(pipe->epno | pipe->dir);
+		req.wLength = 0;
+		return usb_send_ctrl(dev->control, &req, NULL);
+	}
+	return false;
+}
+
 int usb_dev_populate_pipe(struct usb_dev *dev, struct usb_ep_descr *ep,
 			void *buf, size_t len)
 {
