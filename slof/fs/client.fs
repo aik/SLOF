@@ -196,6 +196,8 @@ ALSO client-voc DEFINITIONS
 	    \ is an undocumented extension and not everybody supports it
 	    close-dev
 	    quiesce
+	ELSE
+	    close-dev
 	THEN
     ELSE
 	close-dev
