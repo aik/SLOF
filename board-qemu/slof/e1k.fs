@@ -22,7 +22,6 @@ INSTANCE VARIABLE obp-tftp-package
 : open  ( -- okay? )
    open-count 0= IF
       open IF
-         my-args s" obp-tftp" $open-package obp-tftp-package !
          e1k-open dup not IF ." e1k-open failed" EXIT THEN
          drop TO e1k-priv
          true
@@ -32,19 +31,20 @@ INSTANCE VARIABLE obp-tftp-package
    ELSE
       true
    THEN
+   my-args s" obp-tftp" $open-package obp-tftp-package !
    open-count 1 + to open-count
 ;
 
 
 : close  ( -- )
-    open-count 0> IF
+   open-count 0> IF
       open-count 1 - dup to open-count
       0= IF
-         s" close" obp-tftp-package @ $call-method
          e1k-priv e1k-close
          close
       THEN
    THEN
+   s" close" obp-tftp-package @ $call-method
 ;
 
 : read ( buf len -- actual )

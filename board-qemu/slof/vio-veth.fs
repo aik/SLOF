@@ -21,7 +21,6 @@ INSTANCE VARIABLE obp-tftp-package
 : open  ( -- okay? )
    open-count 0= IF
       my-unit 1 rtas-set-tce-bypass
-      my-args s" obp-tftp" $open-package obp-tftp-package !
       s" local-mac-address" get-node get-property not
       s" reg" get-node get-property not 3 pick and IF
          >r nip r>
@@ -29,6 +28,7 @@ INSTANCE VARIABLE obp-tftp-package
          drop TO veth-priv
       THEN
    THEN
+   my-args s" obp-tftp" $open-package obp-tftp-package !
    open-count 1 + to open-count
    true
 ;
@@ -37,11 +37,11 @@ INSTANCE VARIABLE obp-tftp-package
    open-count 0> IF
       open-count 1 - dup to open-count
       0= IF
-         s" close" obp-tftp-package @ $call-method
          veth-priv libveth-close
          my-unit 0 rtas-set-tce-bypass
       THEN
    THEN
+   s" close" obp-tftp-package @ $call-method
 ;
 
 : read ( buf len -- actual )

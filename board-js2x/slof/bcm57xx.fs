@@ -24,7 +24,6 @@ VARIABLE obp-tftp-package
 : open  ( -- okay? )
    open-count 0= IF
       open IF
-         my-args s" obp-tftp" $open-package obp-tftp-package !
          bcm57xx-open dup not IF ." bcm57xx-open failed" EXIT THEN
          drop dup TO bcm57xx-priv
          6 encode-bytes s" local-mac-address" property
@@ -35,6 +34,7 @@ VARIABLE obp-tftp-package
    ELSE
       true
    THEN
+   my-args s" obp-tftp" $open-package obp-tftp-package !
    open-count 1 + to open-count
 ;
 
@@ -43,11 +43,11 @@ VARIABLE obp-tftp-package
     open-count 0> IF
       open-count 1 - dup to open-count
       0= IF
-         s" close" obp-tftp-package @ $call-method
          bcm57xx-priv bcm57xx-close
          close
       THEN
    THEN
+   s" close" obp-tftp-package @ $call-method
 ;
 
 : read ( buf len -- actual )

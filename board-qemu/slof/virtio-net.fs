@@ -25,7 +25,6 @@ virtiodev virtio-setup-vd
    open-count 0= IF
       open IF
          \ my-unit 1 rtas-set-tce-bypass
-         my-args s" obp-tftp" $open-package obp-tftp-package !
          s" local-mac-address" get-node get-property not IF
             virtiodev virtio-net-open dup not IF ." virtio-net-open failed" EXIT THEN
             drop TO virtio-net-priv
@@ -37,6 +36,7 @@ virtiodev virtio-setup-vd
    ELSE
       true
    THEN
+   my-args s" obp-tftp" $open-package obp-tftp-package !
    open-count 1 + to open-count
 ;
 
@@ -45,12 +45,12 @@ virtiodev virtio-setup-vd
     open-count 0> IF
       open-count 1 - dup to open-count
       0= IF
-         s" close" obp-tftp-package @ $call-method
          virtio-net-priv virtio-net-close
          \ my-unit 0 rtas-set-tce-bypass
          close
       THEN
    THEN
+   s" close" obp-tftp-package @ $call-method
 ;
 
 : read ( buf len -- actual )
