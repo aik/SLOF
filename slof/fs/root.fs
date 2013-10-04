@@ -47,12 +47,12 @@ THEN
     drop
     new-device
     s" chosen" device-name
+    s" " encode-string s" bootargs" property
+    s" " encode-string s" bootpath" property
+    finish-device
 ELSE
-    extend-device
+    drop
 THEN
-s" " encode-string s" bootargs" property
-s" " encode-string s" bootpath" property
-finish-device
 
 \ Create /aliases
 new-device
