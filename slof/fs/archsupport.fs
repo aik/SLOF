@@ -19,7 +19,7 @@
     swap over size                        ( memaddr vec memaddr size )
     \ make h_call to hypervisor
     hv-cas 0= IF                          ( memaddr )
-	dup @ 1 >= IF                     \ Version number >= 1
+	dup l@ 1 >= IF                    \ Version number >= 1
 	    \ Make required changes
 	    " /" find-node set-node
 	    dup 4 + fdt-init
