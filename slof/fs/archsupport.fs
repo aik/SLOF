@@ -26,7 +26,7 @@
 	    fdt-check-header
 	    fdt-struct fdt-fix-cas-node
 	THEN
-	drop FALSE
+	FALSE
     ELSE
 	." hv-cas failed  " TRUE
     THEN
