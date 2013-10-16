@@ -35,6 +35,15 @@ PRIM(USB_X2d_EHCI_X2d_REGISTER)
 MIRP
 
 /************************************************/
+/* Register with the usb-core                   */
+/* SLOF:   USB-XHCI-REGISTER  ( -- )            */
+/* LIBNEWUSB: usb_xhci_register(void)           */
+/************************************************/
+PRIM(USB_X2d_XHCI_X2d_REGISTER)
+	usb_xhci_register();
+MIRP
+
+/************************************************/
 /* Initialize hcidev with the usb-core          */
 /* SLOF:   USB-HCD-INIT  ( hcidev -- )          */
 /* LIBNEWUSB: usb_hcd_init(hcidev)              */

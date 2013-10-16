@@ -182,7 +182,7 @@ void usb_hcd_exit(void *_hcidev)
 	struct usb_hcd_dev *hcidev = _hcidev;
 
 	dprintf("%s: enter \n", __func__);
-	if (!hcidev || !hcidev->ops) {
+	if (!hcidev) {
 		printf("Device Error");
 		return;
 	}

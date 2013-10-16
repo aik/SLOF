@@ -71,5 +71,19 @@
 	THEN
     LOOP
 
+    xhci-alias-num 1 >= IF
+	USB-XHCI-REGISTER
+    THEN
+
+    xhci-alias-num 0 ?DO
+	" xhci" i $cathex find-device
+	" get-hci-dev" get-node find-method
+	IF
+	    execute usb-enumerate
+	ELSE
+	    ." get-base-address method not found for xhci" i . cr
+	THEN
+    LOOP
+
     0 set-node     \ FIXME Setting it back
 ;

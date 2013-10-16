@@ -55,10 +55,10 @@ CONSTANT /hci-dev
 	    handle-usb-class
 	    set-ehci-alias
 	ENDOF
-\	0330 OF                      \ XHCI controller
-\	    handle-usb-class
-\	    set-xhci-alias
-\	ENDOF
+	0330 OF                      \ XHCI controller
+	    handle-usb-class
+	    set-xhci-alias
+	ENDOF
    ENDCASE
 ;
 
