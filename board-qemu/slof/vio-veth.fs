@@ -45,11 +45,19 @@ INSTANCE VARIABLE obp-tftp-package
 ;
 
 : read ( buf len -- actual )
-   veth-priv libveth-read
+   dup IF
+      veth-priv libveth-read
+   ELSE
+      nip
+   THEN
 ;
 
 : write ( buf len -- actual )
-   veth-priv libveth-write
+   dup IF
+      veth-priv libveth-write
+   ELSE
+      nip
+   THEN
 ;
 
 : load  ( addr -- len )
