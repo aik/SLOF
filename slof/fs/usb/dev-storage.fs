@@ -339,6 +339,7 @@ scsi-close        \ no further scsi words required
    CASE
       1 OF 4000 TO dev-max-transfer ENDOF \ OHCI
       2 OF 10000 TO dev-max-transfer ENDOF \ EHCI
+      3 OF F000 TO dev-max-transfer ENDOF \ XHCI
    ENDCASE
    usb-storage-init
    scsi-find-disks

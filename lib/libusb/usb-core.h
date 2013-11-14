@@ -70,6 +70,7 @@ enum USB_SPEED_TYPE {
 	USB_LOW_SPEED = 0,
 	USB_FULL_SPEED = 1,
 	USB_HIGH_SPEED = 2,
+	USB_SUPER_SPEED = 3,
 };
 
 /* Max number of endpoints supported in a device */
@@ -84,6 +85,7 @@ struct usb_dev {
 	struct usb_pipe    *bulk_in;
 	struct usb_pipe    *bulk_out;
 	struct usb_ep_descr ep[USB_DEV_EP_MAX];
+	void *priv;
 	uint32_t ep_cnt;
 	uint32_t class;
 	uint32_t speed;
