@@ -34,6 +34,7 @@ defer add-boot-device
          \ Not set in nvram too, set default disk/cdrom alias
          " disk" add-boot-aliases
          " cdrom" add-boot-aliases
+         " net" add-boot-aliases
       THEN
       EXIT
    THEN
