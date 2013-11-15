@@ -62,12 +62,16 @@
     TO srplun
     2dup find-alias IF
         drop MAX-ALIAS 1 DO
-            i $cathex 2dup find-alias 0= IF
-                strdup srplun make-disk-alias UNLOOP EXIT
-            ELSE drop THEN
-        LOOP
+	    2dup i $cathex find-alias 0= IF
+		2dup i $cathex strdup
+		srplun make-disk-alias
+		2drop
+		UNLOOP EXIT
+	    ELSE drop THEN
+	LOOP
+	2drop
     ELSE
-        srplun make-disk-alias
+	srplun make-disk-alias
     THEN
 ;
 
