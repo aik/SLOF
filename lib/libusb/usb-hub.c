@@ -17,7 +17,7 @@
 #undef HUB_DEBUG
 //#define HUB_DEBUG
 #ifdef HUB_DEBUG
-#define dprintf(_x ...) printf(_x)
+#define dprintf(_x ...) do { printf(_x); } while(0)
 #else
 #define dprintf(_x ...)
 #endif

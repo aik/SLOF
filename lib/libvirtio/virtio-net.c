@@ -30,7 +30,7 @@
 #undef DEBUG
 //#define DEBUG
 #ifdef DEBUG
-# define dprintf(fmt...)	printf(fmt)
+# define dprintf(fmt...) do { printf(fmt); } while(0)
 #else
 # define dprintf(fmt...)
 #endif

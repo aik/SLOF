@@ -20,7 +20,7 @@
 #undef EHCI_DEBUG
 //#define EHCI_DEBUG
 #ifdef EHCI_DEBUG
-#define dprintf(_x ...) printf(_x)
+#define dprintf(_x ...) do { printf(_x); } while(0)
 #else
 #define dprintf(_x ...)
 #endif

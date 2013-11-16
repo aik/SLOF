@@ -19,7 +19,7 @@
 #undef OHCI_DEBUG
 //#define OHCI_DEBUG
 #ifdef OHCI_DEBUG
-#define dprintf(_x ...) printf(_x)
+#define dprintf(_x ...) do { printf(_x); } while(0)
 #else
 #define dprintf(_x ...)
 #endif
@@ -27,7 +27,7 @@
 #undef OHCI_DEBUG_PACKET
 //#define OHCI_DEBUG_PACKET
 #ifdef OHCI_DEBUG_PACKET
-#define dpprintf(_x ...) printf(_x)
+#define dpprintf(_x ...) do { printf(_x); } while(0)
 #else
 #define dpprintf(_x ...)
 #endif

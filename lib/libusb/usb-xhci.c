@@ -22,7 +22,7 @@
 #ifdef XHCI_DEBUG
 #define dprintf(_x ...) do { printf("%s: ", __func__); printf(_x); } while (0)
 #else
-#define dprintf(_x ...) do { } while (0)
+#define dprintf(_x ...)
 #endif
 
 static void dump_xhci_regs(struct xhci_hcd *xhcd)

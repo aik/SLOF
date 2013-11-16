@@ -46,7 +46,7 @@ static int __buf_size;
 #undef DEBUG
 //#define DEBUG
 #ifdef DEBUG
-#define dprintf(_x ...) printf(_x)
+#define dprintf(_x ...) do { printf(_x); } while(0)
 #else
 #define dprintf(_x ...)
 #endif
