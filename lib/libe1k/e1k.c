@@ -931,7 +931,7 @@ e1k_term(void)
 	/*
 	 * Disable DMA translation
 	 */
-	SLOF_dma_map_out((long)&m_e1k, (void *)virt2dma(&m_e1k), (long)sizeof(m_e1k));
+	SLOF_dma_map_out((long)virt2dma(&m_e1k), (void *)&m_e1k, (long)sizeof(m_e1k));
 
 	#ifdef E1K_DEBUG
 	printf("done.\n");
