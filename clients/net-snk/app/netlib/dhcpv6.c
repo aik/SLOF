@@ -21,6 +21,7 @@
 #include <netlib/udp.h>
 #include <netlib/dhcpv6.h>
 #include <netlib/tftp.h>
+#include <netlib/dns.h>
 
 static uint8_t tid[3];
 static uint32_t dhcpv6_state = -1;
@@ -160,8 +161,9 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 				option = option +  option_dns->length + 4;
 				option_length = option_length - option_dns->length - 4;
 				memcpy( &(my_fn_ip->dns_ip6),
-					&(option_dns->p_ip6),
+					option_dns->p_ip6,
 					IPV6_ADDR_LENGTH);
+				dns_init(0, option_dns->p_ip6, 6);
                                 break;
 			case DHCPV6_OPTION_DOMAIN_LIST:
 				option_dns_list = (struct dhcp_dns_list *) option;

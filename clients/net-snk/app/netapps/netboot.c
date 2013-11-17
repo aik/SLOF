@@ -16,6 +16,7 @@
 #include <netlib/dhcpv6.h>
 #include <netlib/ipv4.h>
 #include <netlib/ipv6.h>
+#include <netlib/dns.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -676,6 +677,8 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int len)
 	char *raw;
 	char *tmp, *tmp1;
 	int i, j = 0;
+	char domainname[256];
+	uint8_t server_ip6[16];
 
 	raw = malloc(len);
 	if (raw == NULL) {
@@ -747,7 +750,13 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int len)
 		j = tmp1 - (raw + 7);
 		tmp = raw + 7;
 		tmp[j] = '\0';
-		strcpy(server_ip,tmp);
+		strcpy(domainname, tmp);
+		if (dns_get_ip((int8_t *)domainname, server_ip6, 6) == 0) {
+			printf("\n DNS failed for IPV6\n");
+                        return -1;
+                }
+		ipv6_to_str(server_ip6, server_ip);
+
 		strcpy(filename,(tmp1+1));
 		free(raw);
 		return 0;

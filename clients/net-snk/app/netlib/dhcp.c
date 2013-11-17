@@ -232,7 +232,7 @@ dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
 	else {
 		// TFTP server defined by its name
 		if (!strtoip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
-			if (!dns_get_ip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
+			if (!dns_get_ip(dhcp_tftp_name, (uint8_t *)&(dhcp_tftp_ip), 4)) {
 				// DNS error - can't obtain TFTP-server name  
 				// Use TFTP-ip from siaddr field, if presented
 				if (dhcp_siaddr_ip) {
@@ -941,7 +941,7 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 
 		/* DNS-server */
 		if (opt.flag[DHCP_DNS]) {
-			dns_init(opt.dns_IP);
+			dns_init(opt.dns_IP, 0, 4);
 		}
 	}
 
