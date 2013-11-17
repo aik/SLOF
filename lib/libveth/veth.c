@@ -67,7 +67,7 @@ static uint64_t *rx_bufs_aligned;
 static uint32_t cur_rx_toggle;
 static uint32_t cur_rx_index;
 
-#define RX_QUEUE_SIZE	16
+#define RX_QUEUE_SIZE	256
 #define RX_BUF_SIZE	2048
 #define RX_BUF_MULT	(RX_BUF_SIZE >> 3)
 
