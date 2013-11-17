@@ -414,14 +414,13 @@ static int ohci_process_done_head(struct ohci_hcd *ohcd,
 	struct ohci_hcca *hcca;
 	struct ohci_td *td_phys = NULL, *td_start_phys;
 	struct ohci_td *td, *prev_td = NULL;
-	uint32_t reg = 0, start_frame = 0, time = 0;
+	uint32_t reg = 0, time = 0;
 	int ret = true;
 	long count;
 
 	count = total_count;
 	td_start_phys = (struct ohci_td *) __td_start_phys;
 	hcca = ohcd->hcca;
-	start_frame = hcca->frame_num;
 	time = SLOF_GetTimer() + USB_TIMEOUT;
 	dpprintf("Claiming %ld\n", count);
 
@@ -455,7 +454,7 @@ again:
 								total_count);
 
 		if (!td) {
-			printf("USB: Error TD null %x\n", td_phys);
+			printf("USB: Error TD null %p\n", td_phys);
 			break;
 		}
 		count--;
