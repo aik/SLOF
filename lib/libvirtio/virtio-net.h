@@ -15,7 +15,7 @@
 
 #include <netdriver.h>
 
-#define RX_QUEUE_SIZE		16
+#define RX_QUEUE_SIZE		128
 #define BUFFER_ENTRY_SIZE	1514
 
 enum {
