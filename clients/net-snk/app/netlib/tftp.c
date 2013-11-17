@@ -19,7 +19,7 @@
 
 #include <ethernet.h>
 #include <ipv4.h>
-//#include <ipv6.h>
+#include <ipv6.h>
 #include <udp.h>
 
 //#define __DEBUG__
@@ -91,12 +91,12 @@ static void
 send_rrq(void)
 {
 	int ip_len = 0;
-	//int ip6_payload_len    = 0;
+	int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
 	unsigned char mode[] = "octet";
 	char *ptr	     = NULL;
 	struct iphdr *ip     = NULL;
-	//struct ip6hdr *ip6   = NULL;
+	struct ip6hdr *ip6   = NULL;
 	struct udphdr *udph  = NULL;
 	struct tftphdr *tftp = NULL;
 
@@ -111,7 +111,6 @@ send_rrq(void)
 		fill_iphdr ((uint8_t *) ip, ip_len, IPTYPE_UDP, 0,
 			    fn_ip->server_ip);
 	}
-/*
 	else if (6 == ip_version) {
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
@@ -123,7 +122,6 @@ send_rrq(void)
 			     &(fn_ip->server_ip6)); 
 
 	}
-*/
 	udp_len = htons(sizeof(struct udphdr)
 			      + strlen((char *) fn_ip->filename) + strlen((char *) mode) + 4
 			      + strlen("blksize") + strlen(blocksize_str) + 2);
@@ -162,10 +160,10 @@ static void
 send_ack(int blckno, unsigned short dport)
 {
 	int ip_len 	       = 0;
-	//int ip6_payload_len    = 0;
+	int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
 	struct iphdr *ip     = NULL;
-	//struct ip6hdr *ip6   = NULL;
+	struct ip6hdr *ip6   = NULL;
 	struct udphdr *udph  = NULL;
 	struct tftphdr *tftp = NULL;
 
@@ -178,7 +176,6 @@ send_ack(int blckno, unsigned short dport)
 		fill_iphdr ((uint8_t *) ip, ip_len, IPTYPE_UDP, 0,
 			    fn_ip->server_ip);
 	}
-/*
 	else if (6 == ip_version) {
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
@@ -188,7 +185,6 @@ send_ack(int blckno, unsigned short dport)
 		fill_ip6hdr ((uint8_t *) ip6, ip6_payload_len, IPTYPE_UDP, get_ipv6_address(),
 			     &(fn_ip->server_ip6));
 	}
-*/
 	udp_len = htons(sizeof(struct udphdr) + 4);
 	fill_udphdr ((uint8_t *) udph, udp_len, htons(2001), htons(dport));
 
@@ -215,7 +211,7 @@ static void
 send_error(int error_code, unsigned short dport)
 {
 	int ip_len 	       = 0;
-	//int ip6_payload_len    = 0;
+	int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
 	struct ip6hdr *ip6   = NULL;
 	struct iphdr *ip     = NULL;
@@ -231,7 +227,6 @@ send_error(int error_code, unsigned short dport)
 		fill_iphdr ((uint8_t *) ip, ip_len, IPTYPE_UDP, 0,
 			    fn_ip->server_ip);
 	}
-/*
 	else if (6 == ip_version) {
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
@@ -241,7 +236,6 @@ send_error(int error_code, unsigned short dport)
 		fill_ip6hdr ((uint8_t *) ip6, ip6_payload_len, IPTYPE_UDP, get_ipv6_address(),
 			    &(fn_ip->server_ip6));
 	}
-*/
 	udp_len = htons(sizeof(struct udphdr) + 5);
 	fill_udphdr ((uint8_t *) udph, udp_len, htons(2001), htons(dport));
 
