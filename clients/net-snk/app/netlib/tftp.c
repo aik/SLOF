@@ -25,9 +25,7 @@
 //#define __DEBUG__
 
 #define MAX_BLOCKSIZE 1428
-#define BUFFER_LEN 2048
-#define ACK_BUFFER_LEN 256
-#define READ_BUFFER_LEN 256
+#define BUFFER_LEN 256
 
 #define ENOTFOUND 1
 #define EACCESS   2
@@ -46,6 +44,7 @@
 #define OACK  6
 
 /* Local variables */
+static unsigned char packet[BUFFER_LEN];
 static unsigned char  *buffer = NULL;
 static unsigned short block = 0;
 static unsigned short blocksize;
@@ -95,14 +94,13 @@ send_rrq(void)
 	//int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
 	unsigned char mode[] = "octet";
-	unsigned char packet[READ_BUFFER_LEN];
 	char *ptr	     = NULL;
 	struct iphdr *ip     = NULL;
 	//struct ip6hdr *ip6   = NULL;
 	struct udphdr *udph  = NULL;
 	struct tftphdr *tftp = NULL;
 
-	memset(packet, 0, READ_BUFFER_LEN);
+	memset(packet, 0, BUFFER_LEN);
 
 	if (4 == ip_version) {
 		ip = (struct iphdr *) packet;
@@ -166,13 +164,12 @@ send_ack(int blckno, unsigned short dport)
 	int ip_len 	       = 0;
 	//int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
-	unsigned char packet[ACK_BUFFER_LEN];
 	struct iphdr *ip     = NULL;
 	//struct ip6hdr *ip6   = NULL;
 	struct udphdr *udph  = NULL;
 	struct tftphdr *tftp = NULL;
 
-	memset(packet, 0, ACK_BUFFER_LEN);
+	memset(packet, 0, BUFFER_LEN);
 
 	if (4 == ip_version) {
 		ip = (struct iphdr *) packet;
@@ -220,13 +217,12 @@ send_error(int error_code, unsigned short dport)
 	int ip_len 	       = 0;
 	//int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
-	unsigned char packet[256];
-	//struct ip6hdr *ip6   = NULL;
+	struct ip6hdr *ip6   = NULL;
 	struct iphdr *ip     = NULL;
 	struct udphdr *udph  = NULL;
 	struct tftphdr *tftp = NULL;
 
-	memset(packet, 0, 256);
+	memset(packet, 0, BUFFER_LEN);
 
 	if (4 == ip_version) {
 		ip = (struct iphdr *) packet;
@@ -346,7 +342,7 @@ get_blksize(unsigned char *buffer, unsigned int len)
  *               ERRORCODE if error occurred 
  */
 int32_t
-handle_tftp(uint8_t *packet, int32_t packetsize) 
+handle_tftp(uint8_t *pkt, int32_t packetsize) 
 {
 	struct udphdr *udph;
 	struct tftphdr *tftp;
@@ -358,18 +354,18 @@ handle_tftp(uint8_t *packet, int32_t packetsize)
 #ifndef __DEBUG__
 	print_progress(0, received_len);
 #endif
-	udph = (struct udphdr *) packet;
+	udph = (struct udphdr *) pkt;
 	tftp = (struct tftphdr *) ((void *) udph + sizeof(struct udphdr));
 	set_timer(TICKS_SEC);
 
 #ifdef __DEBUG__
-	dump_package(packet, packetsize);
+	dump_package(pkt, packetsize);
 #endif
 
 	port_number = udph->uh_sport;
 	if (tftp->th_opcode == htons(OACK)) {
 		/* an OACK means that the server answers our blocksize request */
-		blocksize = get_blksize(packet, packetsize);
+		blocksize = get_blksize(pkt, packetsize);
 		if (!blocksize || blocksize > MAX_BLOCKSIZE) {
 			send_error(8, port_number);
 			tftp_errno = -8;
