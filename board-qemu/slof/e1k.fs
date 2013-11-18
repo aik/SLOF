@@ -15,6 +15,7 @@
 s" network" device-type
 
 INSTANCE VARIABLE obp-tftp-package
+get-node CONSTANT my-phandle
 
 0 VALUE e1k-priv
 0 VALUE open-count
@@ -37,6 +38,7 @@ INSTANCE VARIABLE obp-tftp-package
 
 
 : close  ( -- )
+   my-phandle set-node
    open-count 0> IF
       open-count 1 - dup to open-count
       0= IF
