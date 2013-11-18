@@ -21,6 +21,8 @@
 #define VIRTIO_STAT_DRIVER_OK		4
 #define VIRTIO_STAT_FAILED		128
 
+#define VIRTIO_TIMEOUT		        5000 /* 5 sec timeout */
+
 /* Definitions for vring_desc.flags */
 #define VRING_DESC_F_NEXT	1	/* buffer continues via the next field */
 #define VRING_DESC_F_WRITE	2	/* buffer is write-only (otherwise read-only) */

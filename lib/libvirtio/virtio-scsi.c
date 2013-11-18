@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <cpu.h>
+#include <helpers.h>
 #include "virtio.h"
 #include "virtio-scsi.h"
 
@@ -28,8 +29,8 @@ int virtioscsi_send(struct virtio_device *dev,
 
         volatile uint16_t *current_used_idx;
         uint16_t last_used_idx;
-        int id, i;
-        uint32_t vq_size;
+        int id;
+        uint32_t vq_size, time;
 
         int vq = VIRTIO_SCSI_REQUEST_VQ;
 
@@ -74,12 +75,14 @@ int virtioscsi_send(struct virtio_device *dev,
         /* Tell HV that the vq is ready */
         virtio_queue_notify(dev, vq);
 
-        /* Wait for host to consume the descriptor */
-        i = 10000000;
-        while (*current_used_idx == last_used_idx && i-- > 0) {
-                // do something better
-                mb();
-        }
+	/* Wait for host to consume the descriptor */
+	time = SLOF_GetTimer() + VIRTIO_TIMEOUT;
+	while (*current_used_idx == last_used_idx) {
+		// do something better
+		mb();
+		if (time < SLOF_GetTimer())
+			break;
+	}
 
         return 0;
 }
