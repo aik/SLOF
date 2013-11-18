@@ -11,7 +11,7 @@
 \ ****************************************************************************/
 
 
-10 CONSTANT quiesce-xt#
+100 CONSTANT quiesce-xt#
 
 \ The array with the quiesce execution tokens:
 CREATE quiesce-xts quiesce-xt# cells allot
