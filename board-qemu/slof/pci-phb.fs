@@ -283,6 +283,7 @@ setup-puid
    puid >r                          \ Save old value of puid
    my-puid TO puid                  \ Set current puid
    phb-parse-ranges
+   1 TO pci-hotplug-enabled
    1 0 (probe-pci-host-bridge)
    r> TO puid                       \ Restore previous puid
 ;

@@ -36,6 +36,8 @@ VARIABLE pci-max-io
 \       the 3rd slot on the HostBridge bus
 here 100 allot CONSTANT pci-device-vec
 0 VALUE pci-device-vec-len
+\ enable/disable creation of hotplug-specific properties
+0 VALUE pci-hotplug-enabled
 
 
 \ Fixme Glue to the pci-devices ... remove this later
