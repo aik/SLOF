@@ -2,11 +2,19 @@
 #define __ASSEMBLY__
 #include "macros.h"
 #include "libhvcall.h"
-	
+#include <termctrl.h>
+#include <product.h>
+
 #define HVCALL			.long 0x44000022
-	
 	.text
 	.align	3
+
+ENTRY(get_print_banner)
+	LOAD32(r4, print_version)
+	LOAD32(r5, print_version_end)
+	std	r4,0(r3)
+	std	r5,8(r3)
+	blr
 
 ENTRY(hv_generic)
 	HVCALL

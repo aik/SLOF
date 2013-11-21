@@ -110,3 +110,8 @@ PRIM(hv_X2d_cas)
 	unsigned long vec    = TOS.u;
 	TOS.u = hv_cas(vec, buf, size);
 MIRP
+
+PRIM(get_X2d_print_X2d_version)
+	unsigned long addr = TOS.u; POP;
+	get_print_banner(addr);
+MIRP

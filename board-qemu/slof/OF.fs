@@ -152,6 +152,29 @@ check-for-nvramrc
 #include <loaders.fs>
 
 8a8 cp
+CREATE version-str 10 ALLOT
+0 value temp-ptr
+
+: dump-display-buffer
+    disp-ptr to temp-ptr
+    " SLOF **********************************************************************" terminal-write drop
+    cr
+    version-str get-print-version
+    version-str @                   \ start
+    version-str 8 + @               \ end
+    over - terminal-write drop
+    " Press 's' to enter Open Firmware." terminal-write drop
+    cr cr
+    temp-ptr disp-size > IF
+	temp-ptr disp-size MOD
+	dup
+	prevga-disp-buf + swap disp-size swap - terminal-write drop
+	temp-ptr disp-size MOD
+	prevga-disp-buf swap 1 - terminal-write drop
+    ELSE
+	prevga-disp-buf temp-ptr terminal-write drop
+    THEN
+;
 
 : enable-framebuffer-output  ( -- )
 \ enable output on framebuffer
@@ -159,8 +182,10 @@ check-for-nvramrc
       \ we need to open/close the screen device once
       \ before "ticking" display-emit to emit
       open-dev close-node
+      false to store-prevga?
       s" display-emit" $find  IF 
          to emit 
+	 dump-display-buffer
       ELSE
          2drop
       THEN

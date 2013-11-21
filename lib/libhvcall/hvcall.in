@@ -29,3 +29,4 @@ cod(RX!)
 
 cod(hv-logical-memop)
 cod(hv-cas)
+cod(get-print-version)

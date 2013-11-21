@@ -16,8 +16,7 @@ include ../Makefile.dirs
 include $(TOPBRDDIR)/config
 include $(TOPCMNDIR)/make.rules
 
-
-all: Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
+all: version.o Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libhvcall \
 	   -I$(LIBCMNDIR)/libvirtio -I$(LIBCMNDIR)/libnvram \
@@ -45,6 +44,11 @@ BOARD_SLOF_IN = \
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc
+
+AS1FLAGS  = $(CPPFLAGS) $(RELEASE) $(CPUARCHDEF)  -Wa,-mregnames
+
+%.o: %.S
+	$(CC) $(AS1FLAGS) -o $@ -c $^
 
 FPPINCLUDES = -I. -I$(SLOFCMNDIR)/fs -I$(SLOFCMNDIR)
 

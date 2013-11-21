@@ -31,7 +31,7 @@ subdirs: $(SUBDIRS)
 
 $(SUBDIRS): common-libs
 	@echo " ====== Building $@ ======"
-	$(MAKE) -C $@ $(MAKEARG)
+	$(MAKE) -C $@ $(MAKEARG) RELEASE=-DRELEASE=\"\\\"$(RELEASE)\\\"\"
 
 stage1:	common-libs
 	@echo " ====== Building llfw ======"
