@@ -26,6 +26,12 @@ defer add-boot-device
 ;
 
 : qemu-read-bootlist ( -- )
+   \ See if QEMU has set exact boot device list
+   " qemu,boot-list" get-chosen IF
+        s" boot-device" $setenv
+        EXIT
+   THEN
+
    0 0 set-boot-device
 
    " qemu,boot-device" get-chosen not IF
