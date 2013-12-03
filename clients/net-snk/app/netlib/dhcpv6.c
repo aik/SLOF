@@ -82,9 +82,6 @@ send_info_request(void)
 	         sizeof(struct ethhdr)+ sizeof(struct ip6hdr)
 		 + sizeof(struct udphdr)
 	         + sizeof( struct dhcp_message_header) );
-
-	return;
-
 }
 
 static int32_t
@@ -137,56 +134,58 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 	struct server_identifier *option_serverid;
 	struct dhcp_dns *option_dns;
 	struct dhcp_dns_list *option_dns_list;
+	struct dhcp6_gen_option *option_gen;
 	struct dhcp6_received_options *received_options;
 	char buffer[256];
 
 
-	received_options = (struct dhcp6_received_options  *) malloc (sizeof(struct dhcp6_received_options));
+	received_options = malloc (sizeof(struct dhcp6_received_options));
 	while (option_length > 0) {
 		switch ((uint16_t) *(option+1)) {
-			case DHCPV6_OPTION_CLIENTID:
-				option_clientid = (struct client_identifier *) option;
-				option = option +  option_clientid->length + 4;
-				option_length = option_length - option_clientid->length - 4;
-				received_options->client_id = 1;
-				break;
-			case DHCPV6_OPTION_SERVERID:
-				option_serverid = (struct server_identifier *) option;
-				option = option +  option_serverid->length + 4;
-				option_length = option_length - option_serverid->length - 4;
-				received_options->server_id = 1;
-				break;
-			case DHCPV6_OPTION_DNS_SERVERS:
-				option_dns = (struct dhcp_dns *) option;
-				option = option +  option_dns->length + 4;
-				option_length = option_length - option_dns->length - 4;
-				memcpy( &(my_fn_ip->dns_ip6),
-					option_dns->p_ip6,
-					IPV6_ADDR_LENGTH);
-				dns_init(0, option_dns->p_ip6, 6);
-                                break;
-			case DHCPV6_OPTION_DOMAIN_LIST:
-				option_dns_list = (struct dhcp_dns_list *) option;
-				option = option +  option_dns_list->length + 4;
-				option_length = option_length - option_dns_list->length - 4;
-				break;
-			case DHCPV6_OPTION_BOOT_URL:
-				option_boot_url = (struct dhcp_boot_url *) option;
-				option = option +  option_boot_url->length + 4;
-				option_length = option_length - option_boot_url->length - 4;
-				strncpy((char *)buffer,
-					(const char *)option_boot_url->url,
-					(size_t)option_boot_url->length);
-				buffer[option_boot_url->length] = 0;
-				if (parse_tftp_args(buffer,
-						    (char *)my_fn_ip->server_ip6.addr,
-						    (char *)my_fn_ip->filename,
-						    option_boot_url->length) == -1)
-					return NULL;
-				break;
-
-			default:
-				return received_options;
+		case DHCPV6_OPTION_CLIENTID:
+			option_clientid = (struct client_identifier *) option;
+			option = option +  option_clientid->length + 4;
+			option_length = option_length - option_clientid->length - 4;
+			received_options->client_id = 1;
+			break;
+		case DHCPV6_OPTION_SERVERID:
+			option_serverid = (struct server_identifier *) option;
+			option = option +  option_serverid->length + 4;
+			option_length = option_length - option_serverid->length - 4;
+			received_options->server_id = 1;
+			break;
+		case DHCPV6_OPTION_DNS_SERVERS:
+			option_dns = (struct dhcp_dns *) option;
+			option = option +  option_dns->length + 4;
+			option_length = option_length - option_dns->length - 4;
+			memcpy( &(my_fn_ip->dns_ip6),
+				option_dns->p_ip6,
+				IPV6_ADDR_LENGTH);
+			dns_init(0, option_dns->p_ip6, 6);
+			break;
+		case DHCPV6_OPTION_DOMAIN_LIST:
+			option_dns_list = (struct dhcp_dns_list *) option;
+			option = option +  option_dns_list->length + 4;
+			option_length = option_length - option_dns_list->length - 4;
+			break;
+		case DHCPV6_OPTION_BOOT_URL:
+			option_boot_url = (struct dhcp_boot_url *) option;
+			option = option +  option_boot_url->length + 4;
+			option_length = option_length - option_boot_url->length - 4;
+			strncpy((char *)buffer,
+				(const char *)option_boot_url->url,
+				(size_t)option_boot_url->length);
+			buffer[option_boot_url->length] = 0;
+			if (parse_tftp_args(buffer,
+					    (char *)my_fn_ip->server_ip6.addr,
+					    (char *)my_fn_ip->filename,
+					    option_boot_url->length) == -1)
+				return NULL;
+			break;
+		default:
+			option_gen = (struct dhcp6_gen_option *) option;
+			option = option + option_gen->length + 4;
+			option_length = option_length - option_gen->length - 4;
 		}
 	}
 

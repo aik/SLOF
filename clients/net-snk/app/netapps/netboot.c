@@ -727,7 +727,7 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int len)
 		/*here tftp://hostname/testfile from option request of dhcp*/
 		/*look for dns server name */
 		tmp1 = strchr(raw,'.');
-		if(tmp1 == NULL && *tmp1 != '.') {
+		if(tmp1 == NULL) {
 			printf("\n missing . seperator in %s\n",raw);
 			free(raw);
 			return -1;

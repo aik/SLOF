@@ -43,10 +43,10 @@ send_router_solicitation ()
 
 
 	/* Fill IPv6 header */
-        fill_ip6hdr (ether_packet + sizeof(struct ethhdr),
-                   ICMPv6_HEADER_SIZE + sizeof(struct router_solicitation),
-		   0x3a, //ICMPV6
-                   get_ipv6_address(), &dest_addr);
+	fill_ip6hdr (ether_packet + sizeof(struct ethhdr),
+		     ICMPv6_HEADER_SIZE + sizeof(struct router_solicitation),
+		     0x3a, //ICMPV6
+		     get_ipv6_address(), &dest_addr);
 
 	/* Fill ICMPv6 message */
 	headers.icmp6h->type = ICMPV6_ROUTER_SOLICITATION;

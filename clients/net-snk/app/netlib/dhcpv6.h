@@ -81,7 +81,7 @@ int32_t do_dhcpv6 ( char *ret_buffer, void *fn_ip,
 		    unsigned int retries, uint8_t mode);
 uint32_t handle_dhcpv6(uint8_t * , int32_t);
 
-struct dhcp6_option_tftpserver {
+struct dhcp6_gen_option {
 	uint16_t code;
 	uint16_t length;
 };
