@@ -80,7 +80,9 @@ elf_check_file(unsigned long *file_addr)
  * @param pre_load   handler that is called before copying a segment
  * @param post_load  handler that is called after copying a segment
  * @return           1 for a 32 bit file
- *                   2 for a 64 bit file
+ *                   2 for a 64 bit BE file
+ *                   3 for a 64 bit LE ABIv1 file
+ *                   3 for a 64 bit LE ABIv2 file
  *                   anything else means an error during load
  */
 int
@@ -89,6 +91,7 @@ elf_load_file(void *file_addr, unsigned long *entry,
               void (*post_load)(void*, long))
 {
 	int type = elf_check_file(file_addr);
+	struct ehdr *ehdr = (struct ehdr *) file_addr;
 
 	switch (type) {
 	case 1:
@@ -96,9 +99,15 @@ elf_load_file(void *file_addr, unsigned long *entry,
 		break;
 	case 2:
 		*entry = elf_load_segments64(file_addr, 0, pre_load, post_load);
+		if (ehdr->ei_data != ELFDATA2MSB) {
+			uint32_t flags = elf_get_eflags_64(file_addr);
+			if ((flags & 0x3) == 2)
+				type = 4; /* LE64 ABIv2 */
+			else
+				type = 3; /* LE64 ABIv1 */
+		}
 		break;
 	}
-
 	return type;
 }
 

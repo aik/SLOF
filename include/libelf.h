@@ -89,6 +89,7 @@ unsigned long elf_load_segments64(void *file_addr, signed long offset,
 long elf_get_base_addr(void *file_addr);
 long elf_get_base_addr32(void *file_addr);
 long elf_get_base_addr64(void *file_addr);
+uint32_t elf_get_eflags_64(void *file_addr);
 
 void elf_relocate64(void *file_addr, signed long offset);
 

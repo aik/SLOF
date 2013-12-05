@@ -19,9 +19,11 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    msr@ 7fffffffffffffff and 2000 or ciregs >srr1 ! call-client
 ;
 
-: start-elf64 ( arg len entry -- )
-   msr@ 2000 or ciregs >srr1 !
-   dup 8 + @ ciregs >r2 ! @ call-client \ entry point is pointer to .opd
+: start-elf64 ( arg len entry r2 r12 -- )
+    msr@ 2000 or ciregs >srr1 !
+    ciregs >r12 !
+    ciregs >r2  !
+    call-client \ entry point is pointer to .opd
 ;
 
 : set-bootpath
@@ -47,7 +49,9 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    s" snk" romfs-lookup 0<> IF
       \ Load SNK client 15 MiB after Paflof... FIXME: Hard-coded offset is ugly!
       paflof-start f00000 +
-      elf-load-file-to-addr drop start-elf64 client-data
+      elf-load-file-to-addr drop \ FIXME - check this for LE, currently its BE only
+      dup @ swap 8 + @ 0         \ populate entry r2 r12
+      start-elf64 client-data
    ELSE
       2drop false
    THEN

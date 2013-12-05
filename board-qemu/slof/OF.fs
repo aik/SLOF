@@ -240,14 +240,12 @@ set-default-console
 
 0 VALUE direct-ram-boot-base
 0 VALUE direct-ram-boot-size
-CREATE boot-opd 10 ALLOT
 
 : (boot-ram)
     direct-ram-boot-size 0<> IF
         ." Booting from memory..." cr
-	direct-ram-boot-base boot-opd !
-	0 boot-opd 8 + !
-	s" boot-opd to go-entry" evaluate
+	s" go-args 2@ " evaluate
+	direct-ram-boot-base 0 0
 	s" true state-valid ! " evaluate
 	s" disable-watchdog go-64" evaluate
     THEN

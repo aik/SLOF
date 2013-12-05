@@ -462,3 +462,10 @@ elf_byteswap_header64(void *file_addr)
 		phdr = (struct phdr64 *)(((uint8_t *)phdr) + ehdr->e_phentsize);
 	}
 }
+
+uint32_t elf_get_eflags_64(void *file_addr)
+{
+	struct ehdr64 *ehdr = (struct ehdr64 *) file_addr;
+
+	return ehdr->e_flags;
+}
