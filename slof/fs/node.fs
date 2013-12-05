@@ -322,6 +322,27 @@ defer find-node
 : list-alias ( -- )
     s" /aliases" find-node dup IF (.list-alias) THEN ;
 
+\ return next available name for aliasing or
+\ false if more than MAX-ALIAS aliases found
+8 CONSTANT MAX-ALIAS
+1 VALUE alias-ind
+: get-next-alias ( $alias-name -- $next-alias-name|FALSE )
+    2dup find-alias IF
+        drop
+        1 TO alias-ind
+        BEGIN
+            2dup alias-ind $cathex 2dup find-alias
+        WHILE
+            drop 2drop
+            alias-ind 1 + TO alias-ind
+            alias-ind MAX-ALIAS = IF
+                2drop FALSE EXIT
+            THEN
+        REPEAT
+        strdup 2swap 2drop
+    THEN
+;
+
 : devalias ( "{alias-name}<>{device-specifier}<cr>" -- )
     parse-word parse-word dup IF set-alias
     ELSE 2drop dup IF .alias

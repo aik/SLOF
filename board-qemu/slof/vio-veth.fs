@@ -69,10 +69,8 @@ INSTANCE VARIABLE obp-tftp-package
 ;
 
 : setup-alias
-    " net" find-alias 0= IF
-        " net" get-node node>path set-alias
-    ELSE
-        drop
-    THEN 
+    " net" get-next-alias ?dup IF
+        get-node node>path set-alias
+    THEN
 ;
 setup-alias

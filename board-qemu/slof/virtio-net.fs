@@ -89,10 +89,8 @@ virtiodev virtio-setup-vd
 setup-mac
 
 : setup-alias  ( -- )
-   s" net" find-alias 0= IF
-      s" net" get-node node>path set-alias
-   ELSE
-      drop
+   " net" get-next-alias ?dup IF
+      get-node node>path set-alias
    THEN
 ;
 setup-alias

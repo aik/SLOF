@@ -77,10 +77,8 @@ virtiodev virtio-setup-vd
 
 \ Set disk alias if none is set yet
 : (set-alias)
-   s" disk" find-alias 0= IF
-       s" disk" get-node node>path set-alias
-   ELSE
-      drop
+   s" disk" get-next-alias ?dup IF
+      get-node node>path set-alias
    THEN
 ;
 (set-alias)
