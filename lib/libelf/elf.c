@@ -33,19 +33,28 @@ static int
 elf_check_file(unsigned long *file_addr)
 {
 	struct ehdr *ehdr = (struct ehdr *) file_addr;
+	uint8_t native_endian;
+
 	/* check if it is an ELF image at all */
 	if (cpu_to_be32(ehdr->ei_ident) != 0x7f454c46)
 		return -1;
 
-	/* endian check */
 #ifdef __BIG_ENDIAN__
-	if (ehdr->ei_data != 2)
-		/* not a big endian image */
+	native_endian = ELFDATA2MSB;
 #else
-	if (ehdr->ei_data == 2)
-		/* not a little endian image */
+	native_endian = ELFDATA2LSB;
 #endif
-		return -2;
+
+	if (native_endian != ehdr->ei_data) {
+		switch (ehdr->ei_class) {
+		case 1:
+			elf_byteswap_header32(file_addr);
+			break;
+		case 2:
+			elf_byteswap_header64(file_addr);
+			break;
+		}
+	}
 
 	/* check if it is an ELF executable ... and also
 	 * allow DYN files, since this is specified by ePAPR */

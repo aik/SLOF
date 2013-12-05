@@ -26,6 +26,10 @@
 #define ET_DYN		3	/* Shared object file */
 #define ET_CORE		4	/* Core file */
 
+/* ELF object endian */
+#define ELFDATA2LSB	1	/* 2's complement, little endian */
+#define ELFDATA2MSB	2	/* 2's complement, big endian */
+
 /* Generic ELF header */
 struct ehdr {
 	uint32_t ei_ident;
@@ -71,6 +75,9 @@ int elf_load_file(void *file_addr, unsigned long *entry,
 int elf_load_file_to_addr(void *file_addr, void *addr, unsigned long *entry,
                           int (*pre_load)(void*, long),
                           void (*post_load)(void*, long));
+
+void elf_byteswap_header32(void *file_addr);
+void elf_byteswap_header64(void *file_addr);
 
 unsigned int elf_load_segments32(void *file_addr, signed long offset,
                                  int (*pre_load)(void*, long),

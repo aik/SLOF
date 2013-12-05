@@ -16,6 +16,7 @@
  
 #include <string.h>
 #include <libelf.h>
+#include <byteorder.h>
 
 struct ehdr32 {
 	uint32_t ei_ident;
@@ -141,4 +142,43 @@ elf_get_base_addr32(void *file_addr)
 	}
 
 	return 0;
+}
+
+void
+elf_byteswap_header32(void *file_addr)
+{
+	struct ehdr32 *ehdr = (struct ehdr32 *) file_addr;
+	struct phdr32 *phdr;
+	int i;
+
+	bswap_16p(&ehdr->e_type);
+	bswap_16p(&ehdr->e_machine);
+	bswap_32p(&ehdr->e_version);
+	bswap_32p(&ehdr->e_entry);
+	bswap_32p(&ehdr->e_phoff);
+	bswap_32p(&ehdr->e_shoff);
+	bswap_32p(&ehdr->e_flags);
+	bswap_16p(&ehdr->e_ehsize);
+	bswap_16p(&ehdr->e_phentsize);
+	bswap_16p(&ehdr->e_phnum);
+	bswap_16p(&ehdr->e_shentsize);
+	bswap_16p(&ehdr->e_shnum);
+	bswap_16p(&ehdr->e_shstrndx);
+
+	phdr = get_phdr32(file_addr);
+
+	/* loop e_phnum times */
+	for (i = 0; i <= ehdr->e_phnum; i++) {
+		bswap_32p(&phdr->p_type);
+		bswap_32p(&phdr->p_offset);
+		bswap_32p(&phdr->p_vaddr);
+		bswap_32p(&phdr->p_paddr);
+		bswap_32p(&phdr->p_filesz);
+		bswap_32p(&phdr->p_memsz);
+		bswap_32p(&phdr->p_flags);
+		bswap_32p(&phdr->p_align);
+
+		/* step to next header */
+		phdr = (struct phdr32 *)(((uint8_t *)phdr) + ehdr->e_phentsize);
+	}
 }

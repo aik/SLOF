@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <libelf.h>
+#include <byteorder.h>
 
 struct ehdr64
 {
@@ -420,5 +421,44 @@ elf_relocate64(void *file_addr, signed long offset)
 		if (shdrs[i].sh_type == SHT_RELA) {
 			elf_apply_all_rela64(file_addr, offset, shdrs, i);
 		}
+	}
+}
+
+void
+elf_byteswap_header64(void *file_addr)
+{
+	struct ehdr64 *ehdr = (struct ehdr64 *) file_addr;
+	struct phdr64 *phdr;
+	int i;
+
+	bswap_16p(&ehdr->e_type);
+	bswap_16p(&ehdr->e_machine);
+	bswap_32p(&ehdr->e_version);
+	bswap_64p(&ehdr->e_entry);
+	bswap_64p(&ehdr->e_phoff);
+	bswap_64p(&ehdr->e_shoff);
+	bswap_32p(&ehdr->e_flags);
+	bswap_16p(&ehdr->e_ehsize);
+	bswap_16p(&ehdr->e_phentsize);
+	bswap_16p(&ehdr->e_phnum);
+	bswap_16p(&ehdr->e_shentsize);
+	bswap_16p(&ehdr->e_shnum);
+	bswap_16p(&ehdr->e_shstrndx);
+
+	phdr = get_phdr64(file_addr);
+
+	/* loop e_phnum times */
+	for (i = 0; i <= ehdr->e_phnum; i++) {
+		bswap_32p(&phdr->p_type);
+		bswap_32p(&phdr->p_flags);
+		bswap_64p(&phdr->p_offset);
+		bswap_64p(&phdr->p_vaddr);
+		bswap_64p(&phdr->p_paddr);
+		bswap_64p(&phdr->p_filesz);
+		bswap_64p(&phdr->p_memsz);
+		bswap_64p(&phdr->p_align);
+
+		/* step to next header */
+		phdr = (struct phdr64 *)(((uint8_t *)phdr) + ehdr->e_phentsize);
 	}
 }
