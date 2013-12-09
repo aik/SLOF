@@ -28,7 +28,7 @@
 	THEN
 	FALSE
     ELSE
-	." hv-cas failed  " TRUE
+	TRUE
     THEN
     >r size free-mem r>
 ;
