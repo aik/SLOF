@@ -24,8 +24,13 @@ else
 ifneq (,$(wildcard ../.git))
 RELEASE=git-$(shell git rev-parse --short=16 HEAD)
 else
+ifneq (,$(shell cat ../VERSION))
+RELEASE="$(USER)@$(HOSTNAME) release $(shell cat ../VERSION)"
+export DRIVER_NAME=HEAD
+else
 RELEASE="$(USER)@$(HOSTNAME)(private build)"
 export DRIVER_NAME=HEAD
+endif
 endif
 endif
 
