@@ -141,7 +141,7 @@ static void print_port_status(struct xhci_port_regs *prs)
 
 static inline bool xhci_is_hc_ready(uint32_t *usbsts)
 {
-	return (read_reg32(usbsts) & XHCI_USBSTS_CNR) ? false : true;
+	return !(read_reg32(usbsts) & XHCI_USBSTS_CNR);
 }
 
 static inline bool xhci_wait_for_cnr(uint32_t *usbsts)
@@ -166,25 +166,21 @@ static inline bool xhci_wait_for_cnr(uint32_t *usbsts)
 	return true;
 }
 
-/* value:
-   true = start controller
-   false = stop controller
-*/
-static int xhci_hcd_set_runstop(struct xhci_op_regs *op, bool value)
+static bool xhci_hcd_set_runstop(struct xhci_op_regs *op, bool run_req)
 {
 	uint32_t reg;
 
-	dprintf("Request %s\n", value ? "RUN" : "STOP");
+	dprintf("Request %s\n", run_req ? "RUN" : "STOP");
 	if (!xhci_is_hc_ready(&op->usbsts)) {
 		dprintf("Controller not ready\n");
 		return false;
 	}
 
 	reg = read_reg32(&op->usbcmd);
-	if (value)
-		reg |= value;
+	if (run_req)
+		reg |= run_req;
 	else
-		reg &= ~value;
+		reg &= ~run_req;
 	dprintf("writing %08X\n", reg);
 	write_reg32(&op->usbcmd, reg);
 	mb();
@@ -192,7 +188,7 @@ static int xhci_hcd_set_runstop(struct xhci_op_regs *op, bool value)
 	return true;
 }
 
-static int xhci_hcd_reset(struct xhci_op_regs *op)
+static bool xhci_hcd_reset(struct xhci_op_regs *op)
 {
 	uint32_t reg;
 
@@ -399,7 +395,7 @@ static void xhci_init_seg(struct xhci_seg *seg, uint32_t size, uint32_t type)
 	return;
 }
 
-static int xhci_alloc_seg(struct xhci_seg *seg, uint32_t size, uint32_t type)
+static bool xhci_alloc_seg(struct xhci_seg *seg, uint32_t size, uint32_t type)
 {
 	seg->trbs = (union xhci_trb *)SLOF_dma_alloc(size);
 	if (!seg->trbs) {
@@ -425,7 +421,7 @@ static void xhci_free_seg(struct xhci_seg *seg, uint32_t size)
 
 #define CTX_SIZE(x)  ( (x) ? 64 : 32 )
 
-static int xhci_alloc_ctx(struct xhci_ctx *ctx, uint32_t size, uint32_t type)
+static bool xhci_alloc_ctx(struct xhci_ctx *ctx, uint32_t size, uint32_t type)
 {
 	ctx->addr = (uint8_t *)SLOF_dma_alloc(size);
 	if (!ctx->addr) {
@@ -508,7 +504,7 @@ static uint32_t usb_control_max_packet(uint32_t speed)
 	return max_packet;
 }
 
-static uint32_t xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t port)
+static bool xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t port)
 {
 	struct usb_dev *dev;
 	struct xhci_dev *xdev;
@@ -528,7 +524,7 @@ static uint32_t xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t
 	/* Step 1 */
 	if (!xhci_alloc_ctx(&xdev->in_ctx, XHCI_CTX_BUF_SIZE, XHCI_CTX_TYPE_INPUT)) {
 		dprintf("Failed allocating in_ctx\n");
-		goto fail;
+		return false;
 	}
 
 	/* Step 2 */
@@ -546,7 +542,7 @@ static uint32_t xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t
 	/* Step 4 */
 	if (!xhci_alloc_seg(&xdev->control, XHCI_CONTROL_TRBS_SIZE, TYPE_CTRL)) {
 		dprintf("Failed allocating control\n");
-		goto fail_out_ctx;
+		goto fail_in_ctx;
 	}
 
 	/* Step 5 */
@@ -563,7 +559,7 @@ static uint32_t xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t
 	/* Step 6 */
 	if (!xhci_alloc_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE, XHCI_CTX_TYPE_DEVICE)) {
 		dprintf("Failed allocating out_ctx\n");
-		goto fail_in_ctx;
+		goto fail_control_seg;
 	}
 
 	/* Step 7 */
@@ -607,11 +603,12 @@ static uint32_t xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t
 	xdev->dev = dev;
 	if (setup_new_device(dev, newport))
 		return true;
-fail_out_ctx:
+
 	xhci_free_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE);
+fail_control_seg:
+	xhci_free_seg(&xdev->control, XHCI_CONTROL_TRBS_SIZE);
 fail_in_ctx:
 	xhci_free_ctx(&xdev->in_ctx, XHCI_CTX_BUF_SIZE);
-fail:
 	return false;
 }
 
@@ -624,7 +621,7 @@ static void xhci_free_dev(struct xhci_dev *xdev)
 	xhci_free_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE);
 }
 
-static uint32_t usb3_dev_init(struct xhci_hcd *xhcd, uint32_t port)
+static bool usb3_dev_init(struct xhci_hcd *xhcd, uint32_t port)
 {
 	/* Device enable slot */
 	xhci_send_enable_slot(xhcd, port);
@@ -680,7 +677,7 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	return 0;
 }
 
-static int xhci_hcd_init(struct xhci_hcd *xhcd)
+static bool xhci_hcd_init(struct xhci_hcd *xhcd)
 {
 	struct xhci_op_regs *op;
 	struct xhci_int_regs *irs;
@@ -781,28 +778,36 @@ static int xhci_hcd_init(struct xhci_hcd *xhcd)
 
 	mb();
 	if (!xhci_hcd_set_runstop(op, true))
-		goto fail_ering;
+		goto fail_erst_entries;
 
 	xhci_hub_check_ports(xhcd);
 
 	return true;
+fail_erst_entries:
+	write_reg64(&irs->erstba, 0);
+	mb();
+	SLOF_dma_map_out(xhcd->erst.dma, (void *)xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
+	SLOF_dma_free((void *)xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
 fail_ering:
 	xhci_free_seg(&xhcd->ering, XHCI_EVENT_TRBS_SIZE);
 fail_crseg:
 	val = read_reg64(&op->crcr) & ~XHCI_CRCR_CRP_MASK;
 	write_reg64(&op->crcr, val);
+	mb();
 	xhci_free_seg(&xhcd->crseg, XHCI_CRCR_CRP_SIZE);
 fail_dcbaap:
 	write_reg64(&op->dcbaap, 0);
+	mb();
 	SLOF_dma_map_out(xhcd->dcbaap_dma, (void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
 	SLOF_dma_free((void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
 fail:
 	return false;
 }
 
-static int xhci_hcd_exit(struct xhci_hcd *xhcd)
+static bool xhci_hcd_exit(struct xhci_hcd *xhcd)
 {
 	struct xhci_op_regs *op;
+	struct xhci_int_regs *irs;
 	uint64_t val;
 	int i;
 
@@ -821,7 +826,10 @@ static int xhci_hcd_exit(struct xhci_hcd *xhcd)
 			xhci_free_dev(&xhcd->xdevs[i]);
 	}
 
-	SLOF_dma_map_out(xhcd->erst.dma, xhcd->erst.entries,XHCI_EVENT_TRBS_SIZE); 
+	irs = &xhcd->run_regs->irs[0];
+	write_reg64(&irs->erstba, 0);
+	mb();
+	SLOF_dma_map_out(xhcd->erst.dma, xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE); 
 	SLOF_dma_free(xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
 	xhci_free_seg(&xhcd->ering, XHCI_EVENT_TRBS_SIZE);
 
@@ -860,7 +868,8 @@ static void xhci_init(struct usb_hcd_dev *hcidev)
 	xhcd->db_regs = (struct xhci_db_regs *)(hcidev->base +
 						read_reg32(&xhcd->cap_regs->dboff));
 	dump_xhci_regs(xhcd);
-	xhci_hcd_init(xhcd);
+	if (!xhci_hcd_init(xhcd))
+		printf("usb-xhci: failed to initialize XHCI controller.\n");
 	dump_xhci_regs(xhcd);
 }
 
@@ -1047,6 +1056,7 @@ static inline void *xhci_get_trb(struct xhci_seg *seg)
 	enq = val = seg->enq;
 	val = val + XHCI_TRB_SIZE;
 	size = seg->size * XHCI_TRB_SIZE;
+        /* TRBs being a cyclic buffer, here we cycle back to beginning. */
 	if ((val % size) == 0) {
 		seg->enq = (uint64_t)seg->trbs;
 		enq = seg->enq;
@@ -1066,7 +1076,7 @@ static inline void *xhci_get_trb(struct xhci_seg *seg)
 	return (void *)enq;
 }
 
-static int  xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
+static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 			void *data, int datalen)
 {
 	struct xhci_dev *xdev;

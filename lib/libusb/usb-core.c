@@ -506,6 +506,11 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 		goto fail;
 	dev->control->mps = descr.bMaxPacketSize0;
 
+	/*
+	 * For USB3.0 ADDRESS-SLOT command takes care of setting
+	 * address, skip this during generic device setup for USB3.0
+	 * devices
+	 */
 	if (dev->speed != USB_SUPER_SPEED) {
 		if(!usb_set_address(dev, port))
 			goto fail;
