@@ -2,6 +2,7 @@
 #define __LIBHVCALL_H__
 
 #define H_SUCCESS		0
+#define H_HARDWARE		-1
 
 #define H_GET_TCE		0x1C
 #define H_PUT_TCE		0x20
@@ -94,6 +95,7 @@ extern unsigned long hv_logical_ci_store(unsigned long size, unsigned long addr,
 extern unsigned long hv_logical_memop(unsigned long dst, unsigned long src,
 				      unsigned long esize, unsigned long count,
 				      unsigned long op);
+extern int patch_broken_sc1(void *start, void *end, uint32_t *test_ins);
 
 extern unsigned long hv_cas(unsigned long vec, unsigned long buf,
 			unsigned long size);

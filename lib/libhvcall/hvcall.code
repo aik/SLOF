@@ -115,3 +115,11 @@ PRIM(get_X2d_print_X2d_version)
 	unsigned long addr = TOS.u; POP;
 	get_print_banner(addr);
 MIRP
+
+PRIM(check_X2d_and_X2d_patch_X2d_sc1)
+	unsigned long end = TOS.u; POP;
+	unsigned long start = TOS.u; POP;
+	unsigned long patch_ins = TOS.u; POP;
+
+	patch_broken_sc1((void*)start, (void*)end, (void*)patch_ins);
+MIRP
