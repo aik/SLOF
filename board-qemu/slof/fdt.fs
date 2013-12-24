@@ -11,6 +11,7 @@
 \ ****************************************************************************/
 
 0 VALUE fdt-debug
+TRUE VALUE fdt-cas-fix?
 
 \ Bail out if no fdt
 fdt-start 0 = IF -1 throw THEN
@@ -349,7 +350,8 @@ fdt-claim-reserve
     recursive
     fdt-next-tag dup OF_DT_BEGIN_NODE <> IF
 	." Error " cr
-	-1 throw
+	false to fdt-cas-fix?
+	EXIT
     THEN drop
     fdt-fetch-unit
     dup 0 = IF drop drop " /" THEN
@@ -361,7 +363,13 @@ fdt-claim-reserve
 	drop
     THEN
     fdt-debug IF ." Setting node: " 2dup type cr THEN
-    find-node ?dup 0 <> IF set-node  THEN
+    find-node ?dup 0 <> IF
+	set-node
+    ELSE
+	." Node not found " cr
+	false to fdt-cas-fix?
+	EXIT
+    THEN
     fdt-debug IF ." Current  now: " pwd cr THEN
     BEGIN
 	fdt-next-tag dup OF_DT_END_NODE <>
@@ -385,12 +393,17 @@ fdt-claim-reserve
 		fdt-debug IF ." Returning back " pwd cr THEN
 	    ELSE
 		." Error " cr
-		drop -1 throw
+		drop
+		false to fdt-cas-fix?
+		EXIT
 	    THEN
 	THEN
     REPEAT
     drop \ drop tag
 ;
 
-s" /" find-node fdt-fix-phandles
+: fdt-fix-cas-success
+    fdt-cas-fix?
+;
 
+s" /" find-node fdt-fix-phandles

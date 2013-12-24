@@ -25,8 +25,10 @@
 	    dup 4 + fdt-init
 	    fdt-check-header
 	    fdt-struct fdt-fix-cas-node
+	    fdt-fix-cas-success NOT
+	ELSE
+	    FALSE
 	THEN
-	FALSE
     ELSE
 	TRUE
     THEN
