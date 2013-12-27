@@ -95,7 +95,7 @@ dhcpv6_attempt(void)
 	dhcpv6_state = DHCPV6_STATE_SELECT;
 
 	// setting up a timer with a timeout of two seconds
-	for (sec = 0; sec < 4; sec++) {
+	for (sec = 0; sec < 2; sec++) {
 		set_timer(TICKS_SEC);
 		do {
 			receive_ether();
@@ -115,8 +115,7 @@ dhcpv6_attempt(void)
 }
 
 int32_t
-do_dhcpv6 ( char *ret_buffer, void *fn_ip,
-	    unsigned int retries, uint8_t mode)
+dhcpv6 ( char *ret_buffer, void *fn_ip)
 {
 	my_fn_ip = (filename_ip_t *) fn_ip;
 	if( !dhcpv6_attempt()) {

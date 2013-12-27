@@ -34,7 +34,7 @@
 #define IP_INIT_DHCPV6_STATELESS    3
 #define IP_INIT_IPV6_MANUAL         4
 
-#define DEFAULT_BOOT_RETRIES 600
+#define DEFAULT_BOOT_RETRIES 10
 #define DEFAULT_TFTP_RETRIES 20
 static int ip_version = 4;
 
@@ -308,6 +308,63 @@ parse_args(const char *arg_str, obp_tftp_args_t *obp_tftp_args)
 	}
 }
 
+/**
+ * DHCP: Wrapper for obtaining IP and configuration info from DHCP server
+ *       for both IPv4 and IPv6.
+ *       (makes several attempts).
+ *
+ * @param  ret_buffer    buffer for returning BOOTP-REPLY packet data
+ * @param  fn_ip         contains the following configuration information:
+ *                       client MAC, client IP, TFTP-server MAC,
+ *                       TFTP-server IP, Boot file name
+ * @param  retries       No. of DHCP attempts
+ * @param  flags         flags for specifying type of dhcp attempt (IPv4/IPv6)
+ *                       ZERO   - attempt DHCPv4 followed by DHCPv6
+ *                       F_IPV4 - attempt only DHCPv4
+ *                       F_IPV6 - attempt only DHCPv6
+ * @return               ZERO - IP and configuration info obtained;
+ *                       NON ZERO - error condition occurs.
+ */
+int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flags)
+{
+	int i = (int) retries+1;
+	int rc = -1;
+
+	printf("    ");
+
+	do {
+		printf("\b\b\b%03d", i-1);
+		if (getchar() == 27) {
+			printf("\nAborted\n");
+			return -1;
+		}
+		if (!--i) {
+			printf("\nGiving up after %d DHCP requests\n", retries);
+			return -1;
+		}
+		if (!flags || (flags == F_IPV4)) {
+			ip_version = 4;
+			rc = dhcpv4(ret_buffer, fn_ip);
+		}
+		if ((!flags && (rc == -1)) || (flags == F_IPV6)) {
+			ip_version = 6;
+			set_ipv6_address(0);
+			rc = dhcpv6(ret_buffer, fn_ip);
+			if (rc == 0) {
+				printf("\n");
+				memcpy(&fn_ip->own_ip6, get_ipv6_address(), 16);
+				break;
+			}
+
+		}
+		if (rc != -1) /* either success or non-dhcp failure */
+			break;
+	} while (1);
+	printf("\b\b\b\b");
+
+	return rc;
+}
+
 int
 netboot(int argc, char *argv[])
 {
@@ -439,12 +496,12 @@ netboot(int argc, char *argv[])
 		break;
 	case IP_INIT_DHCP:
 		printf("  Requesting IP address via DHCP: ");
-		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries);
+		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
 		break;
 	case IP_INIT_DHCPV6_STATELESS:
-		set_ipv6_address(0);
-		rc = do_dhcpv6 (ret_buffer, &fn_ip, 10, DHCPV6_STATELESS);
-		memcpy(&fn_ip.own_ip6, get_ipv6_address(), 16);
+		printf("  Requesting information via DHCPv6: ");
+		rc = dhcp(ret_buffer, &fn_ip,
+			  obp_tftp_args.bootp_retries, F_IPV6);
 		break;
 	case IP_INIT_IPV6_MANUAL:
 		set_ipv6_address(&obp_tftp_args.ci6addr);

@@ -173,20 +173,8 @@ static char   * response_buffer;
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> IMPLEMENTATION <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
-/**
- * DHCP: Obtains IP and configuration info from DHCP server
- *       (makes several attempts).
- *
- * @param  boot_device   a socket number used to send and receive packets
- * @param  fn_ip         contains the following configuration information:
- *                       client MAC, client IP, TFTP-server MAC, 
- *                       TFTP-server IP, Boot file name
- * @return               ZERO - IP and configuration info obtained;
- *                       NON ZERO - error condition occurs.
- */
 int32_t
-dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
-	int i = (int) retries+1;
+dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
 
 	uint32_t dhcp_tftp_ip     = 0;
 	strcpy((char *) dhcp_filename, "");
@@ -194,20 +182,8 @@ dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries) {
 
 	response_buffer = ret_buffer;
 
-	printf("    ");
-
-	do {
-		printf("\b\b\b%03d", i-1);
-		if (getchar() == 27) {
-			printf("\nAborted\n");
-			return -1;
-		}
-		if (!--i) {
-			printf("\nGiving up after %d DHCP requests\n", retries);
-			return -1;
-		}
-	} while (!dhcp_attempt());
-	printf("\b\b\b\b");
+	if (dhcp_attempt() == 0)
+		return -1;
 
 	if (fn_ip->own_ip) {
 		dhcp_own_ip = fn_ip->own_ip;

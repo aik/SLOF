@@ -77,8 +77,7 @@
 #define DUID_LL		3 /* DUID based on Link-layer Address */
 
 /* Prototypes */
-int32_t do_dhcpv6 ( char *ret_buffer, void *fn_ip,
-		    unsigned int retries, uint8_t mode);
+int32_t dhcpv6 ( char *ret_buffer, void *fn_ip);
 uint32_t handle_dhcpv6(uint8_t * , int32_t);
 
 struct dhcp6_gen_option {
