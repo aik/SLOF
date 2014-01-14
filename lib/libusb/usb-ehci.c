@@ -176,18 +176,31 @@ static int ehci_hcd_exit(struct ehci_hcd *ehcd)
 {
 	uint32_t usbcmd;
 
+	if (!ehcd) {
+		dprintf("NULL pointer\n");
+		return false;
+	}
+
 	usbcmd = read_reg32(&ehcd->op_regs->usbcmd);
 	write_reg32(&ehcd->op_regs->usbcmd, usbcmd | ~CMD_RUN);
 	write_reg32(&ehcd->op_regs->periodiclistbase, 0);
 
-	SLOF_dma_map_out(ehcd->pool_phys, ehcd->pool, EHCI_PIPE_POOL_SIZE);
-	SLOF_dma_free(ehcd->pool, EHCI_PIPE_POOL_SIZE);
-	SLOF_dma_map_out(ehcd->qh_intr_phys, ehcd->qh_intr, sizeof(struct ehci_qh));
-	SLOF_dma_free(ehcd->qh_intr, sizeof(struct ehci_qh));
-	SLOF_dma_map_out(ehcd->qh_async_phys, ehcd->qh_async, sizeof(struct ehci_qh));
-	SLOF_dma_free(ehcd->qh_async, sizeof(struct ehci_qh));
-	SLOF_dma_map_out(ehcd->fl_phys, ehcd->fl, sizeof(struct ehci_framelist));
-	SLOF_dma_free(ehcd->fl, sizeof(struct ehci_framelist));
+	if (ehcd->pool) {
+		SLOF_dma_map_out(ehcd->pool_phys, ehcd->pool, EHCI_PIPE_POOL_SIZE);
+		SLOF_dma_free(ehcd->pool, EHCI_PIPE_POOL_SIZE);
+	}
+	if (ehcd->qh_intr) {
+		SLOF_dma_map_out(ehcd->qh_intr_phys, ehcd->qh_intr, sizeof(struct ehci_qh));
+		SLOF_dma_free(ehcd->qh_intr, sizeof(struct ehci_qh));
+	}
+	if (ehcd->qh_async) {
+		SLOF_dma_map_out(ehcd->qh_async_phys, ehcd->qh_async, sizeof(struct ehci_qh));
+		SLOF_dma_free(ehcd->qh_async, sizeof(struct ehci_qh));
+	}
+	if (ehcd->fl) {
+		SLOF_dma_map_out(ehcd->fl_phys, ehcd->fl, sizeof(struct ehci_framelist));
+		SLOF_dma_free(ehcd->fl, sizeof(struct ehci_framelist));
+	}
 	return true;
 }
 

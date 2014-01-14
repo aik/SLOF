@@ -829,16 +829,20 @@ static bool xhci_hcd_exit(struct xhci_hcd *xhcd)
 	irs = &xhcd->run_regs->irs[0];
 	write_reg64(&irs->erstba, 0);
 	mb();
-	SLOF_dma_map_out(xhcd->erst.dma, xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE); 
-	SLOF_dma_free(xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
+	if (xhcd->erst.entries) {
+		SLOF_dma_map_out(xhcd->erst.dma, xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE); 
+		SLOF_dma_free(xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
+	}
 	xhci_free_seg(&xhcd->ering, XHCI_EVENT_TRBS_SIZE);
 
 	val = read_reg64(&op->crcr) & ~XHCI_CRCR_CRP_MASK;
 	write_reg64(&op->crcr, val);
 	xhci_free_seg(&xhcd->crseg, XHCI_CRCR_CRP_SIZE);
 	write_reg64(&op->dcbaap, 0);
-	SLOF_dma_map_out(xhcd->dcbaap_dma, (void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
-	SLOF_dma_free((void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
+	if (xhcd->dcbaap) {
+		SLOF_dma_map_out(xhcd->dcbaap_dma, (void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
+		SLOF_dma_free((void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
+	}
 	return true;
 }
 

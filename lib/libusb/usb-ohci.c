@@ -339,10 +339,15 @@ static void ohci_exit(struct usb_hcd_dev *hcidev)
 	write_reg32(&ohcd->regs->control, (OHCI_CTRL_CBSR | OHCI_USB_SUSPEND));
 	SLOF_msleep(20);
 	write_reg32(&ohcd->regs->hcca, cpu_to_le32(0));
-	SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
-	SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);
-	SLOF_dma_map_out(ohcd->hcca_phys, ohcd->hcca, sizeof(struct ohci_hcca));
-	SLOF_dma_free(ohcd->hcca, sizeof(struct ohci_hcca));
+
+	if (ohcd->pool) {
+		SLOF_dma_map_out(ohcd->pool_phys, ohcd->pool, OHCI_PIPE_POOL_SIZE);
+		SLOF_dma_free(ohcd->pool, OHCI_PIPE_POOL_SIZE);
+	}
+	if (ohcd->hcca) {
+		SLOF_dma_map_out(ohcd->hcca_phys, ohcd->hcca, sizeof(struct ohci_hcca));
+		SLOF_dma_free(ohcd->hcca, sizeof(struct ohci_hcca));
+	}
 	SLOF_free_mem(ohcd, sizeof(struct ohci_hcd));
 	return;
 }
