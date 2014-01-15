@@ -196,8 +196,10 @@ scsi-close        \ no further scsi words required
 ;
 
 : virito-scsi-shutdown ( -- )
-    virtiodev virtio-scsi-shutdown
-    FALSE to initialized?
+    initialized? IF
+       virtiodev virtio-scsi-shutdown
+       FALSE to initialized?
+    THEN
 ;
 
 : virtio-scsi-init-and-scan  ( -- )

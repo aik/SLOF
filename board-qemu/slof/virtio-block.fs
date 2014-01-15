@@ -29,8 +29,10 @@ virtiodev virtio-setup-vd
 \ Quiesce the virtqueue of this device so that no more background
 \ transactions can be pending.
 : shutdown  ( -- )
-   virtiodev virtio-blk-shutdown
-   FALSE to initialized?
+    initialized? IF
+       virtiodev virtio-blk-shutdown
+       FALSE to initialized?
+    THEN
 ;
 
 \ Basic device initialization - which has only to be done once
