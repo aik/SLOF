@@ -21,6 +21,8 @@
 #include <netlib/ndp.h>
 #include <netlib/dhcpv6.h>
 
+static int ra_received = 0;
+
 /**
  * NET:
  *
@@ -126,16 +128,16 @@ process_ra_options (uint8_t *option, int32_t option_length, struct router *r)
 		switch (*option) {
 			case ND_OPTION_SOURCE_LL_ADDR:
 				handle_source_lladdr ((struct option_ll_address *) option, r);
-				//option+1 is the length field. length is in units of 8 bytes
-				option = option + (*(option+1) * 8);
-				option_length = option_length - (*(option+1) * 8);
 				break;
 			case ND_OPTION_PREFIX_INFO:
 				handle_prefixoption(option);
-				option = option + (*(option+1) * 8);
-				option_length = option_length - (*(option+1) * 8);
+				break;
+			default:
 				break;
 		}
+		//option+1 is the length field. length is in units of 8 bytes
+		option_length = option_length - (*(option+1) * 8);
+		option = option + (*(option+1) * 8);
 	}
 
 	return;
@@ -181,6 +183,12 @@ handle_ra (struct icmp6hdr *icmp6h, uint8_t *ip6_packet)
 	option_length =  (uint8_t *) icmp6h + ip6h->pl - first_option;
 	process_ra_options( (uint8_t *) first_option, option_length, rtr);
 
+	ra_received = 1;
+}
+
+int is_ra_received(void)
+{
+	return ra_received;
 }
 
 /**

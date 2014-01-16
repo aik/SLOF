@@ -50,6 +50,7 @@
 int8_t handle_icmpv6 (struct ethhdr *etherhdr, uint8_t  *ip6_packet);
 void   send_neighbour_solicitation( ip6_addr_t *target_ip6);
 void   send_router_solicitation(void);
+int    is_ra_received(void);
 
 /* Prefix information */
 struct option_prefix {

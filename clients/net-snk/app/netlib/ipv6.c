@@ -364,10 +364,13 @@ ipv6_init ()
 	last_neighbor  = first_neighbor;
 
 	send_router_solicitation ();
-	for(i=0; i < 4; i++) {
+	for(i=0; i < 4 && !is_ra_received(); i++) {
 		set_timer(TICKS_SEC);
-		while (get_timer() > 0);
-		receive_ether();
+		do {
+			receive_ether();
+			if (is_ra_received())
+				break;
+		} while (get_timer() > 0);
 	}
 }
 
