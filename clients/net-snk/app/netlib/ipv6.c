@@ -502,6 +502,12 @@ send_ipv6 (void* buffer, int len)
 	if (ip6h->nh == 17) {//UDP
 		udph->uh_sum = ip6_checksum (ip6h, (unsigned short *) udph ,
 					     ip6h->pl >> 1);
+		/* As per RFC 768, if the computed  checksum  is zero,
+		 * it is transmitted as all ones (the equivalent in
+		 * one's complement arithmetic).
+		 */
+		if (udph->uh_sum == 0)
+			udph->uh_sum = ~udph->uh_sum;
 	}
 	else if (ip6h->nh == 0x3a) //ICMPv6
 		icmp6h->checksum = ip6_checksum (ip6h,

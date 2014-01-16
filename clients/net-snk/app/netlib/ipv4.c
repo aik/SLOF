@@ -562,6 +562,13 @@ fill_udp_checksum(struct iphdr *ipv4_hdr)
 	checksum = (checksum >> 16) + (checksum & 0xffff);
 	checksum += (checksum >> 16);
 	udp_hdr->uh_sum = ~checksum;
+
+	/* As per RFC 768, if the computed  checksum  is zero,
+	 * it is transmitted as all ones (the equivalent in
+	 * one's complement arithmetic).
+	 */
+	if (udp_hdr->uh_sum == 0)
+		udp_hdr->uh_sum = ~udp_hdr->uh_sum;
 }
 
 /**
