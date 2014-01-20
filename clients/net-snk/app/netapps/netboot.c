@@ -241,6 +241,8 @@ parse_args(const char *arg_str, obp_tftp_args_t *obp_tftp_args)
 	unsigned int argc;
 	char arg_buf[100];
 
+	memset(obp_tftp_args, 0, sizeof(*obp_tftp_args));
+
 	argc = get_args_count(arg_str);
 
 	// find out if we should use BOOTP or DHCP
