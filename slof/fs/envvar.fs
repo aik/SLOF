@@ -31,7 +31,7 @@ wordlist CONSTANT envvars
    2 c, align dup , here swap dup allot move
    DOES> char+ aligned dup @ >r cell+ r>
 ;
-: env-string  ( str len -- )  3 c, string, DOES> char+ count ;
+: env-string  ( str len -- )  3 c, align dup , here over allot swap move DOES> char+ aligned dup @ >r cell+ r> ;
 : env-flag    ( f -- )  4 c, c, DOES> char+ c@ 0<> ;
 : env-secmode ( sm -- )  5 c, c, DOES> char+ c@ ;
 
@@ -117,7 +117,7 @@ wordlist CONSTANT envvars
    CASE
    1 OF aligned @ . ENDOF
    2 OF aligned dup cell+ swap @ swap . . ENDOF
-   3 OF count type ENDOF
+   3 OF aligned dup @ >r cell+ r> type ENDOF
    4 OF c@ IF ." true" ELSE ." false" THEN ENDOF
    5 OF c@ . ENDOF \ XXX: print symbolically
    ENDCASE
@@ -204,7 +204,7 @@ VARIABLE nvoff \ offset in envvar partition
    CASE
    1 OF aligned @ (.d) ENDOF
    2 OF drop 0 0 ENDOF
-   3 OF count ENDOF
+   3 OF aligned dup @ >r cell+ r> ENDOF
    4 OF c@ IF s" true" ELSE s" false" THEN ENDOF
    5 OF c@ (.) ENDOF \ XXX: print symbolically
    ENDCASE
