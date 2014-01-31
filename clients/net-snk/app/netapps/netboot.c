@@ -27,7 +27,7 @@
 #include <of.h>
 #include "netapps.h"
 
-#define IP_INIT_DEFAULT 2
+#define IP_INIT_DEFAULT 5
 #define IP_INIT_NONE    0
 #define IP_INIT_BOOTP   1
 #define IP_INIT_DHCP    2
@@ -497,8 +497,8 @@ netboot(int argc, char *argv[])
 		rc = bootp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries);
 		break;
 	case IP_INIT_DHCP:
-		printf("  Requesting IP address via DHCP: ");
-		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
+		printf("  Requesting IP address via DHCPv4: ");
+		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, F_IPV4);
 		break;
 	case IP_INIT_DHCPV6_STATELESS:
 		printf("  Requesting information via DHCPv6: ");
@@ -507,6 +507,10 @@ netboot(int argc, char *argv[])
 		break;
 	case IP_INIT_IPV6_MANUAL:
 		set_ipv6_address(&obp_tftp_args.ci6addr);
+		break;
+	case IP_INIT_DEFAULT:
+		printf("  Requesting IP address via DHCP: ");
+		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
 		break;
 	case IP_INIT_NONE:
 	default:
