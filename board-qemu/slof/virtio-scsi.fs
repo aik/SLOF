@@ -195,7 +195,7 @@ scsi-close        \ no further scsi words required
     THEN
 ;
 
-: virito-scsi-shutdown ( -- )
+: shutdown ( -- )
     initialized? IF
        virtiodev virtio-scsi-shutdown
        FALSE to initialized?
@@ -214,7 +214,7 @@ scsi-close        \ no further scsi words required
 	scsi-find-disks
 	setup-alias
 	TRUE to initialized?
-	['] virtio-scsi-shutdown add-quiesce-xt
+	['] shutdown add-quiesce-xt
     THEN
     \ Close the temporary instance:
     close-node
