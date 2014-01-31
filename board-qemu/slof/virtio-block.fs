@@ -30,8 +30,11 @@ virtiodev virtio-setup-vd
 \ transactions can be pending.
 : shutdown  ( -- )
     initialized? IF
-       virtiodev virtio-blk-shutdown
-       FALSE to initialized?
+        my-phandle node>path open-dev ?dup IF
+            virtiodev virtio-blk-shutdown
+            close-dev
+        THEN
+        FALSE to initialized?
     THEN
 ;
 

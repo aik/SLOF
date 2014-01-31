@@ -197,7 +197,10 @@ scsi-close        \ no further scsi words required
 
 : shutdown ( -- )
     initialized? IF
-       virtiodev virtio-scsi-shutdown
+       my-phandle node>path open-dev ?dup IF
+          virtiodev virtio-scsi-shutdown
+          close-dev
+       THEN
        FALSE to initialized?
     THEN
 ;
