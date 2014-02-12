@@ -25,6 +25,7 @@ false VALUE vscsi-debug?
 \ CRQ related functions
 \ -----------------------------------------------------------
 
+0    VALUE     crq-real-base
 0    VALUE     crq-base
 0    VALUE     crq-dma
 0    VALUE     crq-offset
@@ -33,14 +34,16 @@ false VALUE vscsi-debug?
 CREATE crq 10 allot
 
 : crq-alloc ( -- )
-    \ XXX We rely on SLOF alloc-mem being aligned
-    CRQ-SIZE alloc-mem to crq-base 0 to crq-offset
+    \ Allocate enough to align to a page
+    CRQ-SIZE fff + alloc-mem to crq-real-base
+    \ align the result
+    crq-real-base fff + fffff000 AND to crq-base 0 to crq-offset
     crq-base l2dma to crq-dma
 ;
 
 : crq-free ( -- )
     vscsi-unit hv-free-crq
-    crq-base CRQ-SIZE free-mem 0 to crq-base
+    crq-real-base CRQ-SIZE fff + free-mem 0 to crq-base 0 to crq-real-base
 ;
 
 : crq-init ( -- res )
