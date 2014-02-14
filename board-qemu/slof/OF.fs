@@ -226,7 +226,13 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 	    ." using hvterm" cr
             " hvterm" io
 	  ELSE
-	    ." and no default found" cr
+	    " /openprom" find-node ?dup IF
+		set-node
+		." and no default found, creating dev-null" cr
+		" dev-null.fs" included
+		" devnull-console" io
+		0 set-node
+	    THEN
 	  THEN
         THEN
     THEN
