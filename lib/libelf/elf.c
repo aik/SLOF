@@ -108,6 +108,9 @@ elf_load_file(void *file_addr, unsigned long *entry,
 		}
 		break;
 	}
+	if (*entry == 0)
+		type = 0;
+
 	return type;
 }
 

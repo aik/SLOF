@@ -245,15 +245,17 @@ elf_load_segments64(void *file_addr, signed long offset,
 	/* Calculate program header address */
 	struct phdr64 *phdr = get_phdr64(file_addr);
 	int i;
-	signed long virt2phys = 0;	/* Offset between virtual and physical */
 
 	/* loop e_phnum times */
 	for (i = 0; i <= ehdr->e_phnum; i++) {
 		/* PT_LOAD ? */
 		if (phdr->p_type == PT_LOAD) {
-			if (!virt2phys) {
-				virt2phys = phdr->p_paddr - phdr->p_vaddr;
+			if (phdr->p_paddr != phdr->p_vaddr) {
+				printf("ELF64: VirtAddr(%lx) != PhysAddr(%lx) not supported, aborting\n",
+					(long)phdr->p_vaddr, (long)phdr->p_paddr);
+				return 0;
 			}
+
 			/* copy segment */
 			load_segment64(file_addr, phdr, offset, pre_load, post_load);
 		}
@@ -263,7 +265,7 @@ elf_load_segments64(void *file_addr, signed long offset,
 
 	/* Entry point is always a virtual address, so translate it
 	 * to physical before returning it */
-	return ehdr->e_entry + virt2phys;
+	return ehdr->e_entry;
 }
 
 /**
