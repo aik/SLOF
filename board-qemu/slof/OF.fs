@@ -119,6 +119,18 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 370 cp
 
+: check-boot-menu
+   s" qemu,boot-menu" get-chosen IF
+      decode-int 1 = IF
+         ." Press F12 for boot menu." cr cr
+      THEN
+      2drop
+   THEN
+;
+check-boot-menu
+
+380 cp
+
 \ Grab rtas from qemu
 #include "rtas.fs"
 
