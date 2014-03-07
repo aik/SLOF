@@ -146,6 +146,13 @@ elf_get_base_addr32(void *file_addr)
 	return 0;
 }
 
+uint32_t elf_get_eflags_32(void *file_addr)
+{
+	struct ehdr32 *ehdr = (struct ehdr32 *) file_addr;
+
+	return ehdr->e_flags;
+}
+
 void
 elf_byteswap_header32(void *file_addr)
 {

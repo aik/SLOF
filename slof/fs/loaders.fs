@@ -19,9 +19,8 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    msr@ 7fffffffffffffff and 2000 or ciregs >srr1 ! call-client
 ;
 
-: start-elf64 ( arg len entry r2 r12 -- )
+: start-elf64 ( arg len entry r2 -- )
     msr@ 2000 or ciregs >srr1 !
-    ciregs >r12 !
     ciregs >r2  !
     call-client \ entry point is pointer to .opd
 ;
@@ -50,7 +49,7 @@ CREATE load-list 2 cells allot load-list 2 cells erase
       \ Load SNK client 15 MiB after Paflof... FIXME: Hard-coded offset is ugly!
       paflof-start f00000 +
       elf-load-file-to-addr drop \ FIXME - check this for LE, currently its BE only
-      dup @ swap 8 + @ 0         \ populate entry r2 r12
+      dup @ swap 8 + @         \ populate entry r2
       start-elf64 client-data
    ELSE
       2drop false

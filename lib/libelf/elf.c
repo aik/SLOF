@@ -82,7 +82,8 @@ elf_check_file(unsigned long *file_addr)
  * @return           1 for a 32 bit file
  *                   2 for a 64 bit BE file
  *                   3 for a 64 bit LE ABIv1 file
- *                   3 for a 64 bit LE ABIv2 file
+ *                   4 for a 64 bit LE ABIv2 file
+ *                   5 for a 32 bit LE ABIv1 file
  *                   anything else means an error during load
  */
 int
@@ -96,6 +97,9 @@ elf_load_file(void *file_addr, unsigned long *entry,
 	switch (type) {
 	case 1:
 		*entry = elf_load_segments32(file_addr, 0, pre_load, post_load);
+		if (ehdr->ei_data != ELFDATA2MSB) {
+			type = 5; /* LE32 ABIv1 */
+		}
 		break;
 	case 2:
 		*entry = elf_load_segments64(file_addr, 0, pre_load, post_load);

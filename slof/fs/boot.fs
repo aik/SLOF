@@ -71,28 +71,40 @@ defer go ( -- )
    -6d boot-exception-handler ABORT
 ;
 
-: go-64 ( args len entry r2 r12 -- )
+: go-64 ( args len entry r2 -- )
     0 ciregs >r3 ! 0 ciregs >r4 !
     start-elf64 client-data
     claim-list elf-release 0 to claim-list
 ;
 
+: set-le ( -- )
+    1 ciregs >r13 !
+;
+
+: set-be ( -- )
+    0 ciregs >r13 !
+;
+
 : go-64-be ( -- )
     state-valid @ IF
+	set-be
 	go-args 2@
 	go-entry @
 	go-entry 8 + @
-	0 go-64
+	go-64
     THEN
     -6d boot-exception-handler ABORT
 ;
 
-\ FIXME : how to do this correctly, currently this hangs.
-: set-le ( -- )
-    ." Changing endianness "
-    msr@ 1 or msr!
-    ."  done "
-    msr@ . cr
+
+: go-32-be
+    set-be
+    go-32
+;
+
+: go-32-lev1
+    set-le
+    go-32
 ;
 
 : go-64-lev1
@@ -100,8 +112,7 @@ defer go ( -- )
 	go-args 2@
 	go-entry @ xbflip
 	go-entry 8 + @ xbflip
-	0
-	\ set-le
+	set-le
 	go-64
     THEN
     -6d boot-exception-handler ABORT
@@ -110,8 +121,8 @@ defer go ( -- )
 : go-64-lev2
     state-valid @ IF
 	go-args 2@
-	go-entry 0 go-entry
-	\ set-le
+	go-entry 0
+	set-le
 	go-64
     THEN
     -6d boot-exception-handler ABORT
@@ -128,10 +139,11 @@ defer go ( -- )
 
    ( arg len true claim-list entry elftype )
    CASE
-      1  OF ['] go-32 ENDOF           ( arg len true claim-list entry go )
+      1  OF ['] go-32-be   ENDOF           ( arg len true claim-list entry go )
       2  OF ['] go-64-be   ENDOF           ( arg len true claim-list entry go )
       3  OF ['] go-64-lev1 ENDOF           ( arg len true claim-list entry go )
       4  OF ['] go-64-lev2 ENDOF           ( arg len true claim-list entry go )
+      5  OF ['] go-32-lev1 ENDOF           ( arg len true claim-list entry go )
       dup OF ['] no-go to go
          2drop 3drop false EXIT   ENDOF                   ( false )
    ENDCASE
