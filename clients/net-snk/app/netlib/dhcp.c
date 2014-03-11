@@ -737,13 +737,6 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 	if (btph -> op != 2)
 		return -1; // it is not Boot Reply
 
-	if(response_buffer) {
-		if(packetsize <= 1720)
-			memcpy(response_buffer, packet, packetsize);
-		else
-			memcpy(response_buffer, packet, 1720);
-	}
-
 	if (memcmp(btph -> vend, dhcp_magic, 4)) {
 		// It is BootP - RFC 951
 		dhcp_own_ip    = htonl(btph -> yiaddr);
@@ -905,6 +898,13 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 		// initialize network entity with real own_ip
 		// to be able to answer for foreign requests
 		set_ipv4_address(dhcp_own_ip);
+
+		if(response_buffer) {
+			if(packetsize <= 1720)
+				memcpy(response_buffer, packet, packetsize);
+			else
+				memcpy(response_buffer, packet, 1720);
+		}
 
 		/* Subnet mask */
 		if (opt.flag[DHCP_MASK]) {
