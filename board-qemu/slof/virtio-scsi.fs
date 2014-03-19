@@ -138,7 +138,7 @@ scsi-open
 \ SCSI scan at boot and child device support
 \ -----------------------------------------------------------
 
-\ We use SRP luns of the form 01000000 | (target << 8) | lun
+\ We use SRP luns of the form 01000000 | (target << 16) | lun
 \ in the top 32 bits of the 64-bit LUN
 : (set-target)
     to current-target
