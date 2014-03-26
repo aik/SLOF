@@ -21,7 +21,7 @@ s" slofdev.fs" included
 false VALUE usb-disk-debug?
 
 usbdev slof-dev>port l@ dup set-unit encode-phys " reg" property
-s" usb-storage" device-name
+s" storage" device-name
 
 s" dev-parent-calls.fs" included
 

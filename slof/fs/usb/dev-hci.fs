@@ -19,8 +19,8 @@
 VALUE usb_type \ USB type
 
 \ Open Firmware Properties
-2dup device-name
-s" usb" device-type
+device-type
+" usb" 2dup device-name
 
 rot
 VALUE usb_num                           \ controller number
