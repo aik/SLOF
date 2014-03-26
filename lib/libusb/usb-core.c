@@ -512,7 +512,14 @@ int setup_new_device(struct usb_dev *dev, unsigned int port)
 	 * devices
 	 */
 	if (dev->speed != USB_SUPER_SPEED) {
-		if(!usb_set_address(dev, port))
+		/*
+		 * Qemu starts the port number from 1 which was
+		 * revealed in bootindex and resulted in mismatch for
+		 * storage devices names. Adjusting this here for
+		 * compatibility.
+		 */
+		dev->port = port + 1;
+		if(!usb_set_address(dev, dev->port))
 			goto fail;
 	}
 	mb();
