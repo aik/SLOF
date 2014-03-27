@@ -10,7 +10,9 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-1000 VALUE size
+\ Qemu supports max 256cpus, 32K will be able to accomodate the fdt changes if
+\ needed.
+8000 VALUE size
 : ibm,client-architecture-support         ( vec -- err? )
     \ Store require parameters in nvram
     \ to come back to right boot device
