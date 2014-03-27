@@ -16,7 +16,14 @@
 
 # CROSS is the prefix of your cross-compiler.
 # You can override this variable in your environment (export CROSS=...).
+ARCH := $(shell uname -p)
+
+# Auto-detect ppc64
+ifeq ($(ARCH), ppc64)
+CROSS          = ""
+else
 CROSS		?= powerpc64-linux-
+endif
 
 CELLSIZE	?= 64
 
