@@ -6,27 +6,37 @@
 
 // #define DEBUG_PATCHERY
 
-#define H_SET_DABR 0x28
+#define H_SET_DABR	0x28
+#define INS_SC1		0x44000022
+#define INS_SC1_REPLACE	0x7c000268
 
-enum broken_sc1 {
-    SC1_UNKNOWN,
-    SC1_BROKEN,
-    SC1_WORKS,
-};
+extern volatile uint32_t sc1ins;
 
-static unsigned long hcall(unsigned long arg0, unsigned long arg1)
+static unsigned long hcall(uint32_t inst, unsigned long arg0, unsigned long arg1)
 {
 	register unsigned long r3 asm("r3") = arg0;
 	register unsigned long r4 asm("r4") = arg1;
-	asm volatile("sc 1"
+	register unsigned long r5 asm("r5") = inst;
+	asm volatile("bl 1f		\n"
+		     "1:		\n"
+		     "li 11, 2f - 1b	\n"
+		     "mflr 12		\n"
+		     "add 11, 11, 12	\n"
+		     "stw 5, 0(11)	\n"
+		     "dcbst 0, 11	\n"
+		     "sync		\n"
+		     "icbi 0, 11	\n"
+		     "isync		\n"
+		     "2:		\n"
+		     ".long 0		\n"
                      : "=r" (r3)
-                     : "r" (r3), "r" (r4)
-                     : "ctr", "r5", "r6", "r7", "r8", "r9", "r10", "r11",
+                     : "r" (r3), "r" (r4), "r" (r5)
+                     : "ctr", "r0", "r6", "r7", "r8", "r9", "r10", "r11",
                        "r12", "r13", "r31", "lr", "cc");
 	return r3;
 }
 
-static enum broken_sc1 check_broken_sc1(void)
+static int check_broken_sc1(void)
 {
 	long r;
 
@@ -36,41 +46,31 @@ static enum broken_sc1 check_broken_sc1(void)
 	 * to patch the hypercall instruction to something that traps into
 	 * supervisor mode.
 	 */
-	r = hcall(H_SET_DABR, 0);
+	r = hcall(INS_SC1, H_SET_DABR, 0);
 	if (r == H_SUCCESS || r == H_HARDWARE) {
 		/* All is fine */
-		return SC1_WORKS;
+		return 0;
 	}
 
 	/* We found a broken sc1 host! */
-	return SC1_BROKEN;
+	return 1;
 }
 
 int patch_broken_sc1(void *start, void *end, uint32_t *test_ins)
 {
-	static enum broken_sc1 is_broken_sc1 = SC1_UNKNOWN;
 	uint32_t *p;
 	/* The sc 1 instruction */
-	uint32_t sc1 = 0x44000022;
+	uint32_t sc1 = INS_SC1;
 	/* An illegal instruction that KVM interprets as sc 1 */
-	uint32_t sc1_replacement = 0x7c000268;
+	uint32_t sc1_replacement = INS_SC1_REPLACE;
 	int is_le = (test_ins && *test_ins == 0x48000008);
 #ifdef DEBUG_PATCHERY
 	int cnt = 0;
 #endif
 
-	switch (is_broken_sc1) {
-	case SC1_UNKNOWN:
-		/* If we never probed sc1 before, let's do so now! */
-		is_broken_sc1 = check_broken_sc1();
-		return patch_broken_sc1(start, end, test_ins);
-	case SC1_WORKS:
-		/* If we know that sc1 works fine, no need to check */
+	/* The host is sane, get out of here */
+	if (!check_broken_sc1())
 		return 0;
-	case SC1_BROKEN:
-		/* Handled below */
-		break;
-	}
 
 	/* We only get here with a broken sc1 implementation */
 
