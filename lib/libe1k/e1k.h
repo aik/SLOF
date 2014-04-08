@@ -100,7 +100,7 @@
 
 //#define mb()	asm volatile("sync" ::: "memory");
 
-extern net_driver_t *e1k_open(void);
+extern net_driver_t *e1k_open(uint64_t baseaddr);
 extern void e1k_close(net_driver_t *driver);
 extern int e1k_read(char *buf, int len);
 extern int e1k_write(char *buf, int len);

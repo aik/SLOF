@@ -16,10 +16,11 @@
 
 #include <e1k.h>
 
-// : e1k-open  ( -- false | [ driver true ] )
+// : e1k-open  ( baseaddr -- false | [ driver true ] )
 PRIM(E1K_X2d_OPEN)
 {
-	net_driver_t *net_driver = e1k_open();
+	uint64_t baseaddr = TOS.u; POP;
+	net_driver_t *net_driver = e1k_open(baseaddr);
 	if (net_driver) {
 		PUSH;
 		TOS.u = (unsigned long)net_driver; PUSH;

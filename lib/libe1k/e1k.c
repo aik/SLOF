@@ -940,10 +940,11 @@ e1k_term(void)
 	return 0;
 }
 
-net_driver_t *e1k_open(void)
+net_driver_t *e1k_open(uint64_t baseaddr)
 {
 	net_driver_t *driver;
 
+	m_e1k.m_baseaddr_u64 = baseaddr;
 	driver = SLOF_alloc_mem(sizeof(*driver));
 	if (!driver) {
 		printf("Unable to allocate virtio-net driver\n");
