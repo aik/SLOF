@@ -162,7 +162,18 @@ void virtio_set_guest_features(struct virtio_device *dev, int features)
 
 {
 	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, features);
+		ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, bswap_32(features));
+	}
+}
+
+/**
+ * Get host feature bits
+ */
+void virtio_get_host_features(struct virtio_device *dev, int *features)
+
+{
+	if (dev->type == VIRTIO_TYPE_PCI && features) {
+		*features = bswap_32(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
 	}
 }
 

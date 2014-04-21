@@ -34,4 +34,9 @@ extern void SLOF_pci_config_write32(long offset, long value);
 extern void SLOF_pci_config_write16(long offset, long value);
 extern void *SLOF_translate_my_address(void *addr);
 
+#define offset_of(type, member) ((long) &((type *)0)->member)
+#define container_of(ptr, type, member) ({                      \
+			const typeof(((type *)0)->member)* struct_ptr = (ptr); \
+			(type *)((char *)struct_ptr - offset_of(type, member)); })
+
 #endif

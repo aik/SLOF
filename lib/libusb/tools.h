@@ -74,9 +74,4 @@ static inline void ci_write_reg(uint32_t *reg, uint32_t value)
 	ci_write_32(reg, bswap_32(value));
 }
 
-#define offset_of(type, member) ((long) &((type *)0)->member)
-#define container_of(ptr, type, member) ({                      \
-			const typeof(((type *)0)->member)* struct_ptr = (ptr); \
-			(type *)((char *)struct_ptr - offset_of(type, member)); })
-
 #endif

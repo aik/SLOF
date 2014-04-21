@@ -81,6 +81,7 @@ extern void virtio_queue_notify(struct virtio_device *dev, int queue);
 extern void virtio_set_status(struct virtio_device *dev, int status);
 extern void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned int qaddr);
 extern void virtio_set_guest_features(struct virtio_device *dev, int features);
+extern void virtio_get_host_features(struct virtio_device *dev, int *features);
 extern uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size);
 extern int __virtio_read_config(struct virtio_device *dev, void *dst,
 				int offset, int len);

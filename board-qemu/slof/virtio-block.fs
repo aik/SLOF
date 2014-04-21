@@ -18,7 +18,7 @@ FALSE VALUE initialized?
 
 \ Required interface for deblocker
 
-200 CONSTANT block-size
+200 VALUE block-size
 8000 CONSTANT max-transfer 
 
 INSTANCE VARIABLE deblocker
@@ -40,7 +40,7 @@ virtiodev virtio-setup-vd
 
 \ Basic device initialization - which has only to be done once
 : init  ( -- )
-   virtiodev virtio-blk-init
+   virtiodev virtio-blk-init to block-size
    TRUE to initialized?
    ['] shutdown add-quiesce-xt
 ;
@@ -53,13 +53,13 @@ virtiodev virtio-setup-vd
 \ Standard node "open" function
 : open  ( -- okay? )
    open 0= IF false EXIT THEN
+   dup initialized? 0= AND IF
+      init
+   THEN
    0 0 s" deblocker" $open-package dup deblocker ! dup IF
       s" disk-label" find-package IF
          my-args rot interpose
       THEN
-   THEN
-   dup initialized? 0= AND IF
-      init
    THEN
    0<>
 ;

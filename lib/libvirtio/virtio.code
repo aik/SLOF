@@ -46,10 +46,10 @@ MIRP
 
 /******** virtio-blk ********/
 
-// : virtio-blk-init ( dev -- )
+// : virtio-blk-init ( dev -- blk-size)
 PRIM(virtio_X2d_blk_X2d_init)
-	void *dev = TOS.a; POP;
-	virtioblk_init(dev);
+	void *dev = TOS.a;
+	TOS.u = virtioblk_init(dev);
 MIRP
 
 // : virtio-blk-shutdown ( dev -- )

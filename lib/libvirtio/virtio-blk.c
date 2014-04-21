@@ -16,6 +16,8 @@
 #include "virtio.h"
 #include "virtio-blk.h"
 
+#define DEFAULT_SECTOR_SIZE 512
+
 /**
  * Initialize virtio-block device.
  * @param  dev  pointer to virtio device information
@@ -24,6 +26,8 @@ int
 virtioblk_init(struct virtio_device *dev)
 {
 	struct vring_avail *vq_avail;
+	int blk_size = DEFAULT_SECTOR_SIZE;
+	int features;
 
 	/* Reset device */
 	// XXX That will clear the virtq base. We need to move
@@ -37,8 +41,8 @@ virtioblk_init(struct virtio_device *dev)
 	/* Tell HV that we know how to drive the device. */
 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER);
 
-	/* Device specific setup - we do not support special features right now */
-	virtio_set_guest_features(dev,  0);
+	/* Device specific setup - we support F_BLK_SIZE */
+	virtio_set_guest_features(dev,  VIRTIO_BLK_F_BLK_SIZE);
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
 	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
@@ -48,7 +52,14 @@ virtioblk_init(struct virtio_device *dev)
 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
 				|VIRTIO_STAT_DRIVER_OK);
 
-	return 0;
+	virtio_get_host_features(dev, &features);
+	if (features & VIRTIO_BLK_F_BLK_SIZE) {
+		blk_size = virtio_get_config(dev,
+				offset_of(struct virtio_blk_cfg, blk_size),
+				sizeof(blk_size));
+	}
+
+	return blk_size;
 }
 
 
@@ -90,14 +101,25 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	volatile uint8_t status = -1;
 	volatile uint16_t *current_used_idx;
 	uint16_t last_used_idx;
+	int blk_size = DEFAULT_SECTOR_SIZE;
 
 	//printf("virtioblk_read: dev=%p buf=%p blocknum=%li count=%li\n",
 	//	dev, buf, blocknum, cnt);
 
 	/* Check whether request is within disk capacity */
-	capacity = virtio_get_config(dev, 0, sizeof(capacity));
+	capacity = virtio_get_config(dev,
+			offset_of(struct virtio_blk_cfg, capacity),
+			sizeof(capacity));
 	if (blocknum + cnt - 1 > capacity) {
 		puts("virtioblk_read: Access beyond end of device!");
+		return 0;
+	}
+
+	blk_size = virtio_get_config(dev,
+			offset_of(struct virtio_blk_cfg, blk_size),
+			sizeof(blk_size));
+	if (blk_size % DEFAULT_SECTOR_SIZE) {
+		fprintf(stderr, "virtio-blk: Unaligned sector read %d\n", blk_size);
 		return 0;
 	}
 
@@ -112,7 +134,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	/* Set up header */
 	blkhdr.type = VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER;
 	blkhdr.ioprio = 1;
-	blkhdr.sector = blocknum;
+	blkhdr.sector = blocknum * blk_size / DEFAULT_SECTOR_SIZE;
 
 	/* Determine descriptor index */
 	id = (vq_avail->idx * 3) % vq_size;
@@ -127,7 +149,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
 	/* Set up virtqueue descriptor for data */
 	desc = &vq_desc[(id + 1) % vq_size];
 	desc->addr = (uint64_t)buf;
-	desc->len = cnt * 512;
+	desc->len = cnt * blk_size;
 	desc->flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
 	desc->next = (id + 2) % vq_size;
 
