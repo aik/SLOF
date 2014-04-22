@@ -11,7 +11,5 @@
 \ ****************************************************************************/
 
 get-node CONSTANT my-phandle
-: dma-alloc   s" dma-alloc"     my-phandle parent $call-static ;
-: dma-map-in  s" dma-map-in"    my-phandle parent $call-static ;
-: dma-map-out s" dma-map-out"   my-phandle parent $call-static ;
-: dma-free    s" dma-free"      my-phandle parent $call-static ;
+
+s" dma-function.fs" included
