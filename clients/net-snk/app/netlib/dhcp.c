@@ -77,6 +77,7 @@
 #define DHCP_REQUEST_LIST     55
 #define DHCP_TFTP_SERVER      66
 #define DHCP_BOOTFILE         67
+#define DHCP_CLIENT_ARCH      93
 #define DHCP_ENDOPT         0xFF
 #define DHCP_PADOPT         0x00
 
@@ -90,6 +91,14 @@
 #define DHCP_STATE_REQUEST     2
 #define DHCP_STATE_SUCCESS     3
 #define DHCP_STATE_FAULT       4
+
+/* DHCP Client Architecture */
+#ifndef DHCPARCH
+#define USE_DHCPARCH 0
+#define DHCPARCH 0
+#else
+#define USE_DHCPARCH 1
+#endif
 
 static uint8_t dhcp_magic[] = {0x63, 0x82, 0x53, 0x63};
 /**< DHCP_magic is a cookie, that identifies DHCP options (see RFC 2132) */
@@ -116,6 +125,7 @@ typedef struct {
 	uint8_t    overload;          /**< o.52 Overload sname/file fields     */
 	int8_t     tftp_server[256];  /**< o.66 TFTP server name               */
 	int8_t     bootfile[256];     /**< o.67 Boot file name                 */
+	uint16_t   client_arch;       /**< o.93 Client architecture type       */
 } dhcp_options_t;
 
 /** Stores state of DHCP-client (refer to State-transition diagram) */
@@ -349,6 +359,14 @@ dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
 		options += options[1] + 2;
 	}
 
+	if (opt_struct -> flag[DHCP_CLIENT_ARCH]) {
+		options[0] = DHCP_CLIENT_ARCH;
+		options[1] = 2;
+		options[2] = DHCPARCH & 0xff;
+		options[3] = (DHCPARCH >> 8);
+		options += 4;
+	}
+
 	// end options
 	options[0] = 0xFF;
 	options++;
@@ -436,6 +454,11 @@ dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
 			memcpy(opt_struct ->  bootfile, opt_field + offset + 2, opt_field[offset + 1]);
 			(opt_struct -> bootfile)[opt_field[offset + 1]] = 0;
 			offset += 2 + opt_field[offset + 1];
+			break;
+
+		case DHCP_CLIENT_ARCH :
+			opt_struct -> client_arch = ((opt_field[offset + 2] << 8) & 0xFF00) | (opt_field[offset + 3] & 0xFF);
+			offset += 4;
 			break;
 
 		case DHCP_PADOPT :
@@ -613,6 +636,7 @@ dhcp_send_discover(void) {
 	opt.request_list[DHCP_ROUTER] = 1;
 	opt.request_list[DHCP_TFTP_SERVER] = 1;
 	opt.request_list[DHCP_BOOTFILE] = 1;
+	opt.request_list[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
 
 	dhcp_encode_options(btph -> vend, &opt);
 
@@ -659,6 +683,7 @@ dhcp_send_request(void) {
 	opt.request_list[DHCP_ROUTER] = 1;
 	opt.request_list[DHCP_TFTP_SERVER] = 1;
 	opt.request_list[DHCP_BOOTFILE] = 1;
+	opt.request_list[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
 
 	dhcp_encode_options(btph -> vend, &opt);
 
