@@ -180,7 +180,7 @@ static bool xhci_hcd_set_runstop(struct xhci_op_regs *op, bool run_req)
 	if (run_req)
 		reg |= run_req;
 	else
-		reg &= ~run_req;
+		reg &= (uint32_t)~1;
 	dprintf("writing %08X\n", reg);
 	write_reg32(&op->usbcmd, reg);
 	mb();
