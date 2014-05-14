@@ -83,7 +83,7 @@ here 100 allot CONSTANT pci-device-vec
 \ needed for scanning possible devices behind the bridge
 : pci-bridge-set-mmio-base ( addr -- )
         pci-next-mmio @ 100000 #aligned         \ read the current Value and align to 1MB boundary
-        dup pci-next-mmio !                     \ and write it back
+        dup 100000 + pci-next-mmio !            \ and write back with 1MB for bridge
         10 rshift                               \ mmio-base reg is only the upper 16 bits
         pci-max-mmio @ FFFF0000 and or          \ and Insert mmio Limit (set it to max)
         swap 20 + rtas-config-l!                \ and write it into the bridge
@@ -105,7 +105,7 @@ here 100 allot CONSTANT pci-device-vec
 \ needed for scanning possible devices behind the bridge
 : pci-bridge-set-mem-base ( addr -- )
         pci-next-mem @ 100000 #aligned          \ read the current Value and align to 1MB boundary
-        dup pci-next-mem !                      \ and write it back
+        dup 100000 + pci-next-mem !             \ and write back with 1MB for bridge
         over 24 + rtas-config-w@                \ check if 64bit support
         1 and IF                                \ IF 64 bit support
                 2dup 20 rshift                  \ | keep upper 32 bits
@@ -140,7 +140,7 @@ here 100 allot CONSTANT pci-device-vec
 \ needed for scanning possible devices behind the bridge
 : pci-bridge-set-io-base ( addr -- )
         pci-next-io @ 1000 #aligned             \ read the current Value and align to 4KB boundary
-        dup pci-next-io !                       \ and write it back
+        dup 1000 + pci-next-io !                \ and write back with 4K for bridge
         over 1C + rtas-config-l@                \ check if 32bit support
         1 and IF                                \ IF 32 bit support
                 2dup 10 rshift                  \ | keep upper 16 bits
