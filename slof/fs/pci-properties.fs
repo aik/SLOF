@@ -410,6 +410,7 @@
         dup IF                          \ IF any space present (propsize>0)
                 s" ranges" property     \ | write it into the device tree
         ELSE                            \ ELSE
+               s" " s" ranges" property
                 2drop                   \ | forget the properties
         THEN                            \ FI
         drop                            \ forget the address
