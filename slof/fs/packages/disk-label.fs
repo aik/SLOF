@@ -25,6 +25,7 @@ s" disk-label" device-name
 
 0 INSTANCE VALUE partition
 0 INSTANCE VALUE part-offset
+0 INSTANCE VALUE disk-chrp-boot
 
 0 INSTANCE VALUE part-start
 0 INSTANCE VALUE lpart-start
@@ -322,7 +323,7 @@ CONSTANT /gpt-part-entry
 \ NOTE: block-size is always 512 bytes for DOS partition tables.
 
 : load-from-dos-boot-partition ( addr -- size )
-   no-mbr? IF FALSE EXIT THEN  \ read MBR and check for DOS disk-label magic
+   no-mbr? IF drop FALSE EXIT THEN  \ read MBR and check for DOS disk-label magic
 
    count-dos-logical-partitions TO dos-logical-partitions
 
@@ -379,11 +380,10 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
 ;
 
 : load-from-gpt-prep-partition ( addr -- size )
-   no-gpt? IF FALSE EXIT THEN
+   no-gpt? IF drop FALSE EXIT THEN
    debug-disk-label? IF
       cr ." GPT partition found " cr
    THEN
-
    1 read-sector block gpt>part-entry-lba l@-le
    block-size * to seek-pos
    block gpt>part-entry-size l@-le to gpt-part-size
@@ -407,17 +407,6 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
    LOOP
    FALSE
 ;
-
-\ load from a bootable partition
-
-: load-from-boot-partition ( addr -- size )
-   load-from-dos-boot-partition dup 0= IF
-     drop load-from-gpt-prep-partition
-   THEN
-   \ More boot partition formats ...
-;
-
-
 
 \ Extract the boot loader path from a bootinfo.txt file
 \ In: address and length of buffer where the bootinfo.txt has been loaded to.
@@ -465,7 +454,11 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
 : load-chrp-boot-file ( addr -- size )
    \ Create bootinfo.txt path name and load that file:
    my-parent instance>path
-   s" :\ppc\bootinfo.txt" $cat strdup       ( addr str len )
+   disk-chrp-boot @ 1 = IF
+       s" :1,\ppc\bootinfo.txt" $cat strdup       ( addr str len )
+   ELSE
+       s" :\ppc\bootinfo.txt" $cat strdup       ( addr str len )
+   THEN
    open-dev dup 0= IF 2drop 0 EXIT THEN
    >r dup                                   ( addr addr R:ihandle )
    dup s" load" r@ $call-method             ( addr addr size R:ihandle )
@@ -491,6 +484,21 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
    open-dev dup 0= IF ." failed to load CHRP boot loader." 2drop 0 EXIT THEN
    >r s" load" r@ $call-method              ( size R:ihandle )
    r> close-dev                             ( size )
+;
+
+\ load from a bootable partition
+: load-from-boot-partition ( addr -- size )
+   debug-disk-label? IF ." Trying DOS boot " .s cr THEN
+   dup load-from-dos-boot-partition ?dup 0 <> IF nip EXIT THEN
+
+   debug-disk-label? IF ." Trying CHRP boot " .s cr THEN
+   1 disk-chrp-boot !
+   dup load-chrp-boot-file ?dup 0 <> IF .s cr nip EXIT THEN
+   0 disk-chrp-boot !
+
+   debug-disk-label? IF ." Trying GPT boot " .s cr THEN
+   load-from-gpt-prep-partition
+   \ More boot partition formats ...
 ;
 
 \ parse partition number from my-args
@@ -646,7 +654,7 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
              dup load-chrp-boot-file ?dup 0 > IF nip EXIT THEN
          THEN
          load-from-boot-partition
-         dup 0= ABORT" No boot partition found"
+	 dup 0= ABORT" No boot partition found"
       THEN
    THEN
 ;
