@@ -362,8 +362,8 @@ dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
 	if (opt_struct -> flag[DHCP_CLIENT_ARCH]) {
 		options[0] = DHCP_CLIENT_ARCH;
 		options[1] = 2;
-		options[2] = DHCPARCH & 0xff;
-		options[3] = (DHCPARCH >> 8);
+		options[2] = (DHCPARCH >> 8);
+		options[3] = DHCPARCH & 0xff;
 		options += 4;
 	}
 
@@ -684,6 +684,7 @@ dhcp_send_request(void) {
 	opt.request_list[DHCP_TFTP_SERVER] = 1;
 	opt.request_list[DHCP_BOOTFILE] = 1;
 	opt.request_list[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
+	opt.flag[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
 
 	dhcp_encode_options(btph -> vend, &opt);
 
