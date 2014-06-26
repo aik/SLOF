@@ -122,7 +122,7 @@ ALSO client-voc DEFINITIONS
       ." ci: finddevice " 2dup type cr
    THEN
    2dup " /memory" str= IF
-     ." * finddevice /memory grub workaround *" cr
+     \ Workaround: grub passes /memory instead of /memory@0
      2drop
      " /memory@0"
    THEN
