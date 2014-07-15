@@ -16,17 +16,14 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 #include <of.h>
 
 int printk(const char *, ...);
-void *memcpy(void *, const void *, size_t);
-void *memset(void *, int, size_t);
 
 uint64_t get_time(void);
 int getchar(void);
 
-int strcmp(const char *, const char *);
-char *strcpy(char *, const char *);
 int printf(const char *, ...);
 void *malloc_aligned(size_t size, int align);
 
