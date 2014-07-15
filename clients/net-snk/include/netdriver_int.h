@@ -72,30 +72,6 @@ typedef int (*k_ioctl_t) (int, int, void *);
 typedef void (*modules_remove_t) (int);
 typedef snk_module_t *(*modules_load_t) (int);
 
-typedef struct {
-	int version;
-	print_t print;
-	us_delay_t us_delay;
-	ms_delay_t ms_delay;
-	malloc_t k_malloc;
-	malloc_aligned_t k_malloc_aligned;
-	free_t k_free;
-	strcmp_t strcmp;
-	snk_call_t snk_call;
-	io_read_t io_read;
-	io_write_t io_write;
-	k_open_t k_open;
-	k_close_t k_close;
-	k_read_t k_read;
-	k_write_t k_write;
-	k_ioctl_t k_ioctl;
-	modules_remove_t modules_remove;
-	modules_load_t modules_load;
-} snk_kernel_t;
-
-/* Entry of module */
-snk_module_t *module_init(snk_kernel_t * snk_kernel_int);
-
 
 /*
  * Constants for different kinds of IOCTL requests

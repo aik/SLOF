@@ -29,8 +29,6 @@ extern char __client_start[];
 
 snk_module_t *snk_modules[MODULES_MAX];
 
-extern snk_kernel_t snk_kernel_interface;
-
 /* Load module and call init code.
    Init code will check, if module is responsible for device.
    Returns -1, if not responsible for device, 0 otherwise.
@@ -40,9 +38,6 @@ void
 modules_init(void)
 {
 	int i;
-
-	snk_kernel_interface.io_read  = read_io;
-	snk_kernel_interface.io_write = write_io;
 
 	snk_modules[0] = &of_module;
 

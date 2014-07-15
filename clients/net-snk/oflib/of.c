@@ -27,7 +27,7 @@ static int ofmod_read(char *buffer, int len);
 static int ofmod_write(char *buffer, int len);
 static int ofmod_ioctl(int request, void *data);
 
-int glue_init(snk_kernel_t *, unsigned int *, size_t, size_t);
+int glue_init(unsigned int *, size_t, size_t);
 void glue_release(void);
 
 snk_module_t of_module = {
@@ -731,8 +731,8 @@ get_timebase(unsigned int *timebase)
 	of_getprop(cpu, "timebase-frequency", timebase, 4);
 }
 
-int glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
-          size_t _client_start, size_t _client_size)
+int glue_init(unsigned int * timebase,
+	      size_t _client_start, size_t _client_size)
 {
 	phandle_t chosen = of_finddevice("/chosen");
 

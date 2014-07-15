@@ -28,12 +28,10 @@
 
 #define DEBUG 0
 #if DEBUG
-#define	dprintf(str, ...)  snk_kernel_interface.print(str, ## __VA_ARGS__)
+#define	dprintf(str, ...)  printk(str, ## __VA_ARGS__)
 #else
 #define	dprintf(str, ...) do{}while(0)
 #endif
-
-extern snk_kernel_t snk_kernel_interface;
 
 snk_module_t * cimod_check_and_install(void);
 static int cimod_init(void);
