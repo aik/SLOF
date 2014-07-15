@@ -28,13 +28,6 @@ SECTIONS {
 /*          *(*COM* .bss .gnu.linkonce.b.*) */
 	} =0x60000000
 
-	.lowmem :
-	{
-	  _lowmem_start = .;
-	  *(.lowmem)
-	  _lowmem_end = .;
-	}
-
 	.got : 
 	{
 	  . = ALIGN(8);

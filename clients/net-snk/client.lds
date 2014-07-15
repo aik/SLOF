@@ -15,37 +15,71 @@ OUTPUT_ARCH(powerpc:common64)
 ENTRY(_entry)
 
 SECTIONS {
-	.client 0xF000100:
-	{
-	__client_start = .;
-	  *(.text .stub .text.* .gnu.linkonce.t.*)
+	. = 0xF000100;
+	.text :
+        {
+	  __client_start = .;
+	  *(.text* .stub .gnu.linkonce.t.*)
 	  *(.sfpr .glink)
-          *(.rodata .rodata.* .gnu.linkonce.r.*)
-          KEEP (*(.opd))
-	  . = ALIGN(256); 
-	  *(.data .data.* .gnu.linkonce.d.*)
-	  . = ALIGN(256);
-	} =0x60000000
-
-	.lowmem :
-	{
-	  _lowmem_start = .;
-	  *(.lowmem)
-	  _lowmem_end = .;
 	}
 
+	. = ALIGN(0x100);
+	.rodata :
+	{
+          *(.rodata* .gnu.linkonce.r.*)
+	}
+
+	. = ALIGN(0x10);
+	.data :
+        {
+	  *(.data* .gnu.linkonce.d.*)
+	  *(.force.data)
+	  *(.toc1)
+	  *(.branch_lt)
+        }
+
+	. = ALIGN(0x10);
+	.opd :
+	{
+	  *(.opd)
+	}
+
+	. = ALIGN(0x10);
 	.got :
 	{
-	  . = ALIGN(8);
 	  _got = .;
-          *(.got .toc)
+          *(.got)
+	  *(.toc)
 	  _got_end = .;
-	}  	
-	.comment : { *(.comment) }
-	.branch_lt : { *(.branch_lt) }
+	}
+
+	. = ALIGN(0x1000);
 	.bss :
 	{
-          *(*COM* .bss .gnu.linkonce.b.*)
+          *(*COM* .bss* .gnu.linkonce.b.*)
+	}
 	__client_end = .;
+
+	.dynsym : { *(.dynsym) }
+	.dynstr : { *(.dynstr) }
+	. = ALIGN(0x10);
+	.dynamic : {
+	  *(.dynamic)
+	}
+	. = ALIGN(0x10);
+	.rela.dyn : {
+	  *(.rela*)
+	}
+	.hash : { *(.hash) }
+
+	.comment : {
+	  /*
+	   * Discarding this section caused errors on binutils 2.23,
+	   * this is fixed in 2.24.
+	   */
+	  *(.comment)
+	}
+	/DISCARD/ : {
+	  *(.interp)
 	}
 }

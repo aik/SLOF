@@ -31,8 +31,6 @@ snk_fileio_t fd_array[FILEIO_MAX];
 
 extern uint64_t tb_freq;
 
-extern char _lowmem_start;
-extern char _lowmem_end;
 extern char __client_start;
 extern char __client_end;
 
