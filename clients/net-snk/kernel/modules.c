@@ -27,9 +27,6 @@ extern snk_module_t of_module, ci_module;
 
 extern char __client_start[];
 
-
-typedef snk_module_t *(*module_init_t) (snk_kernel_t *, pci_config_t *);
-
 snk_module_t *snk_modules[MODULES_MAX];
 
 extern snk_kernel_t snk_kernel_interface;

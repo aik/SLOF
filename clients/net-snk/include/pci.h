@@ -19,9 +19,6 @@
 int pci_calc_bar_size (long long puid, int bus, int devfn, int bar);
 int pci_get_bar_start (long long puid, int bus, int devfn, int bar);
 void pci_set_bar_start (long long puid, int bus, int devfn, int bar, int value);
-int pci_bus_scan_puid(long long puid, int class_to_check,
-		      pci_config_t *pci_devices, int max_devs);
-long long get_next_phb (phandle_t *phb);
 
 unsigned int read_io(void *addr, size_t sz);
 int write_io(void *addr, unsigned int value, size_t sz);

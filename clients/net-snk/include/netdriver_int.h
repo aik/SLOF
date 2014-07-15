@@ -22,37 +22,6 @@
 # define UNUSED
 #endif
 
-typedef struct {
-	unsigned int addr;
-	unsigned int size;
-	int type;
-} bar_t;
-
-typedef enum {
-	CONFIG_TYPE_PCI,
-	CONFIG_TYPE_VIO
-} mod_config_type;
-
-typedef struct {
-	mod_config_type config_type;
-	unsigned long long puid;
-	unsigned int bus;
-	unsigned int devfn;
-	unsigned int vendor_id;
-	unsigned int device_id;
-	unsigned int revision_id;
-	unsigned int class_code;
-	bar_t bars[6];
-	unsigned int interrupt_line;
-} pci_config_t;
-
-typedef struct {
-	mod_config_type config_type;
-	unsigned int reg_len;
-	unsigned int reg[12];
-	char	     compat[64];
-} vio_config_t;
-
 #define MOD_TYPE_NETWORK 0
 #define MOD_TYPE_OTHER   1
 
@@ -115,10 +84,6 @@ typedef struct {
 	snk_call_t snk_call;
 	io_read_t io_read;
 	io_write_t io_write;
-	union {
-		pci_config_t pci_conf;
-		vio_config_t vio_conf;
-	};
 	k_open_t k_open;
 	k_close_t k_close;
 	k_read_t k_read;
@@ -129,8 +94,7 @@ typedef struct {
 } snk_kernel_t;
 
 /* Entry of module */
-snk_module_t *module_init(snk_kernel_t * snk_kernel_int,
-                          pci_config_t * pciconf);
+snk_module_t *module_init(snk_kernel_t * snk_kernel_int);
 
 
 /*

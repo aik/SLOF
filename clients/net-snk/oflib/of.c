@@ -690,73 +690,6 @@ get_puid(phandle_t node)
 	return 0;
 }
 
-static int set_vio_config(vio_config_t * vio_config, phandle_t net)
-{
-	vio_config->config_type = CONFIG_TYPE_VIO;
-	vio_config->reg_len = of_getprop(net, "reg", vio_config->reg,
-					 sizeof(vio_config->reg));
-	of_getprop(net, "compatible", &vio_config->compat, 64);
-
-	return 0;
-}
-
-/* Fill in the pci config structure from the device tree */
-static int set_pci_config(pci_config_t * pci_config, phandle_t net)
-{
-	unsigned char buf[400];
-	int len, bar_nr;
-	unsigned int *assigned_ptr;
-
-	pci_config->config_type = CONFIG_TYPE_PCI;
-
-	of_getprop(net, "vendor-id", &pci_config->vendor_id, 4);
-	of_getprop(net, "device-id", &pci_config->device_id, 4);
-	of_getprop(net, "revision-id", &pci_config->revision_id, 4);
-	of_getprop(net, "class-code", &pci_config->class_code, 4);
-	of_getprop(net, "interrupts", &pci_config->interrupt_line, 4);
-
-	len = of_getprop(net, "assigned-addresses", buf, 400);
-	if (len <= 0)
-		return -1;
-
-	assigned_ptr = (unsigned int *) &buf[0];
-	pci_config->bus = (assigned_ptr[0] & 0x00ff0000) >> 16;
-	pci_config->devfn = (assigned_ptr[0] & 0x0000ff00) >> 8;
-
-	while (len > 0) {
-		/* Fixme 64 bit bars */
-		bar_nr = ((assigned_ptr[0] & 0xff) - 0x10) / 4;
-		pci_config->bars[bar_nr].type =
-		    (assigned_ptr[0] & 0x0f000000) >> 24;
-		pci_config->bars[bar_nr].addr = assigned_ptr[2];
-		pci_config->bars[bar_nr].size = assigned_ptr[4];
-		assigned_ptr += 5;
-		len -= 5 * sizeof(int);
-	}
-
-	pci_config->puid = get_puid(net);
-
-	return 0;
-}
-
-static int set_config(snk_kernel_t * snk_kernel_interface)
-{
-	phandle_t parent, net = get_boot_device();
-	char compat[64];
-
-	if (net == -1)
-		return -1;
-
-	parent = of_parent(net);
-	of_getprop(parent, "compatible", compat, 64);
-
-	if (strcmp(compat, "IBM,vdevice") == 0
-	    || strncmp(compat, "ibm,virtio", 10) == 0)
-		return set_vio_config(&snk_kernel_interface->vio_conf, net);
-
-	return set_pci_config(&snk_kernel_interface->pci_conf, net);
-}
-
 void
 get_mac(char *mac)
 {
@@ -827,11 +760,6 @@ int glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
 
 	if (of_write(fd_ihandle_array[1], " ", 1) < 0)
 		return -2;
-
-	/* Setup Kernel Struct */
-	if (set_config(snk_kernel_interface) == -1) {
-		snk_kernel_interface->print(" No net device found \n");
-	}
 
 	get_timebase(timebase);
 	rtas_init();
