@@ -23,8 +23,6 @@ void *memcpy(void *, const void *, size_t);
 void *memset(void *, int, size_t);
 
 uint64_t get_time(void);
-void udelay(unsigned int);
-void mdelay(unsigned int);
 int getchar(void);
 
 int strcmp(const char *, const char *);

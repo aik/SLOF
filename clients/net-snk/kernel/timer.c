@@ -37,33 +37,3 @@ uint64_t get_time(void)
         : "r0", "r4");
     return act;
 }
-
-//-------------------------------------------------------------------
-// wait for ticks/scale timebase ticks
-static void wait_ticks(uint64_t ticks)
-{
-        uint64_t timeout = get_time() + ticks;
-        while (get_time() < timeout) {
-                unsigned int i;
-                for (i = 1000; i > 0; i--)
-                        __asm__ __volatile__ ("" : : : "memory");
-        }
-}
-
-//-------------------------------------------------------------------
-// wait for (at least) usecs microseconds
-void udelay(unsigned int usecs)
-{
-        // first multiply the usec with timebase and then divide
-        // because 1.000.000 is relatively huge compared to usecs
-        wait_ticks((usecs*tb_freq)/1000000);
-}
-
-//-------------------------------------------------------------------
-// wait for (at least) msecs milliseconds
-void mdelay(unsigned int msecs)
-{
-        // first multiply the msec and timebase and then divide
-        // because 1.000 is relatively huge compared to msecs
-        wait_ticks((msecs*tb_freq)/1000);
-}
