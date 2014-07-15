@@ -80,33 +80,3 @@ get_module_by_type(int type) {
 	}
 	return 0;
 }
-
-/**
- * insmod_by_type - Load first module of given type
- *
- * @param type  Type of module that we want to load
- * @return      module descriptor on success
- *              NULL              if not successful
- */
-snk_module_t *
-insmod_by_type(int type) {
-	return 0;
-}
-
-/**
- * rmmod_by_type - Remove all module of given type
- *
- * @param type  Type of module that we want to load
- */
-void
-rmmod_by_type(int type) {
-	int i;
-
-	for (i = 0; i < MODULES_MAX; ++i) {
-		if (snk_modules[i] && snk_modules[i]->type == type) {
-			if (snk_modules[i]->running)
-				snk_modules[i]->term();
-			snk_modules[i] = 0;
-		}
-	}
-}
