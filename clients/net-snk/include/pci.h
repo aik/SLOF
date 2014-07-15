@@ -14,12 +14,6 @@
 #ifndef _PCI_H
 #define _PCI_H
 
-#include <of.h>
-
-int pci_calc_bar_size (long long puid, int bus, int devfn, int bar);
-int pci_get_bar_start (long long puid, int bus, int devfn, int bar);
-void pci_set_bar_start (long long puid, int bus, int devfn, int bar, int value);
-
 unsigned int read_io(void *addr, size_t sz);
 int write_io(void *addr, unsigned int value, size_t sz);
 
