@@ -22,7 +22,6 @@ extern int vsprintf(char *, const char *, va_list);
 extern void _exit(int status);
 
 void exit(int status);
-int printk(const char*, ...);
 
 int open(const char* name, int flags)
 {
@@ -35,7 +34,7 @@ int open(const char* name, int flags)
 		}
 	}
 	if (fd == FILEIO_MAX) {
-		printk ("Can not open \"%s\" because file descriptor list is full\n", name);
+		printf("Can not open \"%s\" because file descriptor list is full\n", name);
 		/* there is no free file descriptor available */
 		return -2;
 	}
@@ -72,23 +71,23 @@ int socket(int domain, int type, int proto, char *mac_addr)
 		}
 	}
 	if (fd == FILEIO_MAX) {
-		printk ("Can not open socket, file descriptor list is full\n");
+		printf("Can not open socket, file descriptor list is full\n");
 		/* there is no free file descriptor available */
 		return -2;
 	}
 
 	fd_array[fd].ih = of_interpret_1("my-parent", tmpbuf);
 	if (fd_array[fd].ih == 0) {
-		printk ("Can not open socket, no parent instance\n");
+		printf("Can not open socket, no parent instance\n");
 		return -1;
 	}
 	ph = of_instance_to_package(fd_array[fd].ih);
 	if (ph == -1) {
-		printk ("Can not open socket, no parent package\n");
+		printf("Can not open socket, no parent package\n");
 		return -1;
 	}
 	if (of_get_mac(ph, mac_addr) < 0) {
-		printk ("Can not open socket, no MAC address\n");
+		printf("Can not open socket, no MAC address\n");
 		return -1;
 	}
 	fd_array[fd].type = FILEIO_TYPE_SOCKET;
@@ -176,7 +175,7 @@ void exit(int status)
 	_exit(status);
 }
 
-int printk(const char* fmt, ...)
+int printf(const char* fmt, ...)
 {
 	int count;
 	va_list ap;

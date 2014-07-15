@@ -844,15 +844,6 @@ diff -u -u -r1.1 -r1.4
      u16                         saved_ip;
      u16                         saved_cs;
      int                         enc_pos;
-@@ -366,7 +370,7 @@
- 
- /* Function to log information at runtime */
- 
--//void	printk(const char *fmt, ...);
-+void	printk(const char *fmt, ...);
- 
- #ifdef  __cplusplus
- }                       			/* End of "C" linkage for C++   	*/
 Index: include/x86emu/x86emu.h
 ===================================================================
 RCS file: /cvs/osdf/cvs/host/other-licence/x86emu/include/x86emu/x86emu.h,v
@@ -861,18 +852,10 @@ retrieving revision 1.3
 diff -u -u -r1.1 -r1.3
 --- include/x86emu/x86emu.h	7 Sep 2007 10:01:21 -0000	1.1
 +++ include/x86emu/x86emu.h	19 Oct 2007 08:42:15 -0000	1.3
-@@ -42,14 +42,6 @@
+@@ -42,6 +42,6 @@
  #ifndef __X86EMU_X86EMU_H
  #define __X86EMU_X86EMU_H
  
--/* FIXME: undefine printk for the moment */
--#ifdef LINUXBIOS_VERSION
--#include <console.h>
--#define printk(x...) printk(BIOS_DEBUG, x)
--#else
--#define printk printf
--#endif 
--
  #ifdef SCITECH
  #include "scitech.h"
  #define	X86API	_ASMAPI

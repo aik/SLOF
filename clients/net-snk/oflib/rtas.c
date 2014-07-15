@@ -100,7 +100,7 @@ instantiate_rtas(void)
 
 	_rtas.dev = of_finddevice("/rtas");
 	if ((long) _rtas.dev < 0) {
-		printk("\nCould not open /rtas\n");
+		printf("\nCould not open /rtas\n");
 		return -1;
 	}
 
@@ -108,7 +108,7 @@ instantiate_rtas(void)
 		   sizeof(_rtas.rtas_size));
 
 	if (_rtas.rtas_size <= 0) {
-		printk("\nSize of rtas (%x) too small to make sense\n",
+		printf("\nSize of rtas (%x) too small to make sense\n",
 		       _rtas.rtas_size);
 		return -1;
 	}
@@ -116,14 +116,14 @@ instantiate_rtas(void)
 	rtas_mem_space = (long long *) malloc_aligned(_rtas.rtas_size, 0x100);
 
 	if (!rtas_mem_space) {
-		printk("\nFailed to allocated memory for RTAS\n");
+		printf("\nFailed to allocated memory for RTAS\n");
 		return -1;
 	}
 
 	ihandle = of_open("/rtas");
 
 	if ((long) ihandle < 0) {
-		printk("Could not open /rtas\n");
+		printf("Could not open /rtas\n");
 		return -1;
 	}
 
@@ -133,11 +133,11 @@ instantiate_rtas(void)
 	    > 0) {
 		_rtas.rtas_start = rtas_mem_space;
 	} else {
-		printk("instantiate-rtas failed\n");
+		printf("instantiate-rtas failed\n");
 		return -1;
 	}
 #if 0
-	printk("\ninstantiate-rtas at %x size %x entry %x\n",
+	printf("\ninstantiate-rtas at %x size %x entry %x\n",
 	       _rtas.rtas_start, _rtas.rtas_size, _rtas.rtas_entry);
 #endif
 	return 0;

@@ -377,7 +377,7 @@ bootmsg_cp(short id)
 
 #define DEBUG_TRANSLATE_ADDRESS 0
 #if DEBUG_TRANSLATE_ADDRESS != 0
-#define DEBUG_TR(str...) printk(str)
+#define DEBUG_TR(str...) printf(str)
 #else
 #define DEBUG_TR(str...)
 #endif

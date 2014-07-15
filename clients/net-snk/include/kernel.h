@@ -19,8 +19,6 @@
 #include <string.h>
 #include <of.h>
 
-int printk(const char *, ...);
-
 uint64_t get_time(void);
 int getchar(void);
 
