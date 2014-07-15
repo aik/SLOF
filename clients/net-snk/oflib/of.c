@@ -307,16 +307,6 @@ of_release(void *start, unsigned int size)
 	(void) of_2_0("release", p32cast start, size);
 }
 
-unsigned int
-romfs_lookup(const char *name, void **addr)
-{
-	unsigned int high, low;
-	unsigned int i = of_2_3("ibm,romfs-lookup", p32cast name, strlen(name),
-				(int *) &high, (int *) &low);
-	*addr = (void*)(((unsigned long) high << 32) | (unsigned long) low);
-	return i;
-}
-
 void *
 of_call_method_3(const char *name, ihandle_t ihandle, int arg0)
 {
@@ -422,35 +412,6 @@ of_fileio_close(snk_fileio_t *fileio)
 	of_close( * (ihandle_t*) fileio->data );
 	return 0;
 }
-
-static long
-dma_map_in(void *address, long size, int cachable)
-{
-	unsigned int ret;
-
-	/* Is dma-map-in available? */
-	if (of_test("dma-map-in") != 0) {
-		/* No dma-map-in available ==> Assume we can use 1:1 addresses */
-		return (long)address;
-	}
-
-	ret = of_3_1("dma-map-in", p32cast address, (int)size, cachable);
-
-	return ret;
-}
-
-static void
-dma_map_out(void *address, long devaddr, long size)
-{
-	/* Is dma-map-out available? */
-	if (of_test("dma-map-out") != 0) {
-		/* No dma-map-out available */
-		return;
-	}
-
-	of_3_0("dma-map-out", p32cast address, (int)devaddr, (int)size);
-}
-
 
 #define CONFIG_SPACE 0
 #define IO_SPACE 1
@@ -837,9 +798,7 @@ get_timebase(unsigned int *timebase)
 	of_getprop(cpu, "timebase-frequency", timebase, 4);
 }
 
-
-int
-glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
+int glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
           size_t _client_start, size_t _client_size)
 {
 	phandle_t chosen = of_finddevice("/chosen");
@@ -876,13 +835,6 @@ glue_init(snk_kernel_t * snk_kernel_interface, unsigned int * timebase,
 
 	get_timebase(timebase);
 	rtas_init();
-
-	snk_kernel_interface->k_romfs_lookup = romfs_lookup;
-	snk_kernel_interface->translate_addr = translate_address;
-	snk_kernel_interface->pci_config_read = rtas_pci_config_read;
-	snk_kernel_interface->pci_config_write = rtas_pci_config_write;
-	snk_kernel_interface->dma_map_in = dma_map_in;
-	snk_kernel_interface->dma_map_out = dma_map_out;
 
 	claim_rc=(int)(long)of_claim(client_start, client_size, 0);
 

@@ -86,10 +86,6 @@ extern snk_module_t *snk_modules[MODULES_MAX];
 typedef int (*print_t) (const char *, ...);
 typedef void (*us_delay_t) (unsigned int);
 typedef void (*ms_delay_t) (unsigned int);
-typedef int (*pci_config_read_t) (long long puid, int size,
-				  int bus, int devfn, int offset);
-typedef int (*pci_config_write_t) (long long puid, int size,
-				   int bus, int devfn, int offset, int value);
 typedef void *(*malloc_aligned_t) (size_t, int);
 typedef void *(*malloc_t) (size_t);
 typedef void (*free_t)    (void *);
@@ -97,8 +93,6 @@ typedef int (*strcmp_t)   (const char *, const char *);
 typedef int (*snk_call_t) (int, char **);
 typedef unsigned int (*io_read_t) (void *, size_t);
 typedef int (*io_write_t) (void *, unsigned int, size_t);
-typedef unsigned int (*romfs_lookup_t) (const char *name, void **addr);
-typedef void (*translate_addr_t) (unsigned long *);
 
 typedef int (*k_open_t) (const char *, int);
 typedef int (*k_close_t) (int);
@@ -109,16 +103,11 @@ typedef int (*k_ioctl_t) (int, int, void *);
 typedef void (*modules_remove_t) (int);
 typedef snk_module_t *(*modules_load_t) (int);
 
-typedef long (*dma_map_in_t)(void *address, long size, int cachable);
-typedef void (*dma_map_out_t)(void *address, long devaddr, long size);
-
 typedef struct {
 	int version;
 	print_t print;
 	us_delay_t us_delay;
 	ms_delay_t ms_delay;
-	pci_config_read_t pci_config_read;
-	pci_config_write_t pci_config_write;
 	malloc_t k_malloc;
 	malloc_aligned_t k_malloc_aligned;
 	free_t k_free;
@@ -126,8 +115,6 @@ typedef struct {
 	snk_call_t snk_call;
 	io_read_t io_read;
 	io_write_t io_write;
-	romfs_lookup_t k_romfs_lookup;
-	translate_addr_t translate_addr;
 	union {
 		pci_config_t pci_conf;
 		vio_config_t vio_conf;
@@ -139,8 +126,6 @@ typedef struct {
 	k_ioctl_t k_ioctl;
 	modules_remove_t modules_remove;
 	modules_load_t modules_load;
-	dma_map_in_t dma_map_in;
-	dma_map_out_t dma_map_out;
 } snk_kernel_t;
 
 /* Entry of module */
