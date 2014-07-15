@@ -13,7 +13,7 @@
 
 #ifndef _PCI_H
 #define _PCI_H
-#include <netdriver_int.h>
+
 #include <of.h>
 
 int pci_calc_bar_size (long long puid, int bus, int devfn, int bar);

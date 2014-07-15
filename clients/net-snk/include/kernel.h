@@ -15,6 +15,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <of.h>
 
 int printk(const char *, ...);
 void *memcpy(void *, const void *, size_t);
@@ -29,6 +31,8 @@ int strcmp(const char *, const char *);
 char *strcpy(char *, const char *);
 int printf(const char *, ...);
 void *malloc_aligned(size_t size, int align);
+
+int pre_open_ih(int fd, ihandle_t ih);
 
 void exception_forward(void);
 void undo_exception(void);

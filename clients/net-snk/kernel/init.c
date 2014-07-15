@@ -18,8 +18,6 @@
 #include <kernel.h>
 #include <cpu.h>
 #include <fileio.h>
-#include <ioctl.h> /* ioctl */
-#include "modules.h"
 
 /* Application entry point .*/
 extern int _start(unsigned char *arg_string, long len);
@@ -32,9 +30,6 @@ unsigned long exception_stack_frame;
 snk_fileio_t fd_array[FILEIO_MAX];
 
 extern uint64_t tb_freq;
-
-int glue_init(unsigned int *, size_t, size_t);
-void glue_release(void);
 
 extern char _lowmem_start;
 extern char _lowmem_end;
@@ -56,23 +51,19 @@ int _start_kernel(unsigned long p0, unsigned long p1)
 	unsigned int timebase;
 
 	/* initialize all file descriptor by marking them as empty */
-	for(rc=0; rc<FILEIO_MAX; ++rc) {
+	for(rc=0; rc<FILEIO_MAX; ++rc)
 		fd_array[rc].type = FILEIO_TYPE_EMPTY;
-		fd_array[rc].idx  = rc;
-	}
 
 	/* this is step is e.g. resposible to initialize file descriptor 0 and 1 for STDIO */
-	rc = glue_init(&timebase, (size_t)(unsigned long)&__client_start,
-	               (size_t)(unsigned long)&__client_end - (size_t)(unsigned long)&__client_start);
+	rc = of_glue_init(&timebase, (size_t)(unsigned long)&__client_start,
+			  (size_t)(unsigned long)&__client_end - (size_t)(unsigned long)&__client_start);
 	if(rc < 0)
 		return -1;
 
 	tb_freq = (uint64_t) timebase;
-	modules_init();
 	rc = _start((unsigned char *) p0, p1);
-	modules_term();
 
-	glue_release();
+	of_glue_release();
 	return rc;
 }
 

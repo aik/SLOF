@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <rtas.h>
 #include <of.h>
-#include <netdriver_int.h>
 #include <kernel.h>
 
 typedef int rtas_arg_t;

@@ -14,36 +14,11 @@
 #include <of.h>
 #include <rtas.h>
 #include <string.h>
-#include <netdriver_int.h>
-#include <fileio.h>
 #include <libbootmsg.h>
+#include <kernel.h>
 
 extern void call_client_interface(of_arg_t *);
 
-static int ofmod_init(void);
-static int ofmod_term(void);
-static int ofmod_open(snk_fileio_t*, const char* name, int flags);
-static int ofmod_read(char *buffer, int len);
-static int ofmod_write(char *buffer, int len);
-static int ofmod_ioctl(int request, void *data);
-
-int glue_init(unsigned int *, size_t, size_t);
-void glue_release(void);
-
-snk_module_t of_module = {
-	.version = 1,
-	.type    = MOD_TYPE_OTHER,
-	.running = 1,
-	.link_addr = (char*) 1,
-	.init    = ofmod_init,
-	.term    = ofmod_term,
-	.open    = ofmod_open,
-	.write   = ofmod_write,
-	.read    = ofmod_read,
-	.ioctl   = ofmod_ioctl
-};
-
-static ihandle_t fd_ihandle_array[FILEIO_MAX];
 static int claim_rc = 0;
 static void* client_start;
 static size_t client_size;
@@ -284,6 +259,13 @@ of_parent(phandle_t phandle)
 }
 
 phandle_t
+of_instance_to_package(ihandle_t ihandle)
+{
+	return (phandle_t) of_1_1("instance-to-package", ihandle);
+}
+
+
+phandle_t
 of_finddevice(const char *name)
 {
 	return (phandle_t) of_1_1("finddevice", p32cast name);
@@ -385,33 +367,6 @@ bootmsg_cp(short id)
 	(void) of_1_0("bootmsg-cp", id);
 }
 */
-
-static long
-of_fileio_read(snk_fileio_t *fileio, char *buf, long len)
-{
-	if(!fileio)
-		return -1;
-	return of_read( * (ihandle_t*) fileio->data, buf, len );
-}
-
-static long
-of_fileio_write(snk_fileio_t *fileio, char *buf, long len)
-{
-	if(!fileio)
-		return -1;
-	return of_write( * (ihandle_t*) fileio->data, buf, len );
-}
-
-static int
-of_fileio_close(snk_fileio_t *fileio)
-{
-	if(!fileio)
-		return -1;
-
-	fileio->type = FILEIO_TYPE_EMPTY;
-	of_close( * (ihandle_t*) fileio->data );
-	return 0;
-}
 
 #define CONFIG_SPACE 0
 #define IO_SPACE 1
@@ -690,19 +645,14 @@ get_puid(phandle_t node)
 	return 0;
 }
 
-void
-get_mac(char *mac)
+int of_get_mac(phandle_t device, char *mac)
 {
 	uint8_t localmac[8];
 	int len;
 
-	phandle_t net = get_boot_device();
-	if (net == -1)
-		return;
-
-	len = of_getprop(net, "local-mac-address", localmac, 8);
+	len = of_getprop(device, "local-mac-address", localmac, 8);
 	if (len <= 0)
-		return;
+		return -1;
 
 	if (len == 8) {
 		/* Some bad FDT nodes like veth use a 8-byte wide
@@ -712,6 +662,7 @@ get_mac(char *mac)
 	else {
 		memcpy(mac, localmac, 6);
 	}
+	return 0;
 }
 
 static void
@@ -731,10 +682,11 @@ get_timebase(unsigned int *timebase)
 	of_getprop(cpu, "timebase-frequency", timebase, 4);
 }
 
-int glue_init(unsigned int * timebase,
-	      size_t _client_start, size_t _client_size)
+int of_glue_init(unsigned int * timebase,
+		 size_t _client_start, size_t _client_size)
 {
 	phandle_t chosen = of_finddevice("/chosen");
+	ihandle_t stdin, stdout;
 
 	client_start = (void *) (long) _client_start;
 	client_size = _client_size;
@@ -742,25 +694,10 @@ int glue_init(unsigned int * timebase,
 	if (chosen == -1)
 		return -1;
 
-	fd_array[0].type  = FILEIO_TYPE_USED;
-	fd_array[0].read  = of_fileio_read;
-	fd_array[0].write = of_fileio_write;
-	fd_array[0].ioctl = 0;
-	fd_array[0].close = of_fileio_close;
-	fd_array[0].data  = &fd_ihandle_array[0];
-	of_getprop(chosen, "stdin", fd_array[0].data, sizeof(ihandle_t));
-
-	fd_array[1].type  = FILEIO_TYPE_USED;
-	fd_array[1].read  = of_fileio_read;
-	fd_array[1].write = of_fileio_write;
-	fd_array[1].ioctl = 0;
-	fd_array[1].close = of_fileio_close;
-	fd_array[1].data  = &fd_ihandle_array[1];
-	of_getprop(chosen, "stdout", fd_array[1].data, sizeof(ihandle_t));
-
-	if (of_write(fd_ihandle_array[1], " ", 1) < 0)
-		return -2;
-
+	of_getprop(chosen, "stdin", &stdin, sizeof(ihandle_t));
+	of_getprop(chosen, "stdout", &stdout, sizeof(ihandle_t));
+	pre_open_ih(0, stdin);
+	pre_open_ih(1, stdout);
 	get_timebase(timebase);
 	rtas_init();
 
@@ -769,60 +706,9 @@ int glue_init(unsigned int * timebase,
 	return 0;
 }
 
-void
-glue_release(void)
+void of_glue_release(void)
 {
 	if (claim_rc >= 0) {
 		of_release(client_start, client_size);
 	}
 }
-
-static int
-ofmod_init(void)
-{
-	of_module.running = 1;
-	return 0;
-}
-
-static int
-ofmod_term(void)
-{
-	of_module.running = 0;
-	return 0;
-}
-
-static int
-ofmod_open(snk_fileio_t *fileio, const char* name, int flags)
-{
-	if ((fd_ihandle_array[fileio->idx] = of_open (name)) == 0)
-	{
-		/* this module can not open this file */
-		return -1;
-	}
-
-	fileio->type  = FILEIO_TYPE_USED;
-	fileio->read  = of_fileio_read;
-	fileio->write = of_fileio_write;
-	fileio->close = of_fileio_close;
-	fileio->data  = &fd_ihandle_array[fileio->idx];
-	return 0;
-}
-
-static int
-ofmod_read(char *buffer, int len)
-{
-	return len;
-}
-
-static int
-ofmod_write(char *buffer, int len)
-{
-	return len;
-}
-
-static int
-ofmod_ioctl(int request, void *data)
-{
-	return 0;
-}
-

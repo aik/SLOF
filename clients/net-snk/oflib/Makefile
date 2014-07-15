@@ -17,7 +17,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-OBJS    = rtas.o of.o pci.o ci_device.o
+OBJS    = rtas.o of.o pci.o
 OBJS2   = entry.o
 
 all: 		oflib.o
