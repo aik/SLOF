@@ -20,14 +20,16 @@
 C_ENTRY(call_client_interface)
 	ld	r4, .prom_entry_toc@toc(r2)	# Load prom entry point
 	mflr	r0
+	std	r0, 16(r1)
 	ld	r4, 0(r4)
-	stdu	r1, -16(r1)
+	stdu	r1, -128(r1)
+	std	r2,40(r1)
 	mtctr	r4
-	std	r0, 8(r1)
 	bctrl
-	ld	r0, 8(r1)
+	ld	r2,40(r1)
+	addi	r1, r1, 128
+	ld	r0, 16(r1)
 	mtlr	r0
-	addi	r1, r1, 16
 	blr
 
 
