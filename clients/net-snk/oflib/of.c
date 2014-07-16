@@ -686,7 +686,7 @@ int of_glue_init(unsigned int * timebase,
 		 size_t _client_start, size_t _client_size)
 {
 	phandle_t chosen = of_finddevice("/chosen");
-	ihandle_t stdin, stdout;
+	ihandle_t stdin_ih, stdout_ih;
 
 	client_start = (void *) (long) _client_start;
 	client_size = _client_size;
@@ -694,10 +694,11 @@ int of_glue_init(unsigned int * timebase,
 	if (chosen == -1)
 		return -1;
 
-	of_getprop(chosen, "stdin", &stdin, sizeof(ihandle_t));
-	of_getprop(chosen, "stdout", &stdout, sizeof(ihandle_t));
-	pre_open_ih(0, stdin);
-	pre_open_ih(1, stdout);
+	of_getprop(chosen, "stdin", &stdin_ih, sizeof(ihandle_t));
+	of_getprop(chosen, "stdout", &stdout_ih, sizeof(ihandle_t));
+	pre_open_ih(0, stdin_ih);
+	pre_open_ih(1, stdout_ih);
+	pre_open_ih(2, stdout_ih);
 	get_timebase(timebase);
 	rtas_init();
 
