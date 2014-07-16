@@ -61,7 +61,7 @@ __start:
 	mflr	r0
 // 10
 	mtsprg  3,r0
-	ld	r0, (\i + 0x160)(0)
+	ld	r0, (\i + 0x60)(0)
 	mtctr	r0
 	li	r0, \i + 0x100
 // 20
