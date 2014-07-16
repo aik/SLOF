@@ -174,15 +174,3 @@ void exit(int status)
 {
 	_exit(status);
 }
-
-int printf(const char* fmt, ...)
-{
-	int count;
-	va_list ap;
-	char buffer[256];
-	va_start (ap, fmt);
-	count=vsprintf(buffer, fmt, ap);
-	write (1, buffer, count);
-	va_end (ap);
-	return count;
-}
