@@ -103,16 +103,17 @@ is_multicast_mac(uint8_t * mac) {
  * Ethernet: Receives an ethernet-packet and handles it according to
  *      Receive-handle diagram.
  *
+ * @param  fd        socket fd
  * @return  ZERO - packet was handled or no packets received;
  *          NON ZERO - error condition occurs.
  */
 int32_t
-receive_ether(void) {
+receive_ether(int fd) {
 	int32_t bytes_received;
 	struct ethhdr * ethh;
 
 	memset(ether_packet, 0, ETH_MTU_SIZE);
-	bytes_received = recv(0, ether_packet, ETH_MTU_SIZE, 0);
+	bytes_received = recv(fd, ether_packet, ETH_MTU_SIZE, 0);
 
 	if (!bytes_received) // No messages
 		return 0;
@@ -130,15 +131,15 @@ receive_ether(void) {
 
 	switch (htons(ethh -> type)) {
 	case ETHERTYPE_IP:
-		return handle_ipv4((uint8_t*) (ethh + 1),
+		return handle_ipv4(fd, (uint8_t*) (ethh + 1),
 		                   bytes_received - sizeof(struct ethhdr));
 
 	case ETHERTYPE_IPv6:
-		return handle_ipv6(ether_packet + sizeof(struct ethhdr),
+		return handle_ipv6(fd, ether_packet + sizeof(struct ethhdr),
 				bytes_received - sizeof(struct ethhdr));
 
 	case ETHERTYPE_ARP:
-		return handle_arp((uint8_t*) (ethh + 1),
+		return handle_arp(fd, (uint8_t*) (ethh + 1),
 		           bytes_received - sizeof(struct ethhdr));
 	default:
 		break;
@@ -152,9 +153,9 @@ receive_ether(void) {
  * @return number of transmitted bytes
  */
 int
-send_ether(void* buffer, int len)
+send_ether(int fd, void* buffer, int len)
 {
-	return send(0, buffer, len, 0);
+	return send(fd, buffer, len, 0);
 }
 
 /**

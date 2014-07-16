@@ -45,9 +45,9 @@ struct btphdr {
 
 int bootp(char *ret_buffer, filename_ip_t *, unsigned int);
 int dhcpv4(char *ret_buffer, filename_ip_t *);
-void dhcp_send_release(void);
+void dhcp_send_release(int fd);
 
 /* Handles DHCP-packets, which are detected by receive_ether. */
-extern int8_t handle_dhcp(uint8_t * packet, int32_t packetsize);
+extern int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize);
 
 #endif

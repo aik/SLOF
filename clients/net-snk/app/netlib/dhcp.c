@@ -135,7 +135,7 @@ static uint8_t dhcp_state;
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> PROTOTYPES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
 static int32_t
-dhcp_attempt(void);
+dhcp_attempt(int fd);
 
 static int32_t
 dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct);
@@ -161,10 +161,10 @@ dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
                     uint32_t dst_offset, uint8_t * new_option);
 
 static void
-dhcp_send_discover(void);
+dhcp_send_discover(int fd);
 
 static void
-dhcp_send_request(void);
+dhcp_send_request(int fd);
 
 static uint8_t
 strtoip(int8_t * str, uint32_t * ip);
@@ -187,12 +187,14 @@ int32_t
 dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
 
 	uint32_t dhcp_tftp_ip     = 0;
+	int fd = fn_ip->fd;
+
 	strcpy((char *) dhcp_filename, "");
 	strcpy((char *) dhcp_tftp_name, "");
 
 	response_buffer = ret_buffer;
 
-	if (dhcp_attempt() == 0)
+	if (dhcp_attempt(fd) == 0)
 		return -1;
 
 	if (fn_ip->own_ip) {
@@ -218,7 +220,7 @@ dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
 	else {
 		// TFTP server defined by its name
 		if (!strtoip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
-			if (!dns_get_ip(dhcp_tftp_name, (uint8_t *)&(dhcp_tftp_ip), 4)) {
+			if (!dns_get_ip(fd, dhcp_tftp_name, (uint8_t *)&(dhcp_tftp_ip), 4)) {
 				// DNS error - can't obtain TFTP-server name  
 				// Use TFTP-ip from siaddr field, if presented
 				if (dhcp_siaddr_ip) {
@@ -244,11 +246,11 @@ dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
  * DHCP: Tries o obtain DHCP parameters, refer to state-transition diagram
  */
 static int32_t
-dhcp_attempt(void) {
+dhcp_attempt(int fd) {
 	int sec;
 
 	// Send DISCOVER message and switch DHCP-client to SELECT state
-	dhcp_send_discover();
+	dhcp_send_discover(fd);
 
 	dhcp_state = DHCP_STATE_SELECT;
 
@@ -256,7 +258,7 @@ dhcp_attempt(void) {
 	for (sec = 0; sec < 2; sec++) {
 		set_timer(TICKS_SEC);
 		do {
-			receive_ether();
+			receive_ether(fd);
 
 			// Wait until client will switch to Final state or Timeout occurs
 			switch (dhcp_state) {
@@ -611,7 +613,7 @@ dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
  * DHCP: Sends DHCP-Discover message. Looks for DHCP servers.
  */
 static void
-dhcp_send_discover(void) {
+dhcp_send_discover(int fd) {
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -647,14 +649,14 @@ dhcp_send_discover(void) {
 	           sizeof(struct udphdr) + sizeof(struct iphdr),
 	           IPTYPE_UDP, dhcp_own_ip, 0xFFFFFFFF);
 
-	send_ipv4(ether_packet, packetsize);
+	send_ipv4(fd, ether_packet, packetsize);
 }
 
 /**
  * DHCP: Sends DHCP-Request message. Asks for acknowledgment to occupy IP.
  */
 static void
-dhcp_send_request(void) {
+dhcp_send_request(int fd) {
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -695,14 +697,14 @@ dhcp_send_request(void) {
 	           sizeof(struct udphdr) + sizeof(struct iphdr),
 	           IPTYPE_UDP, 0, 0xFFFFFFFF);
 
-	send_ipv4(ether_packet, packetsize);
+	send_ipv4(fd, ether_packet, packetsize);
 }
 
 
 /**
  * DHCP: Sends DHCP-Release message. Releases occupied IP.
  */
-void dhcp_send_release(void) {
+void dhcp_send_release(int fd) {
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -735,13 +737,14 @@ void dhcp_send_release(void) {
 	           sizeof(struct udphdr) + sizeof(struct iphdr), IPTYPE_UDP,
 	           dhcp_own_ip, dhcp_server_ip);
 
-	send_ipv4(ether_packet, packetsize);
+	send_ipv4(fd, ether_packet, packetsize);
 }
 
 /**
  * DHCP: Handles DHCP-messages according to Receive-handle diagram.
  *       Changes the state of DHCP-client.
  *
+ * @param  fd         socket descriptor
  * @param  packet     BootP/DHCP-packet to be handled
  * @param  packetsize length of the packet
  * @return            ZERO - packet handled successfully;
@@ -751,7 +754,7 @@ void dhcp_send_release(void) {
  */
 
 int8_t
-handle_dhcp(uint8_t * packet, int32_t packetsize) {
+handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
 	struct btphdr * btph;
 	struct iphdr * iph;
 	dhcp_options_t opt;
@@ -863,7 +866,7 @@ handle_dhcp(uint8_t * packet, int32_t packetsize) {
 			if (opt.msg_type == DHCPOFFER) {
 				dhcp_own_ip = htonl(btph -> yiaddr);
 				dhcp_server_ip = opt.server_ID;
-				dhcp_send_request();
+				dhcp_send_request(fd);
 				dhcp_state = DHCP_STATE_REQUEST;
 			}
 			return 0;

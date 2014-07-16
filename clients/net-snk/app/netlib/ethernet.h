@@ -35,10 +35,10 @@ extern void set_mac_address(const uint8_t * own_mac);
 extern const uint8_t * get_mac_address(void);
 
 /* Receives and handles packets, according to Receive-handle diagram */
-extern int32_t receive_ether(void);
+extern int32_t receive_ether(int fd);
 
 /* Sends an ethernet frame. */
-extern int send_ether(void* buffer, int len);
+extern int send_ether(int fd, void* buffer, int len);
 
 /* fills ethernet header */
 extern void fill_ethhdr(uint8_t * packet, uint16_t eth_type,

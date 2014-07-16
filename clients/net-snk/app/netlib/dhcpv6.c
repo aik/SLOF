@@ -37,7 +37,7 @@ generate_transaction_id(void)
 }
 
 static void
-send_info_request(void)
+send_info_request(int fd)
 {
 	uint8_t ether_packet[ETH_MTU_SIZE];
 	uint32_t payload_length;
@@ -78,19 +78,19 @@ send_info_request(void)
 	dhcph->option.option_request_option.option_code[2] = DHCPV6_OPTION_BOOT_URL;
 
 
-	send_ipv6( ether_packet + sizeof(struct ethhdr),
+	send_ipv6(fd, ether_packet + sizeof(struct ethhdr),
 	         sizeof(struct ethhdr)+ sizeof(struct ip6hdr)
 		 + sizeof(struct udphdr)
 	         + sizeof( struct dhcp_message_header) );
 }
 
 static int32_t
-dhcpv6_attempt(void)
+dhcpv6_attempt(int fd)
 {
 	int sec;
 
 	// Send information request
-	send_info_request();
+	send_info_request(fd);
 
 	dhcpv6_state = DHCPV6_STATE_SELECT;
 
@@ -98,7 +98,7 @@ dhcpv6_attempt(void)
 	for (sec = 0; sec < 2; sec++) {
 		set_timer(TICKS_SEC);
 		do {
-			receive_ether();
+			receive_ether(fd);
 
 			// Wait until client will switch to Final state or Timeout occurs
 			switch (dhcpv6_state) {
@@ -117,8 +117,12 @@ dhcpv6_attempt(void)
 int32_t
 dhcpv6 ( char *ret_buffer, void *fn_ip)
 {
+	int fd;
+
 	my_fn_ip = (filename_ip_t *) fn_ip;
-	if( !dhcpv6_attempt()) {
+	fd = my_fn_ip->fd;
+
+	if( !dhcpv6_attempt(fd)) {
 		return -1;
 	}
 
@@ -178,6 +182,7 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 			if (parse_tftp_args(buffer,
 					    (char *)my_fn_ip->server_ip6.addr,
 					    (char *)my_fn_ip->filename,
+					    (int)my_fn_ip->fd,
 					    option_boot_url->length) == -1)
 				return NULL;
 			break;

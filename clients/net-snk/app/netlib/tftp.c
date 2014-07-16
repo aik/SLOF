@@ -86,9 +86,11 @@ dump_package(unsigned char *buffer, unsigned int len)
 
 /**
  * send_rrq - Sends a read request package.
+ *
+ * @fd:          Socket Descriptor
  */
 static void
-send_rrq(void)
+send_rrq(int fd)
 {
 	int ip_len = 0;
 	int ip6_payload_len    = 0;
@@ -142,7 +144,7 @@ send_rrq(void)
 	ptr += strlen("blksize") + 1;
 	memcpy(ptr, blocksize_str, strlen(blocksize_str) + 1);
 
-	send_ip (packet, ip_len);
+	send_ip (fd, packet, ip_len);
 
 #ifdef __DEBUG__
 	printf("tftp RRQ with %d bytes transmitted.\n", ip_len);
@@ -157,7 +159,7 @@ send_rrq(void)
  * @dport:  UDP destination port
  */
 static void
-send_ack(int blckno, unsigned short dport)
+send_ack(int fd, int blckno, unsigned short dport)
 {
 	int ip_len 	       = 0;
 	int ip6_payload_len    = 0;
@@ -192,7 +194,7 @@ send_ack(int blckno, unsigned short dport)
 	tftp->th_opcode = htons(ACK);
 	tftp->th_data = htons(blckno);
 
-	send_ip(packet, ip_len);
+	send_ip(fd, packet, ip_len);
 
 #ifdef __DEBUG__
 	printf("tftp ACK %d bytes transmitted.\n", ip_len);
@@ -204,11 +206,12 @@ send_ack(int blckno, unsigned short dport)
 /**
  * send_error - Sends an error package.
  *
+ * @fd:          Socket Descriptor
  * @error_code:  Used sub code for error packet
  * @dport:       UDP destination port
  */
 static void
-send_error(int error_code, unsigned short dport)
+send_error(int fd, int error_code, unsigned short dport)
 {
 	int ip_len 	       = 0;
 	int ip6_payload_len    = 0;
@@ -244,7 +247,7 @@ send_error(int error_code, unsigned short dport)
 	tftp->th_data = htons(error_code);
 	((char *) &tftp->th_data)[2] = 0;
 
-	send_ip(packet, ip_len);
+	send_ip(fd, packet, ip_len);
 
 #ifdef __DEBUG__
 	printf("tftp ERROR %d bytes transmitted.\n", ip_len);
@@ -330,13 +333,14 @@ get_blksize(unsigned char *buffer, unsigned int len)
  * I for an ICMP packet
  * #+* for different unexpected TFTP packets (not very good)
  *
+ * @param fd     socket descriptor
  * @param packet points to the UDP header of the packet 
  * @param len    the length of the network packet
  * @return       ZERO if packet was handled successfully
  *               ERRORCODE if error occurred 
  */
 int32_t
-handle_tftp(uint8_t *pkt, int32_t packetsize) 
+handle_tftp(int fd, uint8_t *pkt, int32_t packetsize) 
 {
 	struct udphdr *udph;
 	struct tftphdr *tftp;
@@ -361,17 +365,17 @@ handle_tftp(uint8_t *pkt, int32_t packetsize)
 		/* an OACK means that the server answers our blocksize request */
 		blocksize = get_blksize(pkt, packetsize);
 		if (!blocksize || blocksize > MAX_BLOCKSIZE) {
-			send_error(8, port_number);
+			send_error(fd, 8, port_number);
 			tftp_errno = -8;
 			goto error;
 		}
-		send_ack(0, port_number);
+		send_ack(fd, 0, port_number);
 	} else if (tftp->th_opcode == htons(ACK)) {
 		/* an ACK means that the server did not answers
 		 * our blocksize request, therefore we will set the blocksize
 		 * to the default value of 512 */
 		blocksize = 512;
-		send_ack(0, port_number);
+		send_ack(fd, 0, port_number);
 	} else if ((unsigned char) tftp->th_opcode == ERROR) {
 #ifdef __DEBUG__
 		printf("tftp->th_opcode : %x\n", tftp->th_opcode);
@@ -413,7 +417,7 @@ handle_tftp(uint8_t *pkt, int32_t packetsize)
 			     tftp->th_data, block + 1);
 			printf("\b+ ");
 #endif
-			send_ack(tftp->th_data, port_number);
+			send_ack(fd, tftp->th_data, port_number);
 			lost_packets++;
 			tftp_err->bad_tftp_packets++;
 			return 0;
@@ -444,7 +448,7 @@ handle_tftp(uint8_t *pkt, int32_t packetsize)
 		}
 		memcpy(buffer + received_len, &tftp->th_data + 1,
 		       udph->uh_ulen - 12);
-		send_ack(tftp->th_data, port_number);
+		send_ack(fd, tftp->th_data, port_number);
 		received_len += udph->uh_ulen - 12;
 		/* Last packet reached if the payload of the UDP packet
 		 * is smaller than blocksize + 12
@@ -539,7 +543,7 @@ tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 	buffer = _buffer;
 
 	set_timer(TICKS_SEC);
-	send_rrq();
+	send_rrq(fn_ip->fd);
 
 	while (! tftp_finished) {
 		/* if timeout (no packet received) */
@@ -547,19 +551,19 @@ tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 			/* the server doesn't seem to retry let's help out a bit */
 			if (tftp_err->no_packets > 4 && port_number != -1
 			    && block > 1) {
-				send_ack(block, port_number);
+				send_ack(fn_ip->fd, block, port_number);
 			}
 			else if (port_number == -1 && block == 0
 				 && (tftp_err->no_packets&3) == 3) {
 				printf("\nRepeating TFTP read request...\n");
-				send_rrq();
+				send_rrq(fn_ip->fd);
 			}
 			tftp_err->no_packets++;
 			set_timer(TICKS_SEC);
 		}
 
 		/* handle received packets */
-		receive_ether();
+		receive_ether(fn_ip->fd);
 
 		/* bad_tftp_packets are counted whenever we receive a TFTP packet
 			* which was not expected; if this gets larger than 'retries'

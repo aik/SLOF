@@ -32,7 +32,7 @@
 
 /****************************** PROTOTYPES *******************************/
 int8_t ip6addr_add (struct ip6addr_list_entry *new_address);
-static void ipv6_init(void);
+static void ipv6_init(int fd);
 static int ip6_is_multicast (ip6_addr_t * ip);
 
 /****************************** LOCAL VARIABLES **************************/
@@ -52,12 +52,12 @@ static uint8_t null_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 /**
  * IPv6: Set the own IPv6 address.
  *
+ * @param  fd            Socket descriptor
  * @param  _own_ip       client IPv6 address (e.g. ::1)
  */
 void
-set_ipv6_address (ip6_addr_t *_own_ip6)
+set_ipv6_address (int fd, ip6_addr_t *_own_ip6)
 {
-
 	own_ip6 = malloc (sizeof(struct ip6addr_list_entry));
 
 	/* If no address was passed as a parameter generate a link-local
@@ -72,7 +72,7 @@ set_ipv6_address (ip6_addr_t *_own_ip6)
 	/* Add to our list of IPv6 addresses */
 	ip6addr_add (own_ip6);
 
-	ipv6_init();
+	ipv6_init(fd);
 }
 
 /**
@@ -110,6 +110,7 @@ find_ip6addr (ip6_addr_t *ip)
 /**
  * NET: Handles IPv6-packets
  *
+ * @param  fd         - Socket descriptor
  * @param  ip6_packet - Pointer to IPv6 header
  * @param  packetsize - Size of Ipv6 packet
  * @return ERROR      - -1 if packet is too small or unknown protocol
@@ -119,7 +120,7 @@ find_ip6addr (ip6_addr_t *ip)
  * @see ip6hdr
  */
 int8_t
-handle_ipv6 (uint8_t * ip6_packet, int32_t packetsize)
+handle_ipv6 (int fd, uint8_t * ip6_packet, int32_t packetsize)
 {
 
 	struct ip6hdr *ip6 = NULL;
@@ -134,10 +135,10 @@ handle_ipv6 (uint8_t * ip6_packet, int32_t packetsize)
 
 	switch (ip6->nh) {
 		case IPTYPE_UDP:
-			return handle_udp (ip6_packet + sizeof (struct ip6hdr),
+			return handle_udp (fd, ip6_packet + sizeof (struct ip6hdr),
 					ip6->pl);
 		case IPTYPE_ICMPV6:
-			return handle_icmpv6 ((struct ethhdr *) ip6_packet - sizeof(struct ethhdr),
+			return handle_icmpv6 (fd, (struct ethhdr *) ip6_packet - sizeof(struct ethhdr),
 					      ip6_packet);
 	}
 
@@ -329,9 +330,10 @@ ip6addr_add (struct ip6addr_list_entry *new_address)
 /**
  * NET: Initialize IPv6
  *
+ * @param  fd            socket fd
  */
 static void
-ipv6_init ()
+ipv6_init (int fd)
 {
 	int i = 0;
 
@@ -363,11 +365,11 @@ ipv6_init ()
 	first_neighbor = NULL;
 	last_neighbor  = first_neighbor;
 
-	send_router_solicitation ();
+	send_router_solicitation (fd);
 	for(i=0; i < 4 && !is_ra_received(); i++) {
 		set_timer(TICKS_SEC);
 		do {
-			receive_ether();
+			receive_ether(fd);
 			if (is_ra_received())
 				break;
 		} while (get_timer() > 0);
@@ -467,6 +469,7 @@ ip6_checksum (struct ip6hdr *ip6h, unsigned short *packet, int words)
 /**
  * NET: Handles IPv6-packets
  *
+ * @param fd          socket fd
  * @param ip6_packet  Pointer to IPv6 header in packet
  * @param packetsize  Size of IPv6 packet
  * @return -1 == ERRROR
@@ -476,7 +479,7 @@ ip6_checksum (struct ip6hdr *ip6h, unsigned short *packet, int words)
  * @see ip6hdr
  */
 int
-send_ipv6 (void* buffer, int len)
+send_ipv6 (int fd, void* buffer, int len)
 {
 	struct neighbor *n;
 	struct ip6hdr *ip6h;
@@ -544,7 +547,7 @@ send_ipv6 (void* buffer, int len)
 
 		if (! memcmp (mac_addr, &null_mac, 6)) {
 			if (n->eth_len == 0) {
-				send_neighbour_solicitation (&ip_dst);
+				send_neighbour_solicitation (fd, &ip_dst);
 
 				// Store the packet until we know the MAC address
 				memset(n->eth_frame, 0, 1500);
@@ -557,7 +560,7 @@ send_ipv6 (void* buffer, int len)
 				n->eth_len = len;
 				set_timer(TICKS_SEC);
 				do {
-					receive_ether();
+					receive_ether(fd);
 				} while (get_timer() > 0);
 			}
 		}
@@ -566,7 +569,7 @@ send_ipv6 (void* buffer, int len)
 	fill_ethhdr (n->eth_frame, htons(ETHERTYPE_IPv6), get_mac_address(),
 		     mac_addr);
 	memcpy (&(n->eth_frame[sizeof(struct ethhdr)]), buffer, len);
-	return send_ether (n->eth_frame, len + sizeof(struct ethhdr));
+	return send_ether (fd, n->eth_frame, len + sizeof(struct ethhdr));
 }
 
 static int

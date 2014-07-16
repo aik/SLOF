@@ -25,10 +25,10 @@ static int ra_received = 0;
 
 /**
  * NET:
- *
+ * @param  fd           socket fd
  */
 void
-send_router_solicitation ()
+send_router_solicitation (int fd)
 {
 	ip6_addr_t dest_addr;
 	uint8_t ether_packet[ETH_MTU_SIZE];
@@ -58,7 +58,7 @@ send_router_solicitation ()
 	memcpy( &(headers.icmp6h->icmp6body.router_solicit.lladdr.mac),
 		get_mac_address(), 6);
 
-	send_ip (headers.ip6h, sizeof(struct ip6hdr) +
+	send_ip (fd, headers.ip6h, sizeof(struct ip6hdr) +
 		   ICMPv6_HEADER_SIZE + sizeof(struct router_solicitation));
 }
 
@@ -194,10 +194,11 @@ int is_ra_received(void)
 /**
  * NET:
  *
+ * @param  fd         socket fd
  * @param  ip6_addr_t *dest_ip6
  */
 void
-send_neighbour_solicitation (ip6_addr_t *dest_ip6)
+send_neighbour_solicitation (int fd, ip6_addr_t *dest_ip6)
 {
 	ip6_addr_t snma;
 
@@ -233,7 +234,7 @@ send_neighbour_solicitation (ip6_addr_t *dest_ip6)
 	memcpy( &(headers.icmp6h->icmp6body.nghb_solicit.lladdr.mac),
 		get_mac_address(), 6);
 
-	send_ip (ether_packet + sizeof(struct ethhdr),
+	send_ip (fd, ether_packet + sizeof(struct ethhdr),
 		   sizeof(struct ip6hdr) + ICMPv6_HEADER_SIZE +
 		   sizeof(struct neighbour_solicitation));
 }
@@ -241,12 +242,13 @@ send_neighbour_solicitation (ip6_addr_t *dest_ip6)
 /**
  * NET:
  *
+ * @param  fd           socket fd
  * @param  ip6_packet	pointer to an IPv6 packet
  * @param  icmp6hdr	pointer to the icmp6 header in ip6_packet
  * @param  na_flags	Neighbour advertisment flags
  */
 static void
-send_neighbour_advertisement (struct neighbor *target)
+send_neighbour_advertisement (int fd, struct neighbor *target)
 {
 	struct na_flags na_adv_flags;
 	uint8_t ether_packet[ETH_MTU_SIZE];
@@ -297,7 +299,7 @@ send_neighbour_advertisement (struct neighbor *target)
 	memcpy( &(headers.icmp6h->icmp6body.nghb_adv.lladdr.mac),
 		get_mac_address(), 6);
 
-	send_ip (ether_packet + sizeof(struct ethhdr),
+	send_ip (fd, ether_packet + sizeof(struct ethhdr),
 		   sizeof(struct ip6hdr) + ICMPv6_HEADER_SIZE +
 		   sizeof(struct neighbour_advertisement));
 }
@@ -305,10 +307,11 @@ send_neighbour_advertisement (struct neighbor *target)
 /**
  * NET:
  *
+ * @param  fd           socket fd
  * @param  ip6_packet	pointer to an IPv6 packet
  */
 static int8_t
-handle_na (uint8_t *packet)
+handle_na (int fd, uint8_t *packet)
 {
 	struct neighbor *n = NULL;
 	struct packeth headers;
@@ -338,7 +341,7 @@ handle_na (uint8_t *packet)
 		if (n->eth_len > 0) {
 			struct ethhdr * ethh = (struct ethhdr *) &(n->eth_frame);
 			memcpy(ethh->dest_mac, &(n->mac), 6);
-			send_ether (&(n->eth_frame), n->eth_len + sizeof(struct ethhdr));
+			send_ether (fd, &(n->eth_frame), n->eth_len + sizeof(struct ethhdr));
 			n->eth_len = 0;
 		}
 	}
@@ -349,11 +352,12 @@ handle_na (uint8_t *packet)
 /**
  * NET: Handles ICMPv6 messages
  *
+ * @param  fd           socket fd
  * @param  ip6_packet	pointer to an IPv6 packet
  * @param  packetsize	size of ipv6_packet
  */
 int8_t
-handle_icmpv6 (struct ethhdr *etherhdr,
+handle_icmpv6 (int fd, struct ethhdr *etherhdr,
 	      uint8_t  *ip6_packet)
 {
 
@@ -371,10 +375,10 @@ handle_icmpv6 (struct ethhdr *etherhdr,
 	/* process ICMPv6 types */
 	switch(received_icmp6->type) {
 		case ICMPV6_NEIGHBOUR_SOLICITATION:
-			send_neighbour_advertisement( &target );
+			send_neighbour_advertisement(fd, &target);
 			break;
 		case ICMPV6_NEIGHBOUR_ADVERTISEMENT:
-			handle_na((uint8_t *) ip6_packet - sizeof(struct ethhdr));
+			handle_na(fd, (uint8_t *) ip6_packet - sizeof(struct ethhdr));
 			break;
 		case ICMPV6_ROUTER_ADVERTISEMENT:
 			handle_ra(received_icmp6, (uint8_t *) received_ip6);

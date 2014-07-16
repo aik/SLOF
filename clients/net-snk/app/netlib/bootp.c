@@ -85,7 +85,7 @@ send_bootp(filename_ip_t * fn_ip)
 	printf(".\n");
 #endif
 
-	send_ipv4(packet, iph->ip_len);
+	send_ipv4(fn_ip->fd, packet, iph->ip_len);
 #if DEBUG
 	printf("%d bytes transmitted over socket.\n", i);
 #endif
@@ -121,7 +121,7 @@ receive_bootp(filename_ip_t * fn_ip)
 	do {
 
 		/* let's receive a packet */
-		len = recv(0, packet, packetsize, 0);
+		len = recv(fn_ip->fd, packet, packetsize, 0);
 
 #if DEBUG
 		int j;

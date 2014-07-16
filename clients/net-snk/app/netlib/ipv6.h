@@ -130,7 +130,7 @@ struct ip6_config {
 
 /******************** VARIABLES **********************************************/
 /* Function pointer send_ip. Points either to send_ipv4() or send_ipv6() */
-extern int   (*send_ip) (void *, int);
+extern int   (*send_ip) (int fd, void *, int);
 
 /* IPv6 link-local multicast addresses */
 struct ip6addr_list_entry all_routers_ll; // Routers
@@ -151,14 +151,14 @@ struct router *last_router;
 
 /******************** FUNCTIONS *********************************************/
 /* Handles IPv6-packets that are detected by receive_ether. */
-int8_t handle_ipv6(uint8_t * ip6_packet, int32_t packetsize);
+int8_t handle_ipv6(int fd, uint8_t * ip6_packet, int32_t packetsize);
 
 /* Fill IPv6 header */
 void fill_ip6hdr(uint8_t * packet, uint16_t packetsize,
 	         uint8_t ip_proto, ip6_addr_t *ip6_src, ip6_addr_t *ip6_dst);
 
 /* Set own IPv6 address */
-void set_ipv6_address(ip6_addr_t *own_ip6);
+void set_ipv6_address(int fd, ip6_addr_t *own_ip6);
 
 /* Get own IPv6 address */
 ip6_addr_t *get_ipv6_address(void);
@@ -183,7 +183,7 @@ int8_t ip6_cmp( ip6_addr_t *ip_1, ip6_addr_t *ip_2 );
 int8_t unknown_prefix (ip6_addr_t *ip);
 
 /* Send IPv6 packet */
-int send_ipv6 (void* buffer, int len);
+int send_ipv6 (int fd, void* buffer, int len);
 
 /* Add IPv6 address to list */
 int8_t ip6addr_add (struct ip6addr_list_entry *new_address);

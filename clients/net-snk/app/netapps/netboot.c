@@ -350,7 +350,7 @@ int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flag
 		}
 		if ((!flags && (rc == -1)) || (flags == F_IPV6)) {
 			ip_version = 6;
-			set_ipv6_address(0);
+			set_ipv6_address(fn_ip->fd, 0);
 			rc = dhcpv6(ret_buffer, fn_ip);
 			if (rc == 0) {
 				printf("\n");
@@ -427,6 +427,8 @@ netboot(int argc, char *argv[])
 		write_mm_log(buf, strlen(buf), 0x91);
 		return -101;
 	}
+
+	fn_ip.fd = fd_device;
 
 	printf("  Reading MAC address from device: "
 	       "%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -506,7 +508,7 @@ netboot(int argc, char *argv[])
 			  obp_tftp_args.bootp_retries, F_IPV6);
 		break;
 	case IP_INIT_IPV6_MANUAL:
-		set_ipv6_address(&obp_tftp_args.ci6addr);
+		set_ipv6_address(fn_ip.fd, &obp_tftp_args.ci6addr);
 		break;
 	case IP_INIT_DEFAULT:
 		printf("  Requesting IP address via DHCP: ");
@@ -605,7 +607,7 @@ netboot(int argc, char *argv[])
 	          &tftp_err, huge_load, block_size, ip_version);
 
 	if(obp_tftp_args.ip_init == IP_INIT_DHCP)
-		dhcp_send_release();
+		dhcp_send_release(fn_ip.fd);
 
 	if (rc > 0) {
 		printf("  TFTP: Received %s (%d KBytes)\n", fn_ip.filename,
@@ -732,10 +734,12 @@ netboot(int argc, char *argv[])
  * @param  buffer        string with arguments,
  * @param  server_ip	 server ip as result
  * @param  filename	 default filename
- * @param  len            len of the buffer,
+ * @param  fd            Socket descriptor
+ * @param  len           len of the buffer,
  * @return               0 on SUCCESS and -1 on failure
  */
-int parse_tftp_args(char buffer[], char *server_ip, char filename[], int len)
+int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd,
+		    int len)
 {
 	char *raw;
 	char *tmp, *tmp1;
@@ -814,7 +818,7 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int len)
 		tmp = raw + 7;
 		tmp[j] = '\0';
 		strcpy(domainname, tmp);
-		if (dns_get_ip((int8_t *)domainname, server_ip6, 6) == 0) {
+		if (dns_get_ip(fd, (int8_t *)domainname, server_ip6, 6) == 0) {
 			printf("\n DNS failed for IPV6\n");
                         return -1;
                 }

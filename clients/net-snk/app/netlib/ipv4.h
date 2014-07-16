@@ -70,7 +70,7 @@ extern uint32_t get_ipv4_router(void);
 extern void     set_ipv4_netmask(uint32_t subnet_mask);
 extern uint32_t get_ipv4_netmask(void);
 
-extern int   (*send_ip) (void *, int);
+extern int   (*send_ip) (int fd, void *, int);
 
 /* fills ip header */
 extern void fill_iphdr(uint8_t * packet, uint16_t packetsize,
@@ -79,18 +79,18 @@ extern void fill_iphdr(uint8_t * packet, uint16_t packetsize,
 /* Send a IPv4 packet. Adding the Ethernet-Header and resolving the
  * MAC address is done transparent in the background if necessary.
  */
-extern int send_ipv4(void* buffer, int len);
+extern int send_ipv4(int fd, void* buffer, int len);
 
 /* Sends an ICMP Echo request to destination IPv4 address */
-extern void ping_ipv4(uint32_t _ping_dst_ip);
+extern void ping_ipv4(int fd, uint32_t _ping_dst_ip);
 
 /* Returns host IPv4 address that we are waiting for a response */
 extern uint32_t pong_ipv4(void);
 
 /* Handles IPv4-packets that are detected by receive_ether. */
-extern int8_t handle_ipv4(uint8_t * packet, int32_t packetsize);
+extern int8_t handle_ipv4(int fd, uint8_t * packet, int32_t packetsize);
 
 /* Handles ARP-packets that are detected by receive_ether. */
-extern int8_t handle_arp(uint8_t * packet, int32_t packetsize);
+extern int8_t handle_arp(int fd, uint8_t * packet, int32_t packetsize);
 
 #endif

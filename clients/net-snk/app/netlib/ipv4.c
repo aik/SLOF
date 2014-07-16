@@ -87,10 +87,10 @@ static unsigned short
 checksum(unsigned short *packet, int words);
 
 static void
-arp_send_request(uint32_t dest_ip);
+arp_send_request(int fd, uint32_t dest_ip);
 
 static void
-arp_send_reply(uint32_t src_ip, uint8_t * src_mac);
+arp_send_reply(int fd, uint32_t src_ip, uint8_t * src_mac);
 
 static void
 fill_arphdr(uint8_t * packet, uint8_t opcode,
@@ -104,7 +104,7 @@ static void
 fill_udp_checksum(struct iphdr *ipv4_hdr);
 
 static int8_t
-handle_icmp(struct iphdr * iph, uint8_t * packet, int32_t packetsize);
+handle_icmp(int fd, struct iphdr * iph, uint8_t * packet, int32_t packetsize);
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>>> LOCAL VARIABLES <<<<<<<<<<<<<<<<<<<<<<<<<*/
 
@@ -129,7 +129,7 @@ static arp_entry_t  arp_table[ARP_ENTRIES];
 static arp_entry_t  pending_pkt;
 
 /* Function pointer send_ip. Points either to send_ipv4() or send_ipv6() */
-int   (*send_ip) (void *, int);
+int   (*send_ip) (int fd, void *, int);
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> IMPLEMENTATION <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
@@ -300,6 +300,7 @@ fill_iphdr(uint8_t * packet, uint16_t packetsize,
 /**
  * IPv4: Handles IPv4-packets according to Receive-handle diagram.
  *
+ * @param  fd         socket fd
  * @param  ip_packet  IP-packet to be handled
  * @param  packetsize Length of the packet
  * @return            ZERO - packet handled successfully;
@@ -308,7 +309,7 @@ fill_iphdr(uint8_t * packet, uint16_t packetsize,
  * @see               iphdr
  */
 int8_t
-handle_ipv4(uint8_t * ip_packet, int32_t packetsize)
+handle_ipv4(int fd, uint8_t * ip_packet, int32_t packetsize)
 {
 	struct iphdr * iph;
 	int32_t old_sum;
@@ -377,10 +378,10 @@ handle_ipv4(uint8_t * ip_packet, int32_t packetsize)
 
 	switch (iph -> ip_p) {
 	case IPTYPE_ICMP:
-		return handle_icmp(iph, ip_packet + sizeof(struct iphdr),
+		return handle_icmp(fd, iph, ip_packet + sizeof(struct iphdr),
 		                   iph -> ip_len - sizeof(struct iphdr));
 	case IPTYPE_UDP:
-		return handle_udp(ip_packet + sizeof(struct iphdr),
+		return handle_udp(fd, ip_packet + sizeof(struct iphdr),
 		                  iph -> ip_len - sizeof(struct iphdr));
 	case IPTYPE_TCP:
 		return handle_tcp(ip_packet + sizeof(struct iphdr),
@@ -409,6 +410,7 @@ handle_ipv4(uint8_t * ip_packet, int32_t packetsize)
  *       If there is already an ARP request pending, then we drop this packet
  *       and send again an ARP request.
  *
+ * @param  fd         socket fd
  * @param  ip_packet  IP-packet to be handled
  * @param  packetsize Length of the packet
  * @return            -2 - packet dropped (MAC address not resolved - ARP request pending)
@@ -421,7 +423,7 @@ handle_ipv4(uint8_t * ip_packet, int32_t packetsize)
  * @see               iphdr
  */
 int
-send_ipv4(void* buffer, int len)
+send_ipv4(int fd, void* buffer, int len)
 {
 	arp_entry_t *arp_entry = 0;
 	struct iphdr *ip;
@@ -482,7 +484,7 @@ send_ipv4(void* buffer, int len)
 	// If we could not resolv the MAC address by our own...
 	if(!mac_addr) {
 		// send the ARP request
-		arp_send_request(ip->ip_dst);
+		arp_send_request(fd, ip->ip_dst);
 
 		// drop the current packet if there is already a ARP request pending
 		if(arp_entry)
@@ -510,7 +512,7 @@ send_ipv4(void* buffer, int len)
 
 		set_timer(TICKS_SEC);
 		do {
-			receive_ether();
+			receive_ether(fd);
 			if (!arp_entry->eth_len)
 				break;
 		} while (get_timer() > 0);
@@ -522,7 +524,7 @@ send_ipv4(void* buffer, int len)
 	fill_ethhdr(arp_entry->eth_frame, htons(ETHERTYPE_IP),
 	            get_mac_address(), mac_addr);
 	memcpy(&arp_entry->eth_frame[sizeof(struct ethhdr)], buffer, len);
-	return send_ether(arp_entry->eth_frame, len + sizeof(struct ethhdr));
+	return send_ether(fd, arp_entry->eth_frame, len + sizeof(struct ethhdr));
 }
 
 /**
@@ -609,10 +611,11 @@ lookup_mac_addr(uint32_t ipv4_addr)
  * ARP: Sends an ARP-request package.
  *      For given IPv4 retrieves MAC via ARP (makes several attempts)
  *
+ * @param  fd        socket fd
  * @param  dest_ip   IP of the host which MAC should be obtained
  */
 static void
-arp_send_request(uint32_t dest_ip)
+arp_send_request(int fd, uint32_t dest_ip)
 {
 	arp_entry_t *arp_entry = &arp_table[arp_producer];
 
@@ -622,7 +625,7 @@ arp_send_request(uint32_t dest_ip)
 	fill_ethhdr(arp_entry->eth_frame, ETHERTYPE_ARP,
 	            get_mac_address(), broadcast_mac);
 
-	send_ether(arp_entry->eth_frame,
+	send_ether(fd, arp_entry->eth_frame,
 	     sizeof(struct ethhdr) + sizeof(struct arphdr));
 }
 
@@ -631,11 +634,12 @@ arp_send_request(uint32_t dest_ip)
  *      This package is used to serve foreign requests (in case IP in
  *      foreign request matches our host IP).
  *
+ * @param  fd        socket fd
  * @param  src_ip    requester IP address (foreign IP)
  * @param  src_mac   requester MAC address (foreign MAC)
  */
 static void
-arp_send_reply(uint32_t src_ip, uint8_t * src_mac)
+arp_send_reply(int fd, uint32_t src_ip, uint8_t * src_mac)
 {
 	arp_entry_t *arp_entry = &arp_table[arp_producer];
 
@@ -645,7 +649,7 @@ arp_send_reply(uint32_t src_ip, uint8_t * src_mac)
 	fill_arphdr(&arp_entry->eth_frame[sizeof(struct ethhdr)], ARP_REPLY,
 	            get_mac_address(), own_ip, src_mac, src_ip);
 
-	send_ether(arp_entry->eth_frame,
+	send_ether(fd, arp_entry->eth_frame,
 	     sizeof(struct ethhdr) + sizeof(struct arphdr));
 }
 
@@ -689,6 +693,7 @@ fill_arphdr(uint8_t * packet, uint8_t opcode,
  * ARP: Handles ARP-messages according to Receive-handle diagram.
  *      Updates arp_table for outstanding ARP requests (see arp_getmac).
  *
+ * @param  fd         socket fd
  * @param  packet     ARP-packet to be handled
  * @param  packetsize length of the packet
  * @return            ZERO - packet handled successfully;
@@ -698,7 +703,7 @@ fill_arphdr(uint8_t * packet, uint8_t opcode,
  * @see               arphdr
  */
 int8_t
-handle_arp(uint8_t * packet, int32_t packetsize)
+handle_arp(int fd, uint8_t * packet, int32_t packetsize)
 {
 	struct arphdr * arph = (struct arphdr *) packet;
 
@@ -715,7 +720,7 @@ handle_arp(uint8_t * packet, int32_t packetsize)
 	case ARP_REQUEST:
 		// foreign request
 		if(own_ip != 0)
-			arp_send_reply(htonl(arph->src_ip), arph -> src_mac);
+			arp_send_reply(fd, htonl(arph->src_ip), arph -> src_mac);
 		return 0; // no error
 	case ARP_REPLY: {
 		unsigned int i;
@@ -748,7 +753,7 @@ handle_arp(uint8_t * packet, int32_t packetsize)
 			struct ethhdr * ethh = (struct ethhdr *) pending_pkt.eth_frame;
 			memcpy(ethh -> dest_mac, arp_table[i].mac_addr, 6);
 
-			send_ether(pending_pkt.eth_frame, pending_pkt.eth_len);
+			send_ether(fd, pending_pkt.eth_frame, pending_pkt.eth_len);
 			pending_pkt.pkt_pending = 0;
 			arp_table[i].eth_len = 0;
 		}
@@ -768,10 +773,11 @@ handle_arp(uint8_t * packet, int32_t packetsize)
  *       In other words, reading a value of 0 form this variable
  *       means that an answer to the request has been arrived.
  *
+ * @param  fd            socket descriptor
  * @param  _ping_dst_ip  destination IPv4 address
  */
 void
-ping_ipv4(uint32_t _ping_dst_ip)
+ping_ipv4(int fd, uint32_t _ping_dst_ip)
 {
 	unsigned char packet[sizeof(struct iphdr) + sizeof(struct icmphdr)];
 	struct icmphdr *icmp;
@@ -794,7 +800,7 @@ ping_ipv4(uint32_t _ping_dst_ip)
 
 	icmp->checksum =
 	    checksum((unsigned short *) icmp, sizeof(struct icmphdr) >> 1);
-	send_ipv4(packet, sizeof(struct iphdr) + sizeof(struct icmphdr));
+	send_ipv4(fd, packet, sizeof(struct iphdr) + sizeof(struct icmphdr));
 }
 
 /**
@@ -813,6 +819,7 @@ pong_ipv4(void)
 /**
  * ICMP: Handles ICMP-packets according to Receive-handle diagram.
  *
+ * @param  fd         socket fd
  * @param  icmp_packet  ICMP-packet to be handled
  * @param  packetsize   Length of the packet
  * @return              ZERO - packet handled successfully;
@@ -820,7 +827,7 @@ pong_ipv4(void)
  * @see                 handle_ipv4
  */
 static int8_t
-handle_icmp(struct iphdr * iph, uint8_t * packet, int32_t packetsize)
+handle_icmp(int fd, struct iphdr * iph, uint8_t * packet, int32_t packetsize)
 {
 	struct icmphdr *icmp = (struct icmphdr *) packet;
 
@@ -873,7 +880,7 @@ handle_icmp(struct iphdr * iph, uint8_t * packet, int32_t packetsize)
 		reply_icmph->checksum = checksum((unsigned short *) reply_icmph,
 		                                 sizeof(struct icmphdr) >> 1);
 
-		send_ipv4(reply_packet, sizeof(struct iphdr) + packetsize);
+		send_ipv4(fd, reply_packet, sizeof(struct iphdr) + packetsize);
 		break;
 	}
 	case ICMP_TIME_EXCEEDED:

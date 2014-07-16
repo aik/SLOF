@@ -66,7 +66,7 @@ struct dnshdr {
 /***************************** PROTOTYPES ********************************/
 
 static void
-dns_send_query(int8_t * domain_name, uint8_t ip_version);
+dns_send_query(int fd, int8_t * domain_name, uint8_t ip_version);
 
 static void
 fill_dnshdr(uint8_t * packet, int8_t * domain_name, uint8_t ip_version);
@@ -125,6 +125,7 @@ dns_init(uint32_t _dns_server_ip, uint8_t _dns_server_ipv6[16], uint8_t ip_versi
  *           <br>(e.g. "www.host.org");
  *      </ul>
  *
+ * @param  fd        socket descriptor
  * @param  url       the URL to be resolved
  * @param  domain_ip In case of SUCCESS stores extracted IP.
  *                   In case of FAULT stores zeros (0.0.0.0).
@@ -132,7 +133,7 @@ dns_init(uint32_t _dns_server_ip, uint8_t _dns_server_ipv6[16], uint8_t ip_versi
  *                   FALSE - error condition occurs.
  */
 int8_t
-dns_get_ip(int8_t * url, uint8_t * domain_ip, uint8_t ip_version)
+dns_get_ip(int fd, int8_t * url, uint8_t * domain_ip, uint8_t ip_version)
 {
 	/* this counter is used so that we abort after 30 DNS request */
 	int32_t i;
@@ -171,14 +172,14 @@ dns_get_ip(int8_t * url, uint8_t * domain_ip, uint8_t ip_version)
 	for(i = 0; i < 30; ++i) {
 		// Use canonical name in case we obtained it
 		if (strlen((char *) dns_domain_cname))
-		  dns_send_query(dns_domain_cname, ip_version);
+			dns_send_query(fd, dns_domain_cname, ip_version);
 		else
-		  dns_send_query(dns_domain_name, ip_version);
+			dns_send_query(fd, dns_domain_name, ip_version);
 
 		// setting up a timer with a timeout of one seconds
 		set_timer(TICKS_SEC);
 		do {
-			receive_ether();
+			receive_ether(fd);
 			if (dns_error)
 				return 0; // FALSE - error
 			if ((dns_result_ip != 0) && (ip_version == 4)) {
@@ -295,13 +296,14 @@ handle_dns(uint8_t * packet, int32_t packetsize)
  *      DNS-server respones with host IP or signals some error condition.
  *      Responses from the server are handled by handle_dns function.
  *
+ * @param  fd          socket descriptor
  * @param  domain_name the domain name given as series of labels preceded
  *                     with length(label) and terminated with 0  
  *                     <br>(e.g. "\3,w,w,w,\4,h,o,s,t,\3,o,r,g,\0")
  * @see                handle_dns
  */
 static void
-dns_send_query(int8_t * domain_name, uint8_t ip_version)
+dns_send_query(int fd, int8_t * domain_name, uint8_t ip_version)
 {
 	int qry_len = strlen((char *) domain_name) + 5;
 	int iphdr_len = (ip_version == 4) ? sizeof(struct iphdr) : sizeof(struct ip6hdr);
@@ -333,7 +335,7 @@ dns_send_query(int8_t * domain_name, uint8_t ip_version)
 			    &server_ipv6);
 	}
 
-	send_ip(ether_packet, packetsize);
+	send_ip(fd, ether_packet, packetsize);
 }
 
 /**

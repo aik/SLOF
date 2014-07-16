@@ -57,7 +57,7 @@ void net_set_mtftp_port(uint16_t tftp_port) {
  * @see               udphdr
  */
 int8_t
-handle_udp(uint8_t * udp_packet, int32_t packetsize) {
+handle_udp(int fd, uint8_t * udp_packet, int32_t packetsize) {
 	struct udphdr * udph = (struct udphdr *) udp_packet;
 
 	if (packetsize < sizeof(struct udphdr))
@@ -66,7 +66,7 @@ handle_udp(uint8_t * udp_packet, int32_t packetsize) {
 	switch (htons(udph -> uh_dport)) {
 	case UDPPORT_BOOTPC:
 		if (udph -> uh_sport == htons(UDPPORT_BOOTPS))
-			return handle_dhcp(udp_packet + sizeof(struct udphdr),
+			return handle_dhcp(fd, udp_packet + sizeof(struct udphdr),
 			                    packetsize - sizeof(struct udphdr));
 		else
 			return -1;
@@ -81,18 +81,18 @@ handle_udp(uint8_t * udp_packet, int32_t packetsize) {
                                      packetsize - sizeof(struct udphdr));
 	case UDPPORT_TFTPC:
 #ifdef USE_MTFTP
-	return handle_tftp(udp_packet + sizeof(struct udphdr),
+		return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
 			               packetsize - sizeof(struct udphdr));
 #else
-	return handle_tftp(udp_packet, packetsize);
+		return handle_tftp(fd, udp_packet, packetsize);
 #endif
 	default:
 #ifdef USE_MTFTP
 		if (htons(udph -> uh_dport) == net_tftp_uport)
-		return handle_tftp(udp_packet + sizeof(struct udphdr),
+			return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
                        packetsize - sizeof(struct udphdr));
 		else if (htons(udph -> uh_dport) == net_mtftp_uport)
-		return handle_tftp(udp_packet + sizeof(struct udphdr),
+			return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
                        packetsize - sizeof(struct udphdr));
 #endif
 		return -1;
