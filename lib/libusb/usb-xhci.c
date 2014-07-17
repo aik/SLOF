@@ -534,7 +534,7 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t por
 
 	/* Step 3 */
 	slot = xhci_get_slot_ctx(&xdev->in_ctx, ctx_size);
-	newport = port - XHCI_CONFIG_MAX_SLOT + 1;
+	newport = port + 1;
 	val = LAST_CONTEXT(1) | SLOT_SPEED_SS | (newport << 16); /* FIXME speed, read from PS */
 	slot->field1 = cpu_to_le32(val);
 	slot->field2 = cpu_to_le32(ROOT_HUB_PORT(newport)); /* FIXME how to get port no */
