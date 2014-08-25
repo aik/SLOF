@@ -30,4 +30,5 @@ cod(RX!)
 
 cod(hv-logical-memop)
 cod(hv-cas)
+cod(hv-rtas-update)
 cod(get-print-version)

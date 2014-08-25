@@ -174,7 +174,11 @@ rtas-node set-node
 
 : instantiate-rtas ( adr -- entry )
     dup rtas-base swap rtas-size move
-    rtas-entry rtas-base - +
+    dup rtas-entry rtas-base - +
+    2dup hv-rtas-update 0 <> IF
+    ." Failed to update RTAS " cr
+    THEN
+    nip   
 ;
 
 device-end
