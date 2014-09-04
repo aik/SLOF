@@ -49,6 +49,8 @@
       UNTIL
       (term-io-char-buf) c@
       r> drop
+   ELSE
+      [ ' key behavior compile, ]
    THEN
 ;
 
