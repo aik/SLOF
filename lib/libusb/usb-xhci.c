@@ -642,12 +642,37 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	uint32_t num_ports, portsc, i;
 	struct xhci_op_regs *op;
 	struct xhci_port_regs *prs;
+	struct xhci_cap_regs *cap;
+	uint32_t xecp_off;
+	uint32_t *xecp_addr, *base;
+	uint32_t port_off = 1, port_cnt;
 
 	dprintf("enter\n");
 
 	op = xhcd->op_regs;
-	num_ports = read_reg32(&op->config);
-	for (i = 0; i < num_ports * 2; i++) {
+	cap = xhcd->cap_regs;
+	port_cnt = num_ports = read_reg32(&cap->hcsparams1) >> 24;
+
+	/* Read the xHCI extented capability to find usb3 ports and offset*/
+	xecp_off = XHCI_HCCPARAMS_XECP(read_reg32(&cap->hccparams));
+	base = (uint32_t *)cap;
+	while (xecp_off > 0) {
+		xecp_addr = base + xecp_off;
+		dprintf(stderr, "xecp_off %d %p %p \n", xecp_off, base, xecp_addr);
+
+		if (XHCI_XECP_CAP_ID(read_reg32(xecp_addr)) == XHCI_XECP_CAP_SP &&
+		    XHCI_XECP_CAP_SP_MJ(read_reg32(xecp_addr)) == 3 &&
+		    XHCI_XECP_CAP_SP_MN(read_reg32(xecp_addr)) == 0) {
+			port_cnt = XHCI_XECP_CAP_SP_PC(read_reg32(xecp_addr + 2));
+			port_off = XHCI_XECP_CAP_SP_PO(read_reg32(xecp_addr + 2));
+			dprintf(stderr, "PortCount %d Portoffset %d\n", port_cnt, port_off);
+		}
+		base = xecp_addr;
+		xecp_off = XHCI_XECP_NEXT_PTR(read_reg32(xecp_addr));
+	}
+	if (port_off == 0) /* port_off should always start from 1 */
+		return false;
+	for (i = (port_off - 1); i < (port_off + port_cnt - 1); i++) {
 		prs = &op->prs[i];
 		portsc = read_reg32(&prs->portsc);
 		if ((portsc & PORTSC_CCS) &&
@@ -667,14 +692,13 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 				dprintf("Port reset complete %d\n", i);
 			}
 			print_port_status(prs);
-			/* FIXME need to check if this is usb3 device */
-			if (!usb3_dev_init(xhcd, i)) {
+			if (!usb3_dev_init(xhcd, (i - (port_off - 1)))) {
 				dprintf("USB device initialization failed\n");
 			}
 		}
 	}
 	dprintf("exit\n");
-	return 0;
+	return true;
 }
 
 static bool xhci_hcd_init(struct xhci_hcd *xhcd)
@@ -780,7 +804,8 @@ static bool xhci_hcd_init(struct xhci_hcd *xhcd)
 	if (!xhci_hcd_set_runstop(op, true))
 		goto fail_erst_entries;
 
-	xhci_hub_check_ports(xhcd);
+	if (!xhci_hub_check_ports(xhcd))
+		goto fail_erst_entries;
 
 	return true;
 fail_erst_entries:
