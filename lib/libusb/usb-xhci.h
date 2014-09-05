@@ -34,9 +34,19 @@ struct xhci_cap_regs {
 	uint32_t hcsparams3;
 	uint32_t hccparams;
 #define XHCI_HCCPARAMS_CSZ   BIT(2)
+#define XHCI_HCCPARAMS_XECP(x)  ((x & 0xFFFF0000) >> 16)
 	uint32_t dboff;
 	uint32_t rtsoff;
 } __attribute__ ((packed));
+
+/* USB 3.0: Section 7 and 7.2 */
+#define XHCI_XECP_CAP_ID(x)     ((x & 0xF))
+#define XHCI_XECP_CAP_SP        2
+#define XHCI_XECP_CAP_SP_MN(x)  ((x & 0xFF0000) >> 16)
+#define XHCI_XECP_CAP_SP_MJ(x)  ((x & 0xFF000000) >> 24)
+#define XHCI_XECP_CAP_SP_PC(x)  ((x & 0xFF00) >> 8)
+#define XHCI_XECP_CAP_SP_PO(x)  (x & 0xFF)
+#define XHCI_XECP_NEXT_PTR(x)   ((x & 0xFF00) >> 8)
 
 /* Table 27: Host Controller USB Port Register Set */
 struct xhci_port_regs {
