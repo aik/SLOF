@@ -231,11 +231,12 @@ DEFER func-pci-bridge-range-props
             dup set-space               \ set the config addr for this device tree entry
             dup pci-set-slot            \ set the slot bit
             dup pci-htype@              \ read HEADER-Type
-            1 and IF                    \ IF BRIDGE
-                    pci-bridge-setup    \ | set up the bridge
-            ELSE                        \ ELSE
-                    pci-device-setup    \ | set up the device
-            THEN                        \ FI
+            7f and                      \ Mask bit 7 - multifunction device
+            CASE
+               0 OF pci-device-setup ENDOF  \ | set up the device
+               1 OF pci-bridge-setup ENDOF  \ | set up the bridge
+               dup OF dup pci-htype@ pci-out ENDOF
+           ENDCASE
         finish-device                   \ and close the device-tree node
 ;
 
