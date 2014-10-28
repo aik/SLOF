@@ -426,6 +426,7 @@ send_ipv4(void* buffer, int len)
 	arp_entry_t *arp_entry = 0;
 	struct iphdr *ip;
 	const uint8_t *mac_addr = 0;
+	uint32_t ip_dst = 0;
 
 	if(len + sizeof(struct ethhdr) > ETH_MTU_SIZE)
 		return -1;
@@ -457,6 +458,7 @@ send_ipv4(void* buffer, int len)
 		fill_udp_checksum(ip);
 	}
 
+	ip_dst = ip->ip_dst;
 	// Check if the MAC address is already cached
 	if(~ip->ip_dst == 0
 	|| ( ((~subnet_mask) & ip->ip_dst) == ~subnet_mask &&
@@ -473,8 +475,10 @@ send_ipv4(void* buffer, int len)
 		if((subnet_mask & own_ip) == (subnet_mask & ip->ip_dst))
 			arp_entry = lookup_mac_addr(ip->ip_dst);
 		// if not then we need to know the router's IP address
-		else
+		else {
+			ip_dst = router_ip;
 			arp_entry = lookup_mac_addr(router_ip);
+		}
 		if(arp_entry && memcmp(arp_entry->mac_addr, null_mac_addr, 6) != 0)
 			mac_addr = arp_entry->mac_addr;
 	}
@@ -482,7 +486,7 @@ send_ipv4(void* buffer, int len)
 	// If we could not resolv the MAC address by our own...
 	if(!mac_addr) {
 		// send the ARP request
-		arp_send_request(ip->ip_dst);
+		arp_send_request(ip_dst);
 
 		// drop the current packet if there is already a ARP request pending
 		if(arp_entry)
@@ -498,9 +502,9 @@ send_ipv4(void* buffer, int len)
 
 		// store the packet to be send if the ARP reply is received
 		arp_entry->pkt_pending = 1;
-		arp_entry->ipv4_addr = ip->ip_dst;
+		arp_entry->ipv4_addr = ip_dst;
 		memset(arp_entry->mac_addr, 0, 6);
-		pending_pkt.ipv4_addr = ip->ip_dst;
+		pending_pkt.ipv4_addr = ip_dst;
 		memset(pending_pkt.mac_addr, 0, 6);
 		fill_ethhdr (pending_pkt.eth_frame, htons(ETHERTYPE_IP),
 		             get_mac_address(), null_mac_addr);
