@@ -175,10 +175,13 @@ rtas-node set-node
 : instantiate-rtas ( adr -- entry )
     dup rtas-base swap rtas-size move
     dup rtas-entry rtas-base - +
-    2dup hv-rtas-update 0 <> IF
-    ." Failed to update RTAS " cr
+    2dup hv-rtas-update dup 0 <> IF
+	\ Ignore hcall not implemented error, print error otherwise
+	dup -2 <> IF ." HV-RTAS-UPDATE error: " . cr ELSE drop THEN
+    ELSE
+	drop
     THEN
-    nip   
+    nip
 ;
 
 device-end
