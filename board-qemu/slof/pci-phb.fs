@@ -232,6 +232,8 @@ setup-puid
    0  pci-max-mem !
    0  pci-next-mmio !
    0  pci-max-mmio !
+   0  pci-next-mem64 !
+   0  pci-max-mem64 !
 
    \ Now get the "ranges" property
    s" ranges" get-node get-property 0<> ABORT" ranges property not found"
@@ -259,8 +261,9 @@ setup-puid
             r> + pci-max-mmio !                 \ calc max MMIO address
          ENDOF
          3000000 OF                             \ 64-bit memory space?
-            cr ." Warning: 64-bit PCI space not supported yet! "
-            decode-64 . decode-64 . cr
+	    decode-64 pci-next-mem64 !
+	    decode-64 drop                      \ Forget the parent address
+	    decode-64 pci-max-mem64 !
          ENDOF
       ENDCASE
    REPEAT
@@ -274,6 +277,8 @@ setup-puid
      ." pci-max-mem   = " pci-max-mem  @ . cr
      ." pci-next-mmio = " pci-next-mmio @ . cr
      ." pci-max-mmio  = " pci-max-mmio @ . cr
+     ." pci-next-mem64  = " pci-next-mem64 @ . cr
+     ." pci-max-mem64   = " pci-max-mem64  @ . cr
    THEN
 ;
 

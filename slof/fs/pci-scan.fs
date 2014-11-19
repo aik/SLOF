@@ -21,6 +21,8 @@ VARIABLE pci-next-mmio          \ non-prefetchable memory
 VARIABLE pci-max-mmio
 VARIABLE pci-next-io            \ I/O space
 VARIABLE pci-max-io
+VARIABLE pci-next-mem64           \ prefetchable 64-bit memory mapped
+VARIABLE pci-max-mem64
 
 \ Counter of busses found
 0 VALUE pci-bus-number
