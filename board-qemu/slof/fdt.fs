@@ -346,6 +346,33 @@ fdt-claim-reserve
    device-end
 ;
 
+: fdt-create-cas-node ( name  -- )
+    2dup
+    2dup " memory@" find-substr 0 = IF
+	fdt-debug IF ." Creating memory@ " cr THEN
+	new-device
+	2dup " @" find-substr nip device-name       \ Parse the node name
+	2dup
+	2dup " @" find-substr rot over + 1 + -rot - 1 - \ Jump to addr afte "@"
+	parse-2int nip xlsplit set-unit                 \ Parse and set unit
+	finish-device
+    ELSE
+	2dup " ibm,dynamic-reconfiguration-memory" find-substr 0 = IF
+	    fdt-debug IF  ." Creating ibm,dynamic-reconfiguration-memory " cr THEN
+	    new-device
+	    device-name
+	    finish-device
+	ELSE
+	    2drop 2drop
+	    false to fdt-cas-fix?
+	    ." Node not supported " cr
+	    EXIT
+	THEN
+    THEN
+
+    find-node ?dup 0 <> IF set-node THEN
+;
+
 : fdt-fix-cas-node ( start -- end )
     recursive
     fdt-next-tag dup OF_DT_BEGIN_NODE <> IF
@@ -363,12 +390,11 @@ fdt-claim-reserve
 	drop
     THEN
     fdt-debug IF ." Setting node: " 2dup type cr THEN
-    find-node ?dup 0 <> IF
-	set-node
+    2dup find-node ?dup 0 <> IF
+	set-node 2drop
     ELSE
-	." Node not found " cr
-	false to fdt-cas-fix?
-	EXIT
+	fdt-debug IF ." Node not found, creating " 2dup type cr THEN
+	fdt-create-cas-node
     THEN
     fdt-debug IF ." Current  now: " pwd cr THEN
     BEGIN
