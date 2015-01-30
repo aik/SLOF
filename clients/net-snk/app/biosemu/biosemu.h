@@ -37,4 +37,6 @@
 				// Address, there will only be a call to this INT and a RETF
 #define PNP_INT_NUM 0xFD
 
+uint32_t biosemu(char argc, char **argv);
+
 #endif

@@ -104,7 +104,7 @@ device_t bios_device;
 
 uint8_t dev_init(char *device_name);
 // NOTE: for dev_check_exprom to work, dev_init MUST be called first!
-uint8_t dev_check_exprom();
+uint8_t dev_check_exprom(void);
 
 uint8_t dev_translate_address(uint64_t * addr);
 
@@ -143,7 +143,7 @@ in16le(void *addr)
 
 /* debug function, dumps HID1 and HID4 to detect wether caches are on/off */
 static inline void
-dumpHID()
+dumpHID(void)
 {
 	uint64_t hid;
 	//HID1 = 1009

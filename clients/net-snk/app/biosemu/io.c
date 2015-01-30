@@ -20,61 +20,14 @@
 #include <stdint.h>
 #include <x86emu/x86emu.h>
 #include <time.h>
-
+#include "io.h"
 
 //defined in net-snk/kernel/timer.c
 extern uint64_t get_time(void);
 
-// these are not used, only needed for linking,  must be overridden using X86emu_setupPioFuncs
-// with the functions and struct below
-void
-outb(uint8_t val, uint16_t port)
-{
-	printf("WARNING: outb not implemented!\n");
-	HALT_SYS();
-}
-
-void
-outw(uint16_t val, uint16_t port)
-{
-	printf("WARNING: outw not implemented!\n");
-	HALT_SYS();
-}
-
-void
-outl(uint32_t val, uint16_t port)
-{
-	printf("WARNING: outl not implemented!\n");
-	HALT_SYS();
-}
-
-uint8_t
-inb(uint16_t port)
-{
-	printf("WARNING: inb not implemented!\n");
-	HALT_SYS();
-	return 0;
-}
-
-uint16_t
-inw(uint16_t port)
-{
-	printf("WARNING: inw not implemented!\n");
-	HALT_SYS();
-	return 0;
-}
-
-uint32_t
-inl(uint16_t port)
-{
-	printf("WARNING: inl not implemented!\n");
-	HALT_SYS();
-	return 0;
-}
-
 uint32_t pci_cfg_read(X86EMU_pioAddr addr, uint8_t size);
 void pci_cfg_write(X86EMU_pioAddr addr, uint32_t val, uint8_t size);
-uint8_t handle_port_61h();
+uint8_t handle_port_61h(void);
 
 uint8_t
 my_inb(X86EMU_pioAddr addr)
@@ -407,7 +360,7 @@ pci_cfg_write(X86EMU_pioAddr addr, uint32_t val, uint8_t size)
 }
 
 uint8_t
-handle_port_61h()
+handle_port_61h(void)
 {
 	static uint64_t last_time = 0;
 	uint64_t curr_time = get_time();

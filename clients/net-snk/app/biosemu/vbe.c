@@ -28,6 +28,7 @@
 #include "mem.h"
 #include "interrupt.h"
 #include "device.h"
+#include "vbe.h"
 
 static X86EMU_memFuncs my_mem_funcs = {
 	my_rdb, my_rdw, my_rdl,
@@ -97,7 +98,7 @@ typedef struct {
 } vbe_ddc_info_t;
 
 static inline uint8_t
-vbe_prepare()
+vbe_prepare(void)
 {
 	vbe_info_buffer = biosmem + (VBE_SEGMENT << 4);	// segment:offset off VBE Data Area
 	//clear buffer
@@ -115,7 +116,7 @@ vbe_prepare()
 }
 
 // VBE Function 00h
-uint8_t
+static uint8_t
 vbe_info(vbe_info_t * info)
 {
 	vbe_prepare();
@@ -184,7 +185,7 @@ vbe_info(vbe_info_t * info)
 }
 
 // VBE Function 01h
-uint8_t
+static uint8_t
 vbe_get_mode_info(vbe_mode_info_t * mode_info)
 {
 	vbe_prepare();
@@ -252,7 +253,7 @@ vbe_get_mode_info(vbe_mode_info_t * mode_info)
 }
 
 // VBE Function 02h
-uint8_t
+static uint8_t
 vbe_set_mode(vbe_mode_info_t * mode_info)
 {
 	vbe_prepare();
@@ -289,7 +290,7 @@ vbe_set_mode(vbe_mode_info_t * mode_info)
 }
 
 //VBE Function 08h
-uint8_t
+static uint8_t
 vbe_set_palette_format(uint8_t format)
 {
 	vbe_prepare();
@@ -325,7 +326,7 @@ vbe_set_palette_format(uint8_t format)
 }
 
 // VBE Function 09h
-uint8_t
+static uint8_t
 vbe_set_color(uint16_t color_number, uint32_t color_value)
 {
 	vbe_prepare();
@@ -367,7 +368,8 @@ vbe_set_color(uint16_t color_number, uint32_t color_value)
 	return 0;
 }
 
-uint8_t
+#if 0
+static uint8_t
 vbe_get_color(uint16_t color_number, uint32_t * color_value)
 {
 	vbe_prepare();
@@ -408,9 +410,10 @@ vbe_get_color(uint16_t color_number, uint32_t * color_value)
 
 	return 0;
 }
+#endif
 
 // VBE Function 15h
-uint8_t
+static uint8_t
 vbe_get_ddc_info(vbe_ddc_info_t * ddc_info)
 {
 	vbe_prepare();

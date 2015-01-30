@@ -30,8 +30,8 @@ typedef struct {
 
 // scan all adresses assigned to the device ("assigned-addresses" and "reg")
 // store in translate_address_array for faster translation using dev_translate_address
-void
-dev_get_addr_info()
+static void
+dev_get_addr_info(void)
 {
 	// get bus/dev/fn from assigned-addresses
 	int32_t len;
@@ -110,8 +110,8 @@ dev_get_addr_info()
 // we look for the first prefetchable memory BAR, if no prefetchable BAR found,
 // we use the first memory BAR
 // dev_translate_addr will translate accesses to the legacy VGA Memory into the found vmem BAR
-void
-dev_find_vmem_addr()
+static void
+dev_find_vmem_addr(void)
 {
 	int i = 0;
 	translate_address_t ta;
@@ -153,16 +153,16 @@ dev_find_vmem_addr()
 	//bios_device.vmem_size = 0;
 }
 
-void
-dev_get_puid()
+static void
+dev_get_puid(void)
 {
 	// get puid
 	bios_device.puid = get_puid(bios_device.phandle);
 	DEBUG_PRINTF("puid: 0x%llx\n", bios_device.puid);
 }
 
-void
-dev_get_device_vendor_id()
+static void
+dev_get_device_vendor_id(void)
 {
 	uint32_t pci_config_0 =
 	    rtas_pci_config_read(bios_device.puid, 4, bios_device.bus,
@@ -177,7 +177,7 @@ dev_get_device_vendor_id()
 /* check, wether the device has a valid Expansion ROM, also search the PCI Data Structure and
  * any Expansion ROM Header (using dev_scan_exp_header()) for needed information */
 uint8_t
-dev_check_exprom()
+dev_check_exprom(void)
 {
 	int i = 0;
 	translate_address_t ta;

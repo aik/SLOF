@@ -17,7 +17,7 @@
 
 extern uint32_t debug_flags;
 // from x86emu...needed for debugging
-extern void x86emu_dump_xregs();
+extern void x86emu_dump_xregs(void);
 
 #define DEBUG_IO 0x1
 #define DEBUG_MEM 0x2

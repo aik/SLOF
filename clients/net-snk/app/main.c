@@ -17,8 +17,8 @@
 #include <libbootmsg.h>
 
 #ifdef SNK_BIOSEMU_APPS
-extern int biosemu(char argc, char**argv);
-extern int vbe_get_info(char argc, char**argv);
+#include "biosemu/biosemu.h"
+#include "biosemu/vbe.h"
 #endif
 
 extern void _callback_entry(void);
