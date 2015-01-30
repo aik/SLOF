@@ -18,6 +18,7 @@
 #include "x86emu/x86emu.h"
 #include "biosemu.h"
 #include <time.h>
+#include "mem.h"
 
 // define a check for access to certain (virtual) memory regions (interrupt handlers, BIOS Data Area, ...)
 #ifdef DEBUG

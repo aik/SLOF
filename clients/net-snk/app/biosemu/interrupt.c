@@ -18,6 +18,7 @@
 #include "mem.h"
 #include "device.h"
 #include "debug.h"
+#include "interrupt.h"
 
 #include <x86emu/x86emu.h>
 #include <x86emu/prim_ops.h>
@@ -25,7 +26,7 @@
 
 
 //setup to run the code at the address, that the Interrupt Vector points to...
-void
+static void
 setupInt(int intNum)
 {
 	DEBUG_PRINTF_INTR("%s(%x): executing interrupt handler @%08x\n",
@@ -44,8 +45,8 @@ setupInt(int intNum)
 }
 
 // handle int10 (VGA BIOS Interrupt)
-void
-handleInt10()
+static void
+handleInt10(void)
 {
 	// the data for INT10 is stored in BDA (0000:0400h) offset 49h-66h
 	// function number in AH
@@ -197,11 +198,9 @@ static uint8_t keycode_table[256] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-}
+};
 
-;
-
-void
+static void
 translate_keycode(uint64_t * keycode)
 {
 	uint8_t scan_code = 0;
@@ -227,8 +226,8 @@ translate_keycode(uint64_t * keycode)
 }
 
 // handle int16 (Keyboard BIOS Interrupt)
-void
-handleInt16()
+static void
+handleInt16(void)
 {
 	// keyboard buffer is in BIOS Memory Area:
 	// offset 0x1a (WORD) pointer to next char in keybuffer
@@ -311,8 +310,8 @@ handleInt16()
 }
 
 // handle int1a (PCI BIOS Interrupt)
-void
-handleInt1a()
+static void
+handleInt1a(void)
 {
 	// function number in AX
 	uint8_t bus, devfn, offs;
@@ -569,7 +568,7 @@ runInt10()
 
 // prepare and execute Interrupt 13 (Disk Interrupt)
 void
-runInt13()
+runInt13(void)
 {
 	// Initialize stack and data segment
 	M.x86.R_SS = STACK_SEGMENT;

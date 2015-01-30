@@ -13,4 +13,6 @@
 #ifndef _BIOSEMU_VBE_H_
 #define _BIOSEMU_VBE_H_
 
+uint32_t vbe_get_info(uint8_t argc, char ** argv);
+
 #endif

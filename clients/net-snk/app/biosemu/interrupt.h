@@ -14,8 +14,8 @@
 
 void handleInterrupt(int intNum);
 
-void runInt10();
+void runInt10(void);
 
-void runInt13();
+void runInt13(void);
 
 #endif
