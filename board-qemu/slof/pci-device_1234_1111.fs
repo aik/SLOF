@@ -85,13 +85,6 @@ false VALUE is-installed?
    3drop
 ;
 
-: default-palette
-  \ Grayscale ramp for now, be smarter later
-  100 0 DO
-    i i i i color!
-  LOOP
-;
-
 include graphics.fs
 
 \ qemu fake VBE IO registers
@@ -242,7 +235,7 @@ pci-io-enable
 add-legacy-reg
 read-settings
 init-mode
-default-palette
+init-default-palette
 setup-properties
 ' display-install is-install
 ' display-remove is-remove

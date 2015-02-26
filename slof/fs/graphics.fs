@@ -60,3 +60,28 @@
 : dimensions ( -- width height )
    screen-width screen-height
 ;
+
+\ Initialize a default palette (not a standard command, but useful anyway)
+: init-default-palette
+   \ Grayscale ramp for upper colors
+   100 10 DO
+     i i i i color!
+   LOOP
+   \ Standard colors from "16-color Text Extension" specification
+   00 00 00 0 color!
+   00 00 aa 1 color!
+   00 aa 00 2 color!
+   00 aa aa 3 color!
+   aa 00 00 4 color!
+   aa 00 aa 5 color!
+   aa 55 00 6 color!
+   aa aa aa 7 color!
+   55 55 55 8 color!
+   55 55 ff 9 color!
+   55 ff 55 a color!
+   55 ff ff b color!
+   ff 55 55 c color!
+   ff 55 ff d color!
+   ff ff 55 e color!
+   ff ff ff f color!
+;
