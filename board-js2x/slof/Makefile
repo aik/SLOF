@@ -76,6 +76,7 @@ OF_FFS_FILES = \
 	$(SLOFBRDDIR)/ipmi-kcs.fs \
 	$(SLOFCMNDIR)/fs/ide.fs \
 	$(SLOFCMNDIR)/fs/fbuffer.fs \
+	$(SLOFCMNDIR)/fs/graphics.fs \
 	$(SLOFCMNDIR)/fs/generic-disk.fs \
 	$(SLOFCMNDIR)/fs/scsi-disk.fs \
 	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
