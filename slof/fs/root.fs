@@ -67,7 +67,7 @@ finish-device
 \ Create /openprom
 new-device
     s" openprom" device-name
-    s" BootROM" device-type
+    0 0 s" relative-addressing" property
 finish-device
 
 \ Create /packages
