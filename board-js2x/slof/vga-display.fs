@@ -20,7 +20,7 @@ value display_num ( str len )
 s" ,Display-" $cat 41 display_num + char-cat \ add ", Display-A" or "-B" to name ( str len )
 encode-string s" name" property \ store as name property
 
-s" display" encode-string s" device_type" property \ add "device_type" propert
+s" display" device-type
 
 \ screen-info is set by pci-class_03.fs contains output of get_vbe_info bios-snk call
 CASE screen-info c@ \ ( display-type )

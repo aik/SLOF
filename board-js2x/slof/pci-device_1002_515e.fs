@@ -460,7 +460,7 @@ init2_array init2_length encode-array " ibm,init2" property
 pllinit_array pllinit_length   encode-array " ibm,pllinit" property
 meminit_array meminit_length   encode-array " ibm,meminit" property
 0 0 encode-bytes " iso6429-1983-colors" property
-" display" encode-string " device_type" property
+s" display" device-type
 /scanline  encode-int " width" property
  #scanlines encode-int " height" property
 8 encode-int " depth" property

@@ -245,7 +245,7 @@ a CONSTANT VBE_DISPI_INDEX_NB
    disp-depth encode-int s" depth" property
    s" ISO8859-1" encode-string s" character-set" property \ i hope this is ok...
    \ add "device_type" property
-   s" display" encode-string s" device_type" property
+   s" display" device-type
    s" qemu,std-vga" encode-string s" compatible" property
    \ XXX We don't create an "address" property because Linux doesn't know what
    \ to do with it for >32-bit
