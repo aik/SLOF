@@ -565,7 +565,7 @@
 \ ***************************************************************************************
 \ set up common properties for devices and bridges
 : pci-common-props ( addr -- )
-        dup pci-class-name 2dup device-name device-type
+        dup pci-class-name device-name
         dup pci-vendor@    encode-int s" vendor-id"      property
         dup pci-device@    encode-int s" device-id"      property
         dup pci-revision@  encode-int s" revision-id"    property
