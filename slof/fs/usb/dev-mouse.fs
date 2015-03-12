@@ -6,7 +6,6 @@ sudev slof-dev>port l@ dup set-unit encode-phys " reg" property
 sudev slof-dev>udev @ VALUE udev
 
 s" usb-mouse" device-name
-s" mouse" device-type
 
 \ .S cr
 \     dup slof-dev>udev dup . @ . cr
