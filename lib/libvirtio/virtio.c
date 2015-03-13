@@ -32,8 +32,10 @@
  */
 unsigned long virtio_vring_size(unsigned int qsize)
 {
-	return VQ_ALIGN(sizeof(struct vring_desc) * qsize + 2 * (2 + qsize))
-		+ VQ_ALIGN(sizeof(struct vring_used_elem) * qsize);
+	return VQ_ALIGN(sizeof(struct vring_desc) * qsize +
+                        sizeof(struct vring_avail) + sizeof(uint16_t) * qsize) +
+               VQ_ALIGN(sizeof(struct vring_used) +
+                        sizeof(struct vring_used_elem) * qsize);
 }
 
 
