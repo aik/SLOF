@@ -416,9 +416,26 @@ int usb_hid_kbd_exit(struct usb_dev *dev)
 	return true;
 }
 
+static int usb_poll_key(void *vdev)
+{
+	struct usb_dev *dev = vdev;
+	uint8_t key[8];
+	int rc;
+
+	memset(key, 0, 8);
+	rc = usb_poll_intr(dev->intr, key);
+	if (rc)
+		check_key_code(key);
+	return rc;
+}
+
 unsigned char usb_key_available(void *dev)
 {
-	if (dev && r_ptr != w_ptr)
+	if (!dev)
+		return false;
+
+	usb_poll_key(dev);
+	if (r_ptr != w_ptr)
 		return true;
 	else
 		return false;
@@ -426,16 +443,11 @@ unsigned char usb_key_available(void *dev)
 
 unsigned char usb_read_keyb(void *vdev)
 {
-	struct usb_dev *dev = vdev;
-	uint8_t key[8];
-
-	if (!dev)
+	if (!vdev)
 		return false;
 
-	memset(key, 0, 8);
-	while (usb_poll_intr(dev->intr, key)) {
-		check_key_code(key);
-		memset(key, 0, 8);
+	while (usb_poll_key(vdev)) {
+		/* loop for all pending keys */
 	}
 	return read_key();
 }
