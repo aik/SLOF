@@ -26,3 +26,7 @@
    s" , " $cat
    bdate2human $cat encode-string THEN
 ;
+
+: invert-region ( addr len -- )
+   0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP drop
+;
