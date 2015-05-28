@@ -33,3 +33,6 @@
   swap -
 ;
 
+: invert-region ( addr len -- )
+   over swap 0 swap 1 hv-logical-memop drop
+;
