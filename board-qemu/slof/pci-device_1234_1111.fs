@@ -188,16 +188,9 @@ a CONSTANT VBE_DISPI_INDEX_NB
 : display-remove ( -- ) 
 ;
 
-: hcall-invert-screen ( -- )
-    frame-buffer-adr frame-buffer-adr 3
-    screen-height screen-width * screen-depth * /x /
-    1 hv-logical-memop
-    drop
-;
-
 : hcall-blink-screen ( -- )
     \ 32 msec delay for visually noticing the blink
-    hcall-invert-screen 20 ms hcall-invert-screen
+    invert-screen 20 ms invert-screen
 ;
 
 : display-install ( -- )
@@ -211,7 +204,6 @@ a CONSTANT VBE_DISPI_INDEX_NB
         disp-width char-width / disp-height char-height /
         disp-depth 7 + 8 /                      ( width height #lines #cols depth )
         fb-install
-	['] hcall-invert-screen to invert-screen
 	['] hcall-blink-screen to blink-screen
          true to is-installed?
     THEN
