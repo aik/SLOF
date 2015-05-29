@@ -30,3 +30,7 @@
 : invert-region ( addr len -- )
    0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP drop
 ;
+
+: invert-region-x ( addr len -- )
+   /x / 0 ?DO dup dup rx@ -1 xor swap rx! xa1+ LOOP drop
+;

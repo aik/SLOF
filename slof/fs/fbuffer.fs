@@ -170,9 +170,7 @@ CREATE bitmap-buffer 400 4 * allot
 ;
 
 : fb8-invert-screen ( -- )
-	frame-buffer-adr screen-height screen-width * screen-depth * 2dup /x / 0 ?DO
-		dup rx@ -1 xor over rx! xa1+
-	LOOP 3drop
+	frame-buffer-adr screen-height screen-width * screen-depth * invert-region-x
 ;
 
 : fb8-blink-screen ( -- ) fb8-invert-screen fb8-invert-screen ;
