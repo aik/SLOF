@@ -352,42 +352,31 @@ CONSTANT /gpt-part-entry
    drop 0
 ;
 
-\ Check for GPT PReP partition GUID
-9E1A2D38     CONSTANT GPT-PREP-PARTITION-1
-C612         CONSTANT GPT-PREP-PARTITION-2
-4316         CONSTANT GPT-PREP-PARTITION-3
-AA26         CONSTANT GPT-PREP-PARTITION-4
-8B49521E5A8B CONSTANT GPT-PREP-PARTITION-5
+\ Check for GPT PReP partition GUID. Only first 3 blocks are
+\ byte-swapped treating last two blocks as contigous for simplifying
+\ comparison
+9E1A2D38            CONSTANT GPT-PREP-PARTITION-1
+C612                CONSTANT GPT-PREP-PARTITION-2
+4316                CONSTANT GPT-PREP-PARTITION-3
+AA268B49521E5A8B    CONSTANT GPT-PREP-PARTITION-4
 
 : gpt-prep-partition? ( -- true|false )
-   block gpt-part-entry>part-type-guid l@-le GPT-PREP-PARTITION-1 = IF
-      block gpt-part-entry>part-type-guid 4 + w@-le
-      GPT-PREP-PARTITION-2 = IF
-         block gpt-part-entry>part-type-guid 6 + w@-le
-         GPT-PREP-PARTITION-3 = IF
-            block gpt-part-entry>part-type-guid 8 + w@
-            GPT-PREP-PARTITION-4 = IF
-               block gpt-part-entry>part-type-guid a + w@
-               block gpt-part-entry>part-type-guid c + l@ swap lxjoin
-               GPT-PREP-PARTITION-5 = IF
-                   TRUE EXIT
-               THEN
-            THEN
-         THEN
-      THEN
-   THEN
-   FALSE
+   block gpt-part-entry>part-type-guid
+   dup l@-le     GPT-PREP-PARTITION-1 <> IF drop false EXIT THEN
+   dup 4 + w@-le GPT-PREP-PARTITION-2 <> IF drop false EXIT THEN
+   dup 6 + w@-le GPT-PREP-PARTITION-3 <> IF drop false EXIT THEN
+       8 + x@    GPT-PREP-PARTITION-4 =
 ;
 
 : load-from-gpt-prep-partition ( addr -- size )
-   no-gpt? IF drop FALSE EXIT THEN
+   no-gpt? IF drop false EXIT THEN
    debug-disk-label? IF
       cr ." GPT partition found " cr
    THEN
    1 read-sector block gpt>part-entry-lba l@-le
    block-size * to seek-pos
    block gpt>part-entry-size l@-le to gpt-part-size
-   block gpt>num-part-entry l@-le dup 0= IF FALSE EXIT THEN
+   block gpt>num-part-entry l@-le dup 0= IF false EXIT THEN
    1+ 1 ?DO
       seek-pos 0 seek drop
       block gpt-part-size read drop gpt-prep-partition? IF
@@ -405,7 +394,7 @@ AA26         CONSTANT GPT-PREP-PARTITION-4
       THEN
       seek-pos gpt-part-size i * + to seek-pos
    LOOP
-   FALSE
+   false
 ;
 
 \ Extract the boot loader path from a bootinfo.txt file
