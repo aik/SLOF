@@ -383,8 +383,8 @@ AA268B49521E5A8B    CONSTANT GPT-PREP-PARTITION-4
          debug-disk-label? IF
             ." GPT PReP partition found " cr
          THEN
-         block gpt-part-entry>first-lba x@ xbflip
-         block gpt-part-entry>last-lba x@ xbflip
+         block gpt-part-entry>first-lba x@-le
+         block gpt-part-entry>last-lba x@-le
          over - 1+                 ( addr offset len )
          swap                      ( addr len offset )
          block-size * to part-offset
