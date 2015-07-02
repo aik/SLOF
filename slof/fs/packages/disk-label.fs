@@ -320,6 +320,14 @@ CONSTANT /gpt-part-entry
 
 \ Load from first active DOS boot partition.
 
+: fat-bootblock? ( addr -- flag )
+   \ byte 0-2 of the bootblock is a jump instruction in
+   \ all FAT filesystems.
+   \ e9 and eb are jump instructions in x86 assembler.
+   dup c@ e9 = IF drop true EXIT THEN
+   dup c@ eb = swap 2+ c@ 90 = and
+;
+
 \ NOTE: block-size is always 512 bytes for DOS partition tables.
 
 : load-from-dos-boot-partition ( addr -- size )
@@ -547,14 +555,7 @@ AA268B49521E5A8B    CONSTANT GPT-PREP-PARTITION-4
 : try-dos-files ( -- found? )
    no-mbr? IF false EXIT THEN
 
-   \ block 0 byte 0-2 is a jump instruction in all FAT
-   \ filesystems.
-   \ e9 and eb are jump instructions in x86 assembler.
-   block c@ e9 <> IF
-      block c@ eb <>
-      block 2+ c@ 90 <> or
-      IF false EXIT THEN
-   THEN
+   block fat-bootblock? 0= IF false EXIT THEN
    s" fat-files" (interpose-filesystem)
    true
 ;
