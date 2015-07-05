@@ -83,6 +83,8 @@ uint8_t set_leds;
 const uint8_t *key_std       = NULL;
 const uint8_t *key_std_shift = NULL;
 
+uint8_t ctrl; /* modifiers */
+
 /**
  * read character from Keyboard-Buffer
  *
@@ -120,22 +122,27 @@ static void write_key(uint8_t key)
 static void get_char(uint8_t ctrl, uint8_t keypos)
 {
 	uint8_t ch;
+	int caps = 0;
+//key position for latin letters
+#define KEYP_LATIN_A 4
+#define KEYP_LATIN_Z 29
 
 #ifdef KEY_DEBUG
 	printf("pos %02X\n", keypos);
 #endif
 
 	if (set_leds & LED_CAPS_LOCK)	                /* is CAPS Lock set ? */
-		ctrl |= MODIFIER_SHIFT;	                    /* simulate shift */
+		caps = 1;
 
-	if (ctrl == 0) {
+	/* caps is a shift only for latin chars */
+	if ((caps == 0 && ctrl == 0) || (caps == 1 && (keypos < KEYP_LATIN_A || keypos > KEYP_LATIN_Z))) {
 		ch = key_std[keypos];
 		if (ch != 0)
 			write_key(ch);
 		return;
 	}
 
-	if (ctrl & MODIFIER_SHIFT) {
+	if ((ctrl & MODIFIER_SHIFT) || caps == 1) {
 		ch = key_std_shift[keypos];
 		if (ch != 0)
 			write_key(ch);
@@ -187,6 +194,12 @@ static void check_key_code(uint8_t *buf)
 					set_leds ^= LED_CAPS_LOCK;
 					break;
 
+				case 0x36:		                /*Shift pressed*/
+					ctrl |= MODIFIER_SHIFT;
+					break;
+				case 0xb6:		                /*Shift unpressed*/
+					ctrl &= ~MODIFIER_SHIFT;
+					break;
 				case 0x3a:	                        /* F1 */
 					write_key(0x1b);
 					write_key(0x5b);
