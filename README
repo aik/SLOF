@@ -11,6 +11,7 @@ Index
 2.2 Overview of the source code
 2.4 Extending the Forth engine
 3.0 Limitations
+4.0 Submitting patches
 
 
 1.0 Introduction to Slimline Open Firmware
@@ -234,6 +235,13 @@ To add primitives:
  available.
 
  On a JS21 all memory configurations should work.
+
+
+4.0 Submitting patches
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Patches for SLOF should be made against https://github.com/aik/SLOF,
+the master branch and posted to slof@lists.ozlabs.org.
 
 
 Documentation
