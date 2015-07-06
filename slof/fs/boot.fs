@@ -187,11 +187,6 @@ defer go ( -- )
       dup to my-self
       dup ihandle>phandle set-node
       -rot                              ( ihandle devstr len )
-      my-args nip 0= IF
-	 2dup 1- + c@ [char] : <> IF    \ Add : to device path if missing
-	    1+ strdup 2dup 1- + [char] : swap c!
-	 THEN
-      THEN
       encode-string s" bootpath" set-chosen
       $bootargs encode-string s" bootargs" set-chosen
       get-load-base s" load" 3 pick ['] $call-method CATCH IF
