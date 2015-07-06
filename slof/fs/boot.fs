@@ -211,7 +211,7 @@ defer go ( -- )
 
 : parse-load ( "{devlist}" -- success )	\ Parse-execute boot-device list
    cr BEGIN parse-word dup WHILE
-	 ( de-alias ) do-load dup 0< IF drop 0 THEN IF
+	 de-alias do-load dup 0< IF drop 0 THEN IF
 	    state-valid @ IF ."   Successfully loaded" cr THEN
 	    true 0d parse strdup load-list 2! EXIT
 	 THEN
