@@ -98,7 +98,8 @@ CREATE bitmap-buffer 400 4 * allot
 
 : fb8-toggle-cursor ( -- )
 	line# fb8-line2addr column# fb8-columns2bytes +
-	char-height 0 ?DO
+	char-height 2 - screen-width screen-depth * * +
+	2 0 ?DO
 		dup char-width screen-depth * invert-region
 		screen-width screen-depth * +
 	LOOP drop
