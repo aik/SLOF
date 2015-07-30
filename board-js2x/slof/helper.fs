@@ -28,9 +28,12 @@
 ;
 
 : invert-region ( addr len -- )
-   0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP drop
-;
-
-: invert-region-x ( addr len -- )
-   /x / 0 ?DO dup dup rx@ -1 xor swap rx! xa1+ LOOP drop
+   2dup or 7 and CASE
+      0 OF 3 rshift 0 ?DO dup dup rx@ -1 xor swap rx! xa1+ LOOP ENDOF
+      4 OF 2 rshift 0 ?DO dup dup rl@ -1 xor swap rl! la1+ LOOP ENDOF
+      3 and
+      2 OF 1 rshift 0 ?DO dup dup rw@ -1 xor swap rw! wa1+ LOOP ENDOF
+      dup OF 0 ?DO dup dup rb@ -1 xor swap rb! 1+ LOOP ENDOF
+   ENDCASE
+   drop
 ;
