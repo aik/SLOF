@@ -19,6 +19,7 @@
 0 VALUE screen-height
 0 VALUE screen-width
 0 VALUE screen-depth
+0 VALUE screen-line-bytes
 0 VALUE window-top
 0 VALUE window-left
 
@@ -54,10 +55,10 @@
 : fb8-background inverse? ;
 : fb8-foreground inverse? invert ;
 
-: fb8-lines2bytes ( #lines -- #bytes ) char-height * screen-width * screen-depth * ;
+: fb8-lines2bytes ( #lines -- #bytes ) char-height * screen-line-bytes * ;
 : fb8-columns2bytes ( #columns -- #bytes ) char-width * screen-depth * ;
 : fb8-line2addr ( line# -- addr )
-	char-height * window-top + screen-width * screen-depth *
+	char-height * window-top + screen-line-bytes *
 	frame-buffer-adr + window-left screen-depth * +
 ;
 
@@ -98,10 +99,10 @@ CREATE bitmap-buffer 400 4 * allot
 
 : fb8-toggle-cursor ( -- )
 	line# fb8-line2addr column# fb8-columns2bytes +
-	char-height 2 - screen-width screen-depth * * +
+	char-height 2 - screen-line-bytes * +
 	2 0 ?DO
 		dup char-width screen-depth * invert-region
-		screen-width screen-depth * +
+		screen-line-bytes +
 	LOOP drop
 ;
 
@@ -111,7 +112,7 @@ CREATE bitmap-buffer 400 4 * allot
 	line# fb8-line2addr column# fb8-columns2bytes + ( bitmap-buf fb-addr )
 	char-height 0 ?DO
 		2dup char-width screen-depth * mrmove
-		screen-width screen-depth * + >r char-width screen-depth * + r>
+		screen-line-bytes + >r char-width screen-depth * + r>
 	LOOP 2drop
     ELSE 2drop r> 3drop THEN
 ;
@@ -136,12 +137,12 @@ CREATE bitmap-buffer 400 4 * allot
 		fb8-columns2bytes swap fb8-columns2bytes tuck -
 		over r@ tuck + rot char-height 0 ?DO
 			3dup rmove
-			-rot screen-width screen-depth * tuck + -rot + swap rot
+			-rot screen-line-bytes tuck + -rot + swap rot
 		LOOP
 		3drop r>
 	THEN
 	char-height 0 ?DO
-		dup 2 pick fb8-erase-block screen-width screen-depth * +
+		dup 2 pick fb8-erase-block screen-line-bytes +
 	LOOP
 	2drop
 ;
@@ -154,12 +155,12 @@ CREATE bitmap-buffer 400 4 * allot
 		fb8-columns2bytes swap fb8-columns2bytes tuck -
 		over r@ + 2dup + r> swap >r rot char-height 0 ?DO
 			3dup rmove
-			-rot screen-width screen-depth * tuck + -rot + swap rot
+			-rot screen-line-bytes tuck + -rot + swap rot
 		LOOP
 		3drop r> over -
 	THEN
 	char-height 0 ?DO
-		dup 2 pick fb8-erase-block screen-width screen-depth * +
+		dup 2 pick fb8-erase-block screen-line-bytes +
 	LOOP
 	2drop
 ;
@@ -167,11 +168,11 @@ CREATE bitmap-buffer 400 4 * allot
 : fb8-reset-screen ( -- ) ( Left as no-op by design ) ;
 
 : fb8-erase-screen ( -- )
-	frame-buffer-adr screen-height screen-width * screen-depth * fb8-erase-block
+	frame-buffer-adr screen-height screen-line-bytes * fb8-erase-block
 ;
 
 : fb8-invert-screen ( -- )
-	frame-buffer-adr screen-height screen-width * screen-depth * invert-region
+	frame-buffer-adr screen-height screen-line-bytes * invert-region
 ;
 
 : fb8-blink-screen ( -- ) fb8-invert-screen fb8-invert-screen ;
@@ -179,6 +180,7 @@ CREATE bitmap-buffer 400 4 * allot
 : fb8-install ( width height #columns #lines -- )
 	1 to screen-depth
 	2swap  to screen-height  to screen-width
+	screen-width to screen-line-bytes
 	screen-#rows min to #lines
 	screen-#columns min to #columns
 	screen-height char-height #lines * - 2/ to window-top
@@ -200,6 +202,7 @@ CREATE bitmap-buffer 400 4 * allot
 	>r
 	fb8-install
 	r> to screen-depth
+	screen-width screen-depth * to screen-line-bytes
 ;
 
 
