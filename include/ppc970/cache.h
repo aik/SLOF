@@ -101,4 +101,28 @@ cache_inhibited_access(uint64_t, 64)
 	default:	FAST_MRMOVE_TYPED(s, d, size, type_c); break; \
 	}
 
+/* fill IO memory with pattern */
+#define FAST_RFILL_TYPED(dst, size, pat, t) \
+{ \
+	t *d1 = (dst); \
+	register t tmp = 0; \
+	int i = sizeof(t); \
+	while (i-- > 0) { \
+		tmp <<= 8; tmp |= pat & 0xff; \
+	} \
+	SET_CI; \
+	while (size > 0) { \
+		*d1++ = tmp; size -= sizeof(t); \
+	} \
+	CLR_CI; \
+}
+
+#define FAST_RFILL(dst, size, pat) \
+	switch (((type_u)dst | size) & (sizeof(type_u)-1)) { \
+	case 0:		FAST_RFILL_TYPED(dst, size, pat, type_u); break; \
+	case 4:		FAST_RFILL_TYPED(dst, size, pat, type_l); break; \
+	case 2: case 6:	FAST_RFILL_TYPED(dst, size, pat, type_w); break; \
+	default:	FAST_RFILL_TYPED(dst, size, pat, type_c); break; \
+	}
+
 #endif

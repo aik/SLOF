@@ -124,6 +124,18 @@ static inline void ci_rmove(void *dst, void *src, unsigned long esize,
 
 #define FAST_MRMOVE(s, d, size) _FASTRMOVE(s, d, size)
 
+#define FAST_RFILL(dst, size, pat) do { \
+		type_u buf[64]; \
+		char *d = (char *)(dst); \
+		memset(buf, pat, size < sizeof(buf) ? size : sizeof(buf)); \
+		while (size > sizeof(buf)) { \
+			FAST_MRMOVE(buf, d, sizeof(buf)); \
+			d += sizeof(buf); \
+			size -= sizeof(buf); \
+		} \
+		FAST_MRMOVE(buf, d, size); \
+	} while(0)
+
 static inline uint16_t bswap16_load(uint64_t addr)
 {
 	unsigned int val;
