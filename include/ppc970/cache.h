@@ -55,8 +55,8 @@ cache_inhibited_access(uint64_t, 64)
 #define _FASTMOVE(s, d, size) \
 	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
 		case 0:			_MOVE(s, d, size, type_u); break; \
-		case sizeof(type_l):	_MOVE(s, d, size, type_l); break; \
-		case sizeof(type_w):	_MOVE(s, d, size, type_w); break; \
+		case 4:			_MOVE(s, d, size, type_l); break; \
+		case 2: case 6:		_MOVE(s, d, size, type_w); break; \
 		default:		_MOVE(s, d, size, type_c); break; \
 	}
 
@@ -78,8 +78,8 @@ cache_inhibited_access(uint64_t, 64)
 #define _FASTRMOVE(s, d, size) \
 	switch (((type_u)s | (type_u)d | size) & (sizeof(type_u)-1)) { \
 		case 0:			_RMOVE(s, d, size, type_u); break; \
-		case sizeof(type_l):	_RMOVE(s, d, size, type_l); break; \
-		case sizeof(type_w):	_RMOVE(s, d, size, type_w); break; \
+		case 4:			_RMOVE(s, d, size, type_l); break; \
+		case 2: case 6:		_RMOVE(s, d, size, type_w); break; \
 		default:		_RMOVE(s, d, size, type_c); break; \
 	}
 
