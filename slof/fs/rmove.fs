@@ -24,22 +24,6 @@ defer '(r!)
 	-rot bounds ?do dup i '(r!) /(r) +loop drop
 ;
 
-: (fwrmove) ( src dest size -- )
-	>r 0 -rot r> bounds ?do + dup '(r@) i '(r!) /(r) dup +loop 2drop
-;
-
-\ Move from main to device memory
-: mrmove ( src dest size -- )
-	3dup or or 7 AND CASE
-		0 OF ['] x@ ['] rx! /x ENDOF
-		4 OF ['] l@ ['] rl! /l ENDOF
-		2 OF ['] w@ ['] rw! /w ENDOF
-		dup OF ['] c@ ['] rb! /c ENDOF
-	ENDCASE
-	( We already know that source and destination do not overlap )
-	to /(r) to '(r!) to '(r@) (fwrmove)
-;
-
 : rfill ( addr size pattern -- )
 	3dup drop or 7 AND CASE
 		0 OF ['] rx! /x ENDOF

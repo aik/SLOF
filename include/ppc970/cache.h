@@ -83,4 +83,22 @@ cache_inhibited_access(uint64_t, 64)
 		default:		_RMOVE(s, d, size, type_c); break; \
 	}
 
+/* main RAM to IO memory move */
+#define FAST_MRMOVE_TYPED(s, d, size, t)	\
+{ \
+	t *s1 = (s), *d1 = (d); \
+	register t tmp; \
+	while (size > 0) { \
+		tmp = *s1++; SET_CI; *d1++ = tmp; CLR_CI; size -= sizeof(t); \
+	} \
+}
+
+#define FAST_MRMOVE(s, d, size) \
+	switch (((type_u)(s) | (type_u)(d) | (size)) & (sizeof(type_u)-1)) { \
+	case 0:		FAST_MRMOVE_TYPED(s, d, size, type_u); break; \
+	case 4:		FAST_MRMOVE_TYPED(s, d, size, type_l); break; \
+	case 2: case 6:	FAST_MRMOVE_TYPED(s, d, size, type_w); break; \
+	default:	FAST_MRMOVE_TYPED(s, d, size, type_c); break; \
+	}
+
 #endif

@@ -122,6 +122,8 @@ static inline void ci_rmove(void *dst, void *src, unsigned long esize,
 		}							      \
 	} while(0)
 
+#define FAST_MRMOVE(s, d, size) _FASTRMOVE(s, d, size)
+
 static inline uint16_t bswap16_load(uint64_t addr)
 {
 	unsigned int val;
