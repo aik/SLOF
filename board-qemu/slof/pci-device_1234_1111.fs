@@ -17,44 +17,38 @@ d# 800 VALUE disp-width
 d# 600 VALUE disp-height
 d#   8 VALUE disp-depth
 
-\ Determine base address
-10 config-l@ translate-my-address f not AND VALUE fb-base
+: map-in  " map-in" my-phandle parent $call-static ;
+: map-out  " map-out" my-phandle parent $call-static ;
 
-\ Fixed up later
--1 VALUE io-base
+\ Determine base address
+0 0  my-space h# 02000010 + 1  map-in VALUE fb-base
+0 0  my-space h# 02000018 + 1 map-in VALUE reg-base
 
 \ We support only one instance
 false VALUE is-installed?
 
-: vga-io-xlate ( port -- addr )
-  io-base -1 = IF
-    dup translate-my-address fff not and to io-base
-  THEN
-  io-base +
-;
-
 : vga-w! ( value port -- )
-  vga-io-xlate rw!-le
+  3c0 - reg-base 400 + + rw!-le
 ;
 
 : vga-w@ ( port -- value )
-  vga-io-xlate rw@-le
+  3c0 - reg-base 400 + + rw@-le
 ;
 
 : vga-b! ( value port -- )
-  vga-io-xlate rb!
+  3c0 - reg-base 400 + + rb!
 ;
 
 : vga-b@ ( port -- value )
-  vga-io-xlate rb@
+  3c0 - reg-base 400 + + rb@
 ;
 
 : vbe!	( value index -- )
-  1ce vga-w! 1d0 vga-w!
+  1 << reg-base 500 + + rw!-le
 ;
 
 : vbe@	( index -- value )
-  1ce vga-w! 1d0 vga-w@
+  1 << reg-base 500 + + rw@-le
 ;
 
 : color! ( r g b number -- ) 
@@ -145,31 +139,6 @@ a CONSTANT VBE_DISPI_INDEX_NB
   THEN
 ;
 
-: add-legacy-reg
-  \ add legacy I/O Ports / Memory regions to assigned-addresses
-  \ see PCI Bus Binding Revision 2.1 Section 7.
-  s" reg" get-node get-property IF
-    \ "reg" does not exist, create new
-    encode-start
-  ELSE
-    \ "reg" does exist, copy it 
-    encode-bytes
-  THEN
-  \ I/O Range 0x1ce-0x1d2
-  my-space a1000000 or encode-int+ \ non-relocatable, aliased I/O space
-  1ce encode-64+ 4 encode-64+ \ addr size
-  \ I/O Range 0x3B0-0x3BB
-  my-space a1000000 or encode-int+ \ non-relocatable, aliased I/O space
-  3b0 encode-64+ c encode-64+ \ addr size
-  \ I/O Range 0x3C0-0x3DF
-  my-space a1000000 or encode-int+ \ non-relocatable, aliased I/O space
-  3c0 encode-64+ 20 encode-64+ \ addr size
-  \ Memory Range 0xA0000-0xBFFFF
-  my-space a2000000 or encode-int+ \ non-relocatable, <1MB Memory space
-  a0000 encode-64+ 20000 encode-64+ \ addr size
-  s" reg" property \ store "reg" property
-;
-
 : setup-properties
    \ Shouldn't this be done from open ?
    disp-width encode-int s" width" property
@@ -223,8 +192,6 @@ a CONSTANT VBE_DISPI_INDEX_NB
 
 pci-master-enable
 pci-mem-enable
-pci-io-enable
-add-legacy-reg
 read-settings
 init-mode
 init-default-palette
