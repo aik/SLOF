@@ -467,11 +467,8 @@ unsigned char usb_key_available(void *dev)
 
 unsigned char usb_read_keyb(void *vdev)
 {
-	if (!vdev)
-		return false;
-
-	while (usb_poll_key(vdev)) {
-		/* loop for all pending keys */
-	}
-	return read_key();
+	if (usb_key_available(vdev))
+		return read_key();
+	else
+		return 0;
 }
