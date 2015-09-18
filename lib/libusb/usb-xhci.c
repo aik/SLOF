@@ -225,11 +225,11 @@ static void xhci_handle_cmd_completion(struct xhci_hcd *xhcd,
 		xhcd->slot_id = 0;
 }
 
-static struct xhci_event_trb *xhci_poll_event(struct xhci_hcd *xhcd,
-					uint32_t event_type)
+static uint64_t xhci_poll_event(struct xhci_hcd *xhcd,
+				uint32_t event_type)
 {
 	struct xhci_event_trb *event;
-	uint64_t val;
+	uint64_t val, retval = 0;
 	uint32_t flags, time;
 	int index;
 
@@ -244,7 +244,7 @@ static struct xhci_event_trb *xhci_poll_event(struct xhci_hcd *xhcd,
 		mb();
 		flags = le32_to_cpu(event->flags);
 		if (time < SLOF_GetTimer())
-			return NULL;
+			return 0;
 	}
 
 	mb();
@@ -273,6 +273,7 @@ static struct xhci_event_trb *xhci_poll_event(struct xhci_hcd *xhcd,
 		break;
 	}
 	xhcd->ering.deq = (uint64_t) (event + 1);
+	retval = le64_to_cpu(event->addr);
 
 	event->addr = 0;
 	event->status = 0;
@@ -289,7 +290,11 @@ static struct xhci_event_trb *xhci_poll_event(struct xhci_hcd *xhcd,
 	dprintf("Update start %x deq %x index %d\n",
 		xhcd->ering.trbs_dma, val, index/sizeof(*event));
 	write_reg64(&xhcd->run_regs->irs[0].erdp, val);
-	return event;
+
+	if (retval == 0)
+		return (uint64_t)event;
+	else
+		return retval;
 }
 
 static void xhci_send_cmd(struct xhci_hcd *xhcd, uint32_t field1,
@@ -1119,6 +1124,11 @@ static inline void *xhci_get_trb(struct xhci_seg *seg)
 	return (void *)enq;
 }
 
+static uint64_t xhci_get_trb_phys(struct xhci_seg *seg, uint64_t trb)
+{
+	return seg->trbs_dma + (trb - (uint64_t)seg->trbs);
+}
+
 static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 			void *data, int datalen)
 {
@@ -1128,7 +1138,8 @@ static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 	struct xhci_transfer_trb *trb;
 	struct xhci_db_regs *dbr;
 	int ret = true;
-	uint32_t slot_id, epno;
+	uint32_t slot_id, epno, time;
+	uint64_t trb_phys, event_phys;
 
 	if (!pipe->dev || !pipe->dev->hcidev) {
 		dprintf(" NULL pointer\n");
@@ -1153,13 +1164,25 @@ static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 	}
 
 	trb = xhci_get_trb(seg);
+	trb_phys = xhci_get_trb_phys(seg, (uint64_t)trb);
 	fill_normal_trb(trb, (void *)data, datalen);
 
 	epno = xhci_get_epno(pipe);
 	write_reg32(&dbr->db[slot_id], epno);
-	if (!xhci_poll_event(xhcd, 0)) {
-		dprintf("Bulk failed\n");
-		ret = false;
+
+	time = SLOF_GetTimer() + USB_TIMEOUT;
+	while (1) {
+		event_phys = xhci_poll_event(xhcd, 0);
+		if (event_phys == trb_phys) {
+			break;
+		} else if (event_phys == 0) { /* polling timed out */
+			ret = false;
+			break;
+		}
+
+		/* transfer timed out */
+		if (time < SLOF_GetTimer())
+			return false;
 	}
 	trb->addr = 0;
 	trb->len = 0;
