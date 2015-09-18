@@ -388,10 +388,12 @@ static void xhci_init_seg(struct xhci_seg *seg, uint32_t size, uint32_t type)
 	seg->deq = (uint64_t)seg->trbs;
 	memset((void *)seg->trbs, 0, size);
 
-	link =(struct xhci_link_trb *) (seg->trbs + seg->size - 1);
-	link->addr = cpu_to_le64(seg->trbs_dma);
-	link->field2 = 0;
-	link->field3 = cpu_to_le32(0x1 | TRB_CMD_TYPE(TRB_LINK));
+	if (type != TYPE_EVENT) {
+		link =(struct xhci_link_trb *) (seg->trbs + seg->size - 1);
+		link->addr = cpu_to_le64(seg->trbs_dma);
+		link->field2 = 0;
+		link->field3 = cpu_to_le32(0x1 | TRB_CMD_TYPE(TRB_LINK));
+	}
 	return;
 }
 
