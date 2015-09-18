@@ -644,7 +644,25 @@ static bool usb3_dev_init(struct xhci_hcd *xhcd, uint32_t port)
 	return true;
 }
 
-static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
+static int xhci_device_present(uint32_t portsc, uint32_t usb_ver)
+{
+	if (usb_ver == USB_XHCI) {
+		/* Device present and enabled state */
+		if ((portsc & PORTSC_CCS) &&
+			(portsc & PORTSC_PP) &&
+			(portsc & PORTSC_PED)) {
+			return true;
+		}
+	} else if (usb_ver == USB_EHCI) {
+		/* Device present and in disabled state */
+		if ((portsc & PORTSC_CCS) && (portsc & PORTSC_CSC))
+			return true;
+	}
+	return false;
+}
+
+static int xhci_port_scan(struct xhci_hcd *xhcd,
+			uint32_t usb_ver)
 {
 	uint32_t num_ports, portsc, i;
 	struct xhci_op_regs *op;
@@ -652,7 +670,7 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	struct xhci_cap_regs *cap;
 	uint32_t xecp_off;
 	uint32_t *xecp_addr, *base;
-	uint32_t port_off = 1, port_cnt;
+	uint32_t port_off = 0, port_cnt;
 
 	dprintf("enter\n");
 
@@ -665,14 +683,14 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	base = (uint32_t *)cap;
 	while (xecp_off > 0) {
 		xecp_addr = base + xecp_off;
-		dprintf(stderr, "xecp_off %d %p %p \n", xecp_off, base, xecp_addr);
+		dprintf("xecp_off %d %p %p \n", xecp_off, base, xecp_addr);
 
 		if (XHCI_XECP_CAP_ID(read_reg32(xecp_addr)) == XHCI_XECP_CAP_SP &&
-		    XHCI_XECP_CAP_SP_MJ(read_reg32(xecp_addr)) == 3 &&
+		    XHCI_XECP_CAP_SP_MJ(read_reg32(xecp_addr)) == usb_ver &&
 		    XHCI_XECP_CAP_SP_MN(read_reg32(xecp_addr)) == 0) {
 			port_cnt = XHCI_XECP_CAP_SP_PC(read_reg32(xecp_addr + 2));
 			port_off = XHCI_XECP_CAP_SP_PO(read_reg32(xecp_addr + 2));
-			dprintf(stderr, "PortCount %d Portoffset %d\n", port_cnt, port_off);
+			dprintf("PortCount %d Portoffset %d\n", port_cnt, port_off);
 		}
 		base = xecp_addr;
 		xecp_off = XHCI_XECP_NEXT_PTR(read_reg32(xecp_addr));
@@ -682,10 +700,8 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	for (i = (port_off - 1); i < (port_off + port_cnt - 1); i++) {
 		prs = &op->prs[i];
 		portsc = read_reg32(&prs->portsc);
-		if ((portsc & PORTSC_CCS) &&
-			(portsc & PORTSC_PP) &&
-			(portsc & PORTSC_PED)) {
-			/* Device present and enabled */
+		if (xhci_device_present(portsc, usb_ver)) {
+			/* Device present */
 			dprintf("Device present on port %d\n", i);
 			/* Reset the port */
 			portsc = read_reg32(&prs->portsc);
@@ -706,6 +722,11 @@ static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
 	}
 	dprintf("exit\n");
 	return true;
+}
+
+static int xhci_hub_check_ports(struct xhci_hcd *xhcd)
+{
+	return xhci_port_scan(xhcd, USB_XHCI) | xhci_port_scan(xhcd, USB_EHCI);
 }
 
 static bool xhci_hcd_init(struct xhci_hcd *xhcd)
