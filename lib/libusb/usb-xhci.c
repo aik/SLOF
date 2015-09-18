@@ -1119,18 +1119,17 @@ static inline struct xhci_seg *xhci_pipe_get_seg(struct usb_pipe *pipe)
 static inline void *xhci_get_trb(struct xhci_seg *seg)
 {
 	uint64_t val, enq;
-	uint32_t size;
+	int index;
 	struct xhci_link_trb *link;
 
 	enq = val = seg->enq;
 	val = val + XHCI_TRB_SIZE;
-	size = seg->size * XHCI_TRB_SIZE;
-        /* TRBs being a cyclic buffer, here we cycle back to beginning. */
-	if ((val % size) == 0) {
+	index = (enq - (uint64_t)seg->trbs) / XHCI_TRB_SIZE + 1;
+	dprintf("%s: enq %llx, val %llx %x\n", __func__, enq, val, index);
+	/* TRBs being a cyclic buffer, here we cycle back to beginning. */
+	if (index == (seg->size - 1)) {
+		dprintf("%s: rounding \n", __func__);
 		seg->enq = (uint64_t)seg->trbs;
-		enq = seg->enq;
-		seg->enq = seg->enq + XHCI_TRB_SIZE;
-		val = 0;
 		seg->cycle_state ^= seg->cycle_state;
 		link = (struct xhci_link_trb *) (seg->trbs + seg->size - 1);
 		link->addr = cpu_to_le64(seg->trbs_dma);
