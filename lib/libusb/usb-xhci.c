@@ -1228,7 +1228,8 @@ static void xhci_init_bulk_ep(struct usb_dev *dev, struct usb_pipe *pipe)
 
 	if (!seg->trbs) {
 		if (!xhci_alloc_seg(seg, XHCI_DATA_TRBS_SIZE, TYPE_BULK)) {
-			dprintf("Failed allocating seg\n");
+			printf("usb-xhci: allocation failed for bulk endpoint\n");
+			return;
 		}
 	} else {
 		xhci_init_seg(seg, XHCI_DATA_TRBS_SIZE, TYPE_BULK);
