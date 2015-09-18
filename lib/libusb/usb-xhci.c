@@ -870,6 +870,18 @@ static bool xhci_hcd_exit(struct xhci_hcd *xhcd)
 		SLOF_dma_map_out(xhcd->dcbaap_dma, (void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
 		SLOF_dma_free((void *)xhcd->dcbaap, XHCI_DCBAAP_MAX_SIZE);
 	}
+
+	/*
+	 * QEMU implementation of XHCI doesn't implement halt
+	 * properly. It basically says that it's halted immediately
+	 * but doesn't actually terminate ongoing activities and
+	 * DMAs. This needs to be fixed in QEMU.
+	 *
+	 * For now, wait for 50ms grace time till qemu stops using
+	 * this device.
+	 */
+	SLOF_msleep(50);
+
 	return true;
 }
 
