@@ -82,6 +82,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
 	$(SLOFCMNDIR)/fs/scsi-probe-helpers.fs \
 	$(SLOFCMNDIR)/fs/scsi-support.fs \
+	$(SLOFCMNDIR)/fs/dma-function.fs \
 	$(SLOFCMNDIR)/fs/pci-device.fs \
 	$(SLOFCMNDIR)/fs/pci-bridge.fs \
 	$(SLOFCMNDIR)/fs/pci-properties.fs \
