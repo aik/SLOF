@@ -1,5 +1,5 @@
 \ *****************************************************************************
-\ * Copyright (c) 2011 IBM Corporation
+\ * Copyright (c) 2015 IBM Corporation
 \ * All rights reserved.
 \ * This program and the accompanying materials
 \ * are made available under the terms of the BSD License
@@ -10,6 +10,6 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-." qemu vga" cr
+s" virtio [ vga ]" type cr
 
 s" qemu-vga.fs" included
