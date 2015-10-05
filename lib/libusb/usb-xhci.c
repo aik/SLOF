@@ -623,6 +623,7 @@ static void xhci_free_dev(struct xhci_dev *xdev)
 {
 	xhci_free_seg(&xdev->bulk_in, XHCI_DATA_TRBS_SIZE);
 	xhci_free_seg(&xdev->bulk_out, XHCI_DATA_TRBS_SIZE);
+	xhci_free_seg(&xdev->intr, XHCI_INTR_TRBS_SIZE);
 	xhci_free_seg(&xdev->control, XHCI_CONTROL_TRBS_SIZE);
 	xhci_free_ctx(&xdev->in_ctx, XHCI_CTX_BUF_SIZE);
 	xhci_free_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE);
@@ -1149,6 +1150,7 @@ static uint64_t xhci_get_trb_phys(struct xhci_seg *seg, uint64_t trb)
 	return seg->trbs_dma + (trb - (uint64_t)seg->trbs);
 }
 
+static int usb_kb = false;
 static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 			void *data, int datalen)
 {
@@ -1198,7 +1200,8 @@ static int xhci_transfer_bulk(struct usb_pipe *pipe, void *td, void *td_phys,
 		} else if (event_phys == 0) { /* polling timed out */
 			ret = false;
 			break;
-		}
+		} else
+			usb_kb = true;
 
 		/* transfer timed out */
 		if (time < SLOF_GetTimer())
@@ -1293,6 +1296,61 @@ static void xhci_init_bulk_ep(struct usb_dev *dev, struct usb_pipe *pipe)
 	xpipe->seg = seg;
 }
 
+static int xhci_get_pipe_intr(struct usb_pipe *pipe,
+			struct xhci_hcd *xhcd,
+			char *buf, size_t len)
+{
+	struct xhci_dev *xdev;
+	struct xhci_seg *seg;
+	struct xhci_pipe *xpipe;
+	struct xhci_control_ctx *ctrl;
+	struct xhci_ep_ctx *ep;
+	uint32_t x_epno, val, type;
+	struct usb_dev *dev;
+	struct xhci_transfer_trb *trb;
+
+	dev = pipe->dev;
+	if (dev->class != DEV_HID_KEYB)
+		return false;
+
+	xdev = dev->priv;
+	pipe->mps = 8;
+	seg = xhci_pipe_get_seg(pipe);
+	xpipe = xhci_pipe_get_xpipe(pipe);
+	type = EP_INT_IN;
+	seg = &xdev->intr;
+
+	if (!seg->trbs) {
+		if (!xhci_alloc_seg(seg, XHCI_INTR_TRBS_SIZE, TYPE_BULK)) {
+			printf("usb-xhci: allocation failed for interrupt endpoint\n");
+			return false;
+		}
+	} else {
+		xhci_init_seg(seg, XHCI_EVENT_TRBS_SIZE, TYPE_BULK);
+	}
+
+	xpipe->buf = buf;
+	xpipe->buf_phys = SLOF_dma_map_in(buf, len, false);
+	xpipe->buflen = len;
+
+	ctrl = xhci_get_control_ctx(&xdev->in_ctx);
+	x_epno = xhci_get_epno(pipe);
+	ep = xhci_get_ep_ctx(&xdev->in_ctx, xdev->ctx_size, x_epno);
+	val = EP_TYPE(type) | MAX_BURST(0) | ERROR_COUNT(3) |
+		MAX_PACKET_SIZE(pipe->mps);
+	ep->field2 = cpu_to_le32(val);
+	ep->deq_addr = cpu_to_le64(seg->trbs_dma | seg->cycle_state);
+	ep->field4 = cpu_to_le32(8);
+	ctrl->a_flags = cpu_to_le32(BIT(x_epno) | 0x1);
+	ctrl->d_flags = 0;
+	xhci_configure_ep(xhcd, xdev->slot_id, xdev->in_ctx.dma_addr);
+	xpipe->seg = seg;
+
+	trb = xhci_get_trb(seg);
+	fill_normal_trb(trb, (void *)xpipe->buf_phys, pipe->mps);
+	return true;
+}
+
 static struct usb_pipe* xhci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *ep, char *buf, size_t len)
 {
 	struct xhci_hcd *xhcd;
@@ -1322,6 +1380,12 @@ static struct usb_pipe* xhci_get_pipe(struct usb_dev *dev, struct usb_ep_descr *
 	new->dir = (ep->bEndpointAddress & 0x80) >> 7;
 	new->epno = ep->bEndpointAddress & 0x0f;
 
+	if (new->type == USB_EP_TYPE_INTR) {
+		if (!xhci_get_pipe_intr(new, xhcd, buf, len)) {
+			printf("usb-xhci: %s alloc_intr failed  %p\n",
+				__func__, new);
+		}
+	}
 	if (new->type == USB_EP_TYPE_BULK)
 		xhci_init_bulk_ep(dev, new);
 
@@ -1342,6 +1406,10 @@ static void xhci_put_pipe(struct usb_pipe *pipe)
 	if (pipe->type == USB_EP_TYPE_BULK) {
 		xpipe = xhci_pipe_get_xpipe(pipe);
 		xpipe->seg = NULL;
+	} else if (pipe->type == USB_EP_TYPE_INTR) {
+		xpipe = xhci_pipe_get_xpipe(pipe);
+		SLOF_dma_map_out(xpipe->buf_phys, xpipe->buf, xpipe->buflen);
+		xpipe->seg = NULL;
 	}
 	if (xhcd->end)
 		xhcd->end->next = pipe;
@@ -1356,6 +1424,51 @@ static void xhci_put_pipe(struct usb_pipe *pipe)
 	dprintf("usb-xhci: %s exit\n", __func__);
 }
 
+static int xhci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
+{
+	struct xhci_transfer_trb *trb;
+	struct xhci_seg *seg;
+	struct xhci_pipe *xpipe;
+	struct xhci_dev *xdev;
+	struct xhci_hcd *xhcd;
+	struct xhci_db_regs *dbr;
+	uint32_t x_epno;
+	uint8_t *buf, ret = 1;
+
+	if (!pipe || !pipe->dev || !pipe->dev->hcidev)
+		return 0;
+	xdev = pipe->dev->priv;
+	xhcd = (struct xhci_hcd *)pipe->dev->hcidev->priv;
+	x_epno = xhci_get_epno(pipe);
+	seg = xhci_pipe_get_seg(pipe);
+	xpipe = xhci_pipe_get_xpipe(pipe);
+
+	if (usb_kb == true) {
+		/* This event was consumed by bulk transfer */
+		usb_kb = false;
+		goto skip_poll;
+	}
+	buf = xpipe->buf;
+	memset(buf, 0, 8);
+
+	mb();
+	/* Ring the doorbell - x_epno */
+	dbr = xhcd->db_regs;
+	write_reg32(&dbr->db[xdev->slot_id], x_epno);
+	if (!xhci_poll_event(xhcd, 0)) {
+		printf("poll intr failed\n");
+		return 0;
+	}
+	mb();
+	memcpy(data, buf, 8);
+
+skip_poll:
+	trb = xhci_get_trb(seg);
+	fill_normal_trb(trb, (void *)xpipe->buf_phys, pipe->mps);
+	mb();
+	return ret;
+}
+
 struct usb_hcd_ops xhci_ops = {
 	.name          = "xhci-hcd",
 	.init          = xhci_init,
@@ -1363,6 +1476,7 @@ struct usb_hcd_ops xhci_ops = {
 	.usb_type      = USB_XHCI,
 	.get_pipe      = xhci_get_pipe,
 	.put_pipe      = xhci_put_pipe,
+	.poll_intr     = xhci_poll_intr,
 	.send_ctrl     = xhci_send_ctrl,
 	.transfer_bulk = xhci_transfer_bulk,
 	.next          = NULL,
