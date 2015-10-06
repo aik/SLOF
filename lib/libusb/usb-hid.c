@@ -214,33 +214,29 @@ static void check_key_code(uint8_t *buf)
 				case 0x3a:	                        /* F1 */
 					write_key(0x1b);
 					write_key(0x5b);
-					write_key(0x31);
-					write_key(0x31);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x50);
 					break;
 
 				case 0x3b:		                /* F2 */
 					write_key(0x1b);
 					write_key(0x5b);
-					write_key(0x31);
-					write_key(0x32);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x51);
 					break;
 
 				case 0x3c:
 					write_key(0x1b);               /* F3 */
 					write_key(0x5b);
-					write_key(0x31);
-					write_key(0x33);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x52);
 					break;
 
 				case 0x3d:
 					write_key(0x1b);		/* F4 */
 					write_key(0x5b);
-					write_key(0x31);
-					write_key(0x34);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x53);
 					break;
 
 				case 0x3e:
@@ -278,7 +274,7 @@ static void check_key_code(uint8_t *buf)
 				case 0x42:
 					write_key(0x1b);		/* F9 */
 					write_key(0x5b);
-					write_key(0x31);
+					write_key(0x32);
 					write_key(0x30);
 					write_key(0x7e);
 					break;
@@ -286,7 +282,7 @@ static void check_key_code(uint8_t *buf)
 				case 0x43:
 					write_key(0x1b);	       /* F10 */
 					write_key(0x5b);
-					write_key(0x31);
+					write_key(0x32);
 					write_key(0x31);
 					write_key(0x7e);
 					break;
@@ -294,7 +290,7 @@ static void check_key_code(uint8_t *buf)
 				case 0x44:
 					write_key(0x1b);	       /* F11 */
 					write_key(0x5b);
-					write_key(0x31);
+					write_key(0x32);
 					write_key(0x33);
 					write_key(0x7e);
 					break;
@@ -302,7 +298,7 @@ static void check_key_code(uint8_t *buf)
 				case 0x45:
 					write_key(0x1b);	       /* F12 */
 					write_key(0x5b);
-					write_key(0x31);
+					write_key(0x32);
 					write_key(0x34);
 					write_key(0x7e);
 					break;
