@@ -310,36 +310,34 @@ static void check_key_code(uint8_t *buf)
 				case 0x49:
 					write_key(0x1b);	       /* INS */
 					write_key(0x5b);
-					write_key(0x31);
+					write_key(0x32);
 					write_key(0x7e);
 					break;
 
 				case 0x4a:
 					write_key(0x1b);	      /* HOME */
-					write_key(0x5b);
-					write_key(0x32);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x48);
 					break;
 
 				case 0x4b:
 					write_key(0x1b);	      /* PgUp */
 					write_key(0x5b);
-					write_key(0x33);
+					write_key(0x35);
 					write_key(0x7e);
 					break;
 
 				case 0x4c:
 					write_key(0x1b);	       /* DEL */
 					write_key(0x5b);
-					write_key(0x34);
+					write_key(0x33);
 					write_key(0x7e);
 					break;
 
 				case 0x4d:
 					write_key(0x1b);	       /* END */
-					write_key(0x5b);
-					write_key(0x35);
-					write_key(0x7e);
+					write_key(0x4f);
+					write_key(0x46);
 					break;
 
 				case 0x4e:
