@@ -110,10 +110,13 @@ here 100 allot CONSTANT pci-device-vec
         dup 100000 + pci-next-mem !             \ and write back with 1MB for bridge
         over 24 + rtas-config-w@                \ check if 64bit support
         1 and IF                                \ IF 64 bit support
-                2dup 20 rshift                  \ | keep upper 32 bits
-                swap 28 + rtas-config-l!        \ | and write it into the Base-Upper32-bits
-                pci-max-mem @ 20 rshift         \ | fetch max Limit address and keep upper 32 bits
-                2 pick 2C + rtas-config-l!      \ | and set the Limit
+                pci-next-mem64 @ 100000000 #aligned \ | read the current Value of 64-bit and align to 4GB boundary
+                dup 100000000 + pci-next-mem64 x!   \ | and write back with 1GB for bridge
+                2 pick swap                         \ |
+                20 rshift                           \ | keep upper 32 bits
+                swap 28 + rtas-config-l!            \ | and write it into the Base-Upper32-bits
+                pci-max-mem64 @ 20 rshift           \ | fetch max Limit address and keep upper 32 bits
+                2 pick 2C + rtas-config-l!          \ | and set the Limit
         THEN                                    \ FI
         10 rshift                               \ keep upper 16 bits
         pci-max-mem @ 1- FFFF0000 and or        \ and Insert mmem Limit (set it to max)
@@ -129,8 +132,12 @@ here 100 allot CONSTANT pci-device-vec
         1-                                      \ make limit one less than boundary
         over 24 + rtas-config-w@                \ check if 64bit support
         1 and IF                                \ IF 64 bit support
-                2dup 20 rshift                  \ | keep upper 32 bits
-                swap 2C + rtas-config-l!        \ | and write it into the Limit-Upper32-bits
+                pci-next-mem64 @ 100000000 #aligned \ | Reat current value of 64-bar and align at 4GB
+                dup pci-next-mem64 x!               \ | and write it back
+                1-                                  \ | make limite one less than boundary
+                2 pick swap                         \ |
+                20 rshift                           \ | keep upper 32 bits
+                swap 2C + rtas-config-l!            \ | and write it into the Limit-Upper32-bits
         THEN                                    \ FI
         FFFF0000 and                            \ keep upper 16 bits
         over 24 + rtas-config-l@ 0000FFFF and   \ fetch original Value
