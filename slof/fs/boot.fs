@@ -181,6 +181,7 @@ defer go ( -- )
       \ with watchdog timeout.
       4ec set-watchdog
    THEN
+   2dup " HALT" str= IF 2drop 0 EXIT THEN
    my-self >r current-node @ >r         \ Save my-self
    ." Trying to load: " $bootargs type ."  from: " 2dup type ."  ... "
    2dup open-dev dup IF
