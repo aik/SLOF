@@ -242,6 +242,9 @@ To add primitives:
 
 Patches for SLOF should be made against https://github.com/aik/SLOF,
 the master branch and posted to slof@lists.ozlabs.org.
+The patches must be signed using "Signed-off-by" tag with a real name to
+confirm that you certify the Developer Certificate of Origin  Version 1.1,
+see [3] for details.
 
 
 Documentation
@@ -252,3 +255,6 @@ Documentation
 
 [2] PAPR Standard, Power.org(TM) Standard for Power Architecture(R) Platform
     Requirements (Workstation, Server), Version 2.4, December 7, 2009
+
+[3] Developer Certificate of Origin Version 1.1
+    http://developercertificate.org/
