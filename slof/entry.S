@@ -215,5 +215,5 @@ C_ENTRY(call_c)
 	mtctr	r6
 	bctr
 
-
+.global the_system_stack
 	.lcomm	the_system_stack, STACKSIZE, 16
