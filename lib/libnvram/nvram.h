@@ -54,6 +54,7 @@ partition_t get_partition(unsigned int type, char *name);
 void erase_nvram(int offset, int len);
 int wipe_partition(partition_t partition, int header_only);
 partition_t new_nvram_partition(int type, char *name, int len);
+partition_t new_nvram_partition_fs(int type, char *name, int namelen, int len);
 int increase_nvram_partition_size(partition_t partition, int newsize);
 int clear_nvram_partition(partition_t part);
 int delete_nvram_partition(partition_t part);

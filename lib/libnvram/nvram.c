@@ -466,6 +466,22 @@ partition_t new_nvram_partition(int type, char *name, int len)
 	return new_part;
 }
 
+partition_t new_nvram_partition_fs(int type, char *name, int namelen, int len)
+{
+	char buf[13];
+	int i;
+
+	for (i = 0; i < 12; i++) {
+		if (i < namelen)
+			buf[i] = name[i];
+		else
+			buf[i] = 0;
+	}
+	buf[12] = 0;
+
+	return new_nvram_partition(type, buf, len);
+}
+
 /**
  * @param partition   partition structure pointing to the partition to wipe.
  */

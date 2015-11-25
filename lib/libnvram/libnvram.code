@@ -103,23 +103,16 @@ MIRP
 
 /* new-nvram-partition ( type name.addr name.len len -- part.offs part.len FALSE | TRUE) */
 PRIM(new_X2d_nvram_X2d_partition)
-	int type, len, i, slen;
-	char name[12], *addr;
+	int type, len, namelen;
 	partition_t partition;
+	char *name;
 
 	len = TOS.u; POP;
-	slen = TOS.u; POP;
-	addr = (char *)TOS.u; POP;
+	namelen = TOS.u; POP;
+	name = (char *)TOS.u; POP;
 	type = TOS.u; POP;
 
-	for (i=0; i<12; i++) {
-		if(slen>i)
-			name[i]=addr[i];
-		else
-			name[i]=0;
-	}
-
-	partition=new_nvram_partition(type, name, len);
+	partition = new_nvram_partition_fs(type, name, namelen, len);
 
 	if(!partition.len) {
 		PUSH; TOS.u = -1; // TRUE
