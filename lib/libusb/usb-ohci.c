@@ -192,7 +192,9 @@ static void ohci_hub_check_ports(struct ohci_hcd *ohcd)
 			dev = usb_devpool_get();
 			dprintf("usb-ohci: Device reset, setting up %p\n", dev);
 			dev->hcidev = ohcd->hcidev;
-			if (!setup_new_device(dev, i))
+			if (usb_setup_new_device(dev, i))
+				usb_slof_populate_new_device(dev);
+			else
 				printf("usb-ohci: unable to setup device on port %d\n", i);
 		}
 		if (port_status & RH_PS_PESC) {

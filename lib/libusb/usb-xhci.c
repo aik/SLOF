@@ -608,8 +608,10 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t por
 	dev->port = newport;
 	dev->priv = xdev;
 	xdev->dev = dev;
-	if (setup_new_device(dev, newport))
+	if (usb_setup_new_device(dev, newport)) {
+		usb_slof_populate_new_device(dev);
 		return true;
+	}
 
 	xhci_free_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE);
 fail_control_seg:
