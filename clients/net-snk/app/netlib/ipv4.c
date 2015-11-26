@@ -758,7 +758,7 @@ handle_arp(int fd, uint8_t * packet, int32_t packetsize)
 			memcpy(ethh -> dest_mac, arp_table[i].mac_addr, 6);
 
 			send_ether(fd, pending_pkt.eth_frame, pending_pkt.eth_len);
-			pending_pkt.pkt_pending = 0;
+			arp_table[i].pkt_pending = 0;
 			arp_table[i].eth_len = 0;
 		}
 		return 0; // no error
