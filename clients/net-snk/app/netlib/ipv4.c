@@ -126,7 +126,9 @@ static       uint8_t multicast_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static unsigned int arp_consumer = 0;
 static unsigned int arp_producer = 0;
 static arp_entry_t  arp_table[ARP_ENTRIES];
-static arp_entry_t  pending_pkt;
+
+static uint8_t pending_pkt_frame[ETH_MTU_SIZE];
+static int pending_pkt_len;
 
 /* Function pointer send_ip. Points either to send_ipv4() or send_ipv6() */
 int   (*send_ip) (int fd, void *, int);
@@ -506,13 +508,11 @@ send_ipv4(int fd, void* buffer, int len)
 		arp_entry->pkt_pending = 1;
 		arp_entry->ipv4_addr = ip_dst;
 		memset(arp_entry->mac_addr, 0, 6);
-		pending_pkt.ipv4_addr = ip_dst;
-		memset(pending_pkt.mac_addr, 0, 6);
-		fill_ethhdr (pending_pkt.eth_frame, htons(ETHERTYPE_IP),
+		fill_ethhdr (pending_pkt_frame, htons(ETHERTYPE_IP),
 		             get_mac_address(), null_mac_addr);
-		memcpy(&pending_pkt.eth_frame[sizeof(struct ethhdr)],
+		memcpy(&pending_pkt_frame[sizeof(struct ethhdr)],
 		       buffer, len);
-		pending_pkt.eth_len = len + sizeof(struct ethhdr);
+		pending_pkt_len = len + sizeof(struct ethhdr);
 
 		set_timer(TICKS_SEC);
 		do {
@@ -754,10 +754,10 @@ handle_arp(int fd, uint8_t * packet, int32_t packetsize)
 
 		// do we have something to send
 		if (arp_table[i].pkt_pending) {
-			struct ethhdr * ethh = (struct ethhdr *) pending_pkt.eth_frame;
+			struct ethhdr * ethh = (struct ethhdr *) pending_pkt_frame;
 			memcpy(ethh -> dest_mac, arp_table[i].mac_addr, 6);
 
-			send_ether(fd, pending_pkt.eth_frame, pending_pkt.eth_len);
+			send_ether(fd, pending_pkt_frame, pending_pkt_len);
 			arp_table[i].pkt_pending = 0;
 			arp_table[i].eth_len = 0;
 		}
