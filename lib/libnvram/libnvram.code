@@ -11,17 +11,6 @@
  *****************************************************************************/
 #include <nvram.h>
 
-#define STRING_INIT(str)	\
-	char str[255];		\
-	char * str##_address;	\
-	int  str##_length;
-
-#define STRING_FROM_STACK(str)				\
-	str##_length = TOS.u; POP;				\
-	str##_address = TOS.a; POP;			\
-	memcpy(str, str##_address, str##_length);	\
-	memset(str + str##_length, 0, 255 - str##_length);
-
 PRIM(nvram_X2d_c_X40)
 	unsigned int offset = TOS.u;
 	TOS.u=nvram_read_byte(offset);
@@ -80,21 +69,18 @@ MIRP
 
 /* get-named-nvram-partition ( name.addr name.len -- addr len FAILED? ) */
 PRIM(get_X2d_named_X2d_nvram_X2d_partition)
-	STRING_INIT(name)
 	partition_t partition;
+	int namelen = TOS.n; POP;
 
-	STRING_FROM_STACK(name)
-	partition = get_partition(-1, name);
+	partition = get_partition_fs(TOS.a, namelen);
 
 	if(partition.len && partition.len != -1) {
-		PUSH;
 		TOS.u = partition.addr;
 		PUSH;
 		TOS.u = partition.len;
 		PUSH;
 		TOS.u = 0; // FALSE
 	} else {
-		PUSH;
 		TOS.u = -1; // TRUE
 	}
 MIRP

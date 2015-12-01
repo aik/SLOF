@@ -358,6 +358,17 @@ partition_t get_partition(unsigned int type, char *name)
 	return ret;
 }
 
+/* Get partition specified by a Forth string */
+partition_t get_partition_fs(char *name, int namelen)
+{
+	char buf[namelen + 1];
+
+	memcpy(buf, name, namelen);
+	buf[namelen] = 0;
+
+	return get_partition(-1, buf);
+}
+
 void erase_nvram(int offset, int len)
 {
 	int i;

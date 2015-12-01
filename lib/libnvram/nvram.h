@@ -51,6 +51,7 @@ char *get_nvram_buffer(int len);
 void free_nvram_buffer(char *buffer);
 int nvramlog_printf(const char* fmt, ...);
 partition_t get_partition(unsigned int type, char *name);
+partition_t get_partition_fs(char *name, int namelen);
 void erase_nvram(int offset, int len);
 int wipe_partition(partition_t partition, int header_only);
 partition_t new_nvram_partition(int type, char *name, int len);
