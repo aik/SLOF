@@ -158,15 +158,17 @@ MIRP
 
 // ( part.start part.len name.addr name.len -- var.addr var.len TRUE | false )
 PRIM(internal_X2d_get_X2d_env)
-	STRING_INIT(name)
+	char *name;
+	int namelen;
 	partition_t part;
 	char *val;
 
-	STRING_FROM_STACK(name)
+	namelen = TOS.u; POP;
+	name = TOS.a; POP;
 	part.len = TOS.u; POP;
 	part.addr = TOS.u; POP;
 
-	val=get_env(part, name);
+	val = nvram_get_env(part, name, namelen);
 	if(val) {
 		PUSH; TOS.a = val;
 		PUSH; TOS.u = strlen(val);
@@ -178,17 +180,19 @@ MIRP
 
 // ( part.start part.len name.addr name.len val.addr val.len -- FALSE|TRUE)
 PRIM(internal_X2d_add_X2d_env)
-	STRING_INIT(name)
-	STRING_INIT(value)
+	char *name, *val;
+	int namelen, vallen;
 	partition_t part;
 	int ret;
 
-	STRING_FROM_STACK(value)
-	STRING_FROM_STACK(name)
+	vallen = TOS.u; POP;
+	val = TOS.a; POP;
+	namelen = TOS.u; POP;
+	name = TOS.a; POP;
 	part.len = TOS.u; POP;
 	part.addr = TOS.u; POP;
 
-	ret=add_env(part, name, value);
+	ret = nvram_add_env(part, name, namelen, val, vallen);
 	if(ret) {
 		PUSH; TOS.u = -1; // TRUE
 	} else {
@@ -198,15 +202,17 @@ MIRP
 
 // ( part.addr part.len name.addr name.len -- FALSE|TRUE)
 PRIM(internal_X2d_del_X2d_env)
-	STRING_INIT(name)
+	char *name;
+	int namelen;
 	partition_t part;
 	int ret;
 
-	STRING_FROM_STACK(name);
+	namelen = TOS.u; POP;
+	name = TOS.a; POP;
 	part.len = TOS.u; POP;
 	part.addr = TOS.u; POP;
 
-	ret=del_env(part, name);
+	ret = nvram_del_env(part, name, namelen);
 	if(ret) {
 		PUSH; TOS.u = -1; // TRUE
 	} else {
@@ -217,17 +223,19 @@ MIRP
 
 // internal-set-env ( part.addr part.len name.addr name.len val.addr val.len -- FALSE|TRUE)
 PRIM(internal_X2d_set_X2d_env)
-	STRING_INIT(name)
-	STRING_INIT(value)
+	char *name, *value;
+	int namelen, valuelen;
 	partition_t part;
 	int ret;
 
-	STRING_FROM_STACK(value)
-	STRING_FROM_STACK(name)
+	valuelen = TOS.u; POP;
+	value = TOS.a; POP;
+	namelen = TOS.u; POP;
+	name = TOS.a; POP;
 	part.len = TOS.u; POP;
 	part.addr = TOS.u; POP;
 
-	ret=set_env(part, name, value);
+	ret = nvram_set_env(part, name, namelen, value, valuelen);
 	if(ret) {
 		PUSH; TOS.u = -1; // TRUE
 	} else {

@@ -66,9 +66,9 @@ void nvram_init(uint32_t store_token, uint32_t fetch_token,
 unsigned int get_nvram_size(void);
 
 /* envvar.c */
-char *get_env(partition_t part, char *envvar);
-int add_env(partition_t part, char *envvar, char *value);
-int del_env(partition_t part, char *envvar);
-int set_env(partition_t part, char *envvar, char *value);
+char *nvram_get_env(partition_t part, char *envvar, int evlen);
+int nvram_add_env(partition_t part, char *envvar, int evlen, char *value, int vallen);
+int nvram_del_env(partition_t part, char *envvar, int evlen);
+int nvram_set_env(partition_t part, char *envvar, int evlen, char *val, int vlen);
 
 #endif
