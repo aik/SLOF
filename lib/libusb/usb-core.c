@@ -475,7 +475,7 @@ static int usb_handle_device(struct usb_dev *dev, struct usb_dev_config_descr *c
 		case DESCR_TYPE_HUB:
 			break;
 		default:
-			printf("ptr %p desc_type %d\n", ptr, desc_type);
+			dprintf("ptr %p desc_type %d\n", ptr, desc_type);
 		}
 		ptr += desc_len;
 		len -= desc_len;
