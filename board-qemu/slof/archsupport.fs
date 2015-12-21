@@ -10,15 +10,16 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
-\ 128KB FDT buffer size is enough to accommodate 255 CPU cores and 1TB of
-\ maxmem specification.
-20000 VALUE size
+\ 2 MiB FDT buffer size is enough to accommodate 255 CPU cores
+\ and 16 TiB of maxmem specification.
+200000 CONSTANT cas-buffer-size
 : ibm,client-architecture-support         ( vec -- err? )
     \ Store require parameters in nvram
     \ to come back to right boot device
     \ Allocate memory for H_CALL
-    size alloc-mem                        ( vec memaddr )
-    swap over size                        ( memaddr vec memaddr size )
+    cas-buffer-size alloc-mem             ( vec memaddr )
+    dup 0= IF ." out of memory during ibm,client-architecture-support" cr THEN
+    swap over cas-buffer-size             ( memaddr vec memaddr size )
     \ make h_call to hypervisor
     hv-cas 0= IF                          ( memaddr )
 	dup l@ 1 >= IF                    \ Version number >= 1
@@ -34,5 +35,5 @@
     ELSE
 	TRUE
     THEN
-    >r size free-mem r>
+    >r cas-buffer-size free-mem r>
 ;
