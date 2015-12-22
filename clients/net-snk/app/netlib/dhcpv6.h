@@ -103,6 +103,8 @@ struct server_identifier {
 	uint8_t mac[6];
 };
 
+#define DHCPV6_OPTREQUEST_NUMOPTS 3
+
 struct dhcp_info_request {
 	struct client_identifier client_id;
 	struct elapsed_time {
@@ -113,7 +115,7 @@ struct dhcp_info_request {
 	struct option_request {
 		uint16_t code;
 		uint16_t length;
-		uint16_t option_code[5];
+		uint16_t option_code[DHCPV6_OPTREQUEST_NUMOPTS];
 	} option_request_option;
 };
 

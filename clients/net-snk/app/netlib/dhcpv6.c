@@ -70,16 +70,14 @@ send_info_request(int fd)
 	dhcph->option.el_time.length = 2;
 	dhcph->option.el_time.time = 0x190; /* 4000 ms */
 	dhcph->option.option_request_option.code = DHCPV6_OPTION_ORO;
-	dhcph->option.option_request_option.length= 6;
+	dhcph->option.option_request_option.length = DHCPV6_OPTREQUEST_NUMOPTS * 2;
 	dhcph->option.option_request_option.option_code[0] = DHCPV6_OPTION_DNS_SERVERS;
 	dhcph->option.option_request_option.option_code[1] = DHCPV6_OPTION_DOMAIN_LIST;
 	dhcph->option.option_request_option.option_code[2] = DHCPV6_OPTION_BOOT_URL;
 
-
 	send_ipv6(fd, ether_packet + sizeof(struct ethhdr),
-	         sizeof(struct ethhdr)+ sizeof(struct ip6hdr)
-		 + sizeof(struct udphdr)
-	         + sizeof( struct dhcp_message_header) );
+		  sizeof(struct ip6hdr) + sizeof(struct udphdr)
+		  + sizeof(struct dhcp_message_header));
 }
 
 static int32_t
