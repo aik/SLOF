@@ -178,10 +178,17 @@ static uint32_t dhcp_server_ip     = 0;
 static uint32_t dhcp_siaddr_ip     = 0;
 static int8_t   dhcp_filename[256];
 static int8_t   dhcp_tftp_name[256];
+static uint32_t dhcp_xid;
 
 static char   * response_buffer;
 
 /*>>>>>>>>>>>>>>>>>>>>>>>>>>>> IMPLEMENTATION <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+
+void
+dhcpv4_generate_transaction_id(void)
+{
+	dhcp_xid = (rand() << 16) ^ rand();
+}
 
 int32_t
 dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
@@ -627,6 +634,7 @@ dhcp_send_discover(int fd) {
 	btph -> op = 1;
 	btph -> htype = 1;
 	btph -> hlen = 6;
+	btph -> xid = dhcp_xid;
 	memcpy(btph -> chaddr, get_mac_address(), 6);
 
 	memset(&opt, 0, sizeof(dhcp_options_t));
@@ -670,6 +678,7 @@ dhcp_send_request(int fd) {
 	btph -> op = 1;
 	btph -> htype = 1;
 	btph -> hlen = 6;
+	btph -> xid = dhcp_xid;
 	memcpy(btph -> chaddr, get_mac_address(), 6);
 
 	memset(&opt, 0, sizeof(dhcp_options_t));
@@ -718,6 +727,7 @@ void dhcp_send_release(int fd) {
 	btph -> op = 1;
 	btph -> htype = 1;
 	btph -> hlen = 6;
+	btph -> xid = dhcp_xid;
 	strcpy((char *) btph -> file, "");
 	memcpy(btph -> chaddr, get_mac_address(), 6);
 	btph -> ciaddr = htonl(dhcp_own_ip);
@@ -763,8 +773,11 @@ handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
 	btph = (struct btphdr *) packet;
 	iph = (struct iphdr *) packet - sizeof(struct udphdr) -
 	      sizeof(struct iphdr);
-	if (btph -> op != 2)
-		return -1; // it is not Boot Reply
+
+	if (btph->op != 2)
+		return -1;		/* It is not a Bootp/DHCP reply */
+	if (btph->xid != dhcp_xid)
+		return -1;		/* The transaction ID does not match */
 
 	if (memcmp(btph -> vend, dhcp_magic, 4)) {
 		// It is BootP - RFC 951

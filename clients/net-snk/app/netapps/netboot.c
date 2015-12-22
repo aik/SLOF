@@ -335,6 +335,8 @@ int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flag
 	printf("  Requesting information via DHCP%s:     ",
 	       flags == F_IPV4 ? "v4" : flags == F_IPV6 ? "v6" : "");
 
+	if (flags != F_IPV6)
+		dhcpv4_generate_transaction_id();
 	if (flags != F_IPV4)
 		dhcpv6_generate_transaction_id();
 
