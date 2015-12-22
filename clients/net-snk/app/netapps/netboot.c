@@ -367,6 +367,18 @@ int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flag
 	return rc;
 }
 
+/**
+ * Seed the random number generator with our mac and current timestamp
+ */
+static void seed_rng(uint8_t mac[])
+{
+	unsigned int seed;
+
+	asm volatile("mftbl %0" : "=r"(seed));
+	seed ^= (mac[2] << 24) | (mac[3] << 16) | (mac[4] << 8) | mac[5];
+	srand(seed);
+}
+
 int
 netboot(int argc, char *argv[])
 {
@@ -436,6 +448,8 @@ netboot(int argc, char *argv[])
 
 	// init ethernet layer
 	set_mac_address(own_mac);
+
+	seed_rng(own_mac);
 
 	if (argc > 6) {
 		parse_args(argv[6], &obp_tftp_args);
