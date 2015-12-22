@@ -77,6 +77,7 @@
 #define DUID_LL		3 /* DUID based on Link-layer Address */
 
 /* Prototypes */
+void dhcpv6_generate_transaction_id(void);
 int32_t dhcpv6 ( char *ret_buffer, void *fn_ip);
 uint32_t handle_dhcpv6(uint8_t * , int32_t);
 

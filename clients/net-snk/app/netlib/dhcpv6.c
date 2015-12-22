@@ -27,13 +27,13 @@ static uint8_t tid[3];
 static uint32_t dhcpv6_state = -1;
 static filename_ip_t *my_fn_ip;
 
-static void
-generate_transaction_id(void)
+void
+dhcpv6_generate_transaction_id(void)
 {
-	/* TODO: as per RFC 3315 transaction IDs should be generated randomly */
-	tid[0] = 1;
-	tid[1] = 2;
-	tid[2] = 4;
+	/* As per RFC 3315 transaction IDs should be generated randomly */
+	tid[0] = rand();
+	tid[1] = rand();
+	tid[2] = rand();
 }
 
 static void
@@ -44,8 +44,6 @@ send_info_request(int fd)
 	struct dhcp_message_header *dhcph;
 
 	memset(ether_packet, 0, ETH_MTU_SIZE);
-
-	generate_transaction_id();
 
 	/* Get an IPv6 packet */
 	payload_length = sizeof(struct udphdr) + sizeof(struct dhcp_message_header);
@@ -204,6 +202,9 @@ handle_dhcpv6(uint8_t * packet, int32_t packetsize)
 	int32_t option_length;
 	struct dhcp_message_reply *reply;
 	reply = (struct dhcp_message_reply *) packet;
+
+	if (memcmp(reply->transaction_id, tid, 3))
+		return -1;			/* Wrong transaction ID */
 
 	if (reply->type == 7)
 		dhcpv6_state = DHCP_STATUSCODE_SUCCESS;
