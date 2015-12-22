@@ -22,3 +22,8 @@ rand(void)
 
 	return ((unsigned int) (_rand >> 16) & RAND_MAX);
 }
+
+void srand(unsigned int seed)
+{
+	_rand = seed;
+}
