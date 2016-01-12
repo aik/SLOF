@@ -57,6 +57,7 @@ OF_FFS_FILES = \
 	$(SLOFBRDDIR)/attu.fs \
 	$(SLOFBRDDIR)/cpu.fs \
 	$(SLOFBRDDIR)/ioapic.fs \
+	$(SLOFBRDDIR)/dma-function.fs \
 	$(SLOFBRDDIR)/pci-bridge_1022_7460.fs \
 	$(SLOFBRDDIR)/pci-device_1014_028c.fs \
 	$(SLOFBRDDIR)/pci-device_1014_02bd.fs \
@@ -82,7 +83,6 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/scsi-host-helpers.fs \
 	$(SLOFCMNDIR)/fs/scsi-probe-helpers.fs \
 	$(SLOFCMNDIR)/fs/scsi-support.fs \
-	$(SLOFCMNDIR)/fs/dma-function.fs \
 	$(SLOFCMNDIR)/fs/pci-device.fs \
 	$(SLOFCMNDIR)/fs/pci-bridge.fs \
 	$(SLOFCMNDIR)/fs/pci-properties.fs \
