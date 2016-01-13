@@ -486,10 +486,8 @@ netboot(int argc, char *argv[])
 		}
 	}
 	else if (ip_version == 6) {
-		if (memcmp(&obp_tftp_args.ci6addr, null_ip6, 16) != 0
-		    && memcmp(&obp_tftp_args.si6addr, null_ip6, 16) != 0
+		if (memcmp(&obp_tftp_args.si6addr, null_ip6, 16) != 0
 		    && obp_tftp_args.filename[0] != 0) {
-
 			memcpy(&fn_ip.server_ip6.addr[0],
 			       &obp_tftp_args.si6addr.addr, 16);
 			obp_tftp_args.ip_init = IP_INIT_IPV6_MANUAL;
@@ -523,7 +521,16 @@ netboot(int argc, char *argv[])
 			  obp_tftp_args.bootp_retries, F_IPV6);
 		break;
 	case IP_INIT_IPV6_MANUAL:
-		set_ipv6_address(fn_ip.fd, &obp_tftp_args.ci6addr);
+		if (memcmp(&obp_tftp_args.ci6addr, null_ip6, 16)) {
+			set_ipv6_address(fn_ip.fd, &obp_tftp_args.ci6addr);
+		} else {
+			/*
+			 * If no client address has been specified, then
+			 * use a link-local or stateless autoconfig address
+			 */
+			set_ipv6_address(fn_ip.fd, NULL);
+			memcpy(&fn_ip.own_ip6, get_ipv6_address(), 16);
+		}
 		break;
 	case IP_INIT_DEFAULT:
 		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
