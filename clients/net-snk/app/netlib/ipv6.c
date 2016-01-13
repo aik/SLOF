@@ -37,8 +37,15 @@ static int ip6_is_multicast (ip6_addr_t * ip);
 
 /****************************** LOCAL VARIABLES **************************/
 
+/* List of Ipv6 Addresses */
+static struct ip6addr_list_entry *first_ip6;
+static struct ip6addr_list_entry *last_ip6;
+
 /* Own IPv6 address */
 static struct ip6addr_list_entry *own_ip6;
+
+/* All nodes link-local address */
+struct ip6addr_list_entry all_nodes_ll;
 
 /* Null IPv6 address */
 static ip6_addr_t null_ip6;
@@ -46,6 +53,7 @@ static ip6_addr_t null_ip6;
 /* helper variables */
 static uint8_t null_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
+struct ip6_config ip6_state;
 
 /****************************** IMPLEMENTATION ***************************/
 
@@ -365,21 +373,9 @@ ipv6_init (int fd)
 	/* Multicast addresses */
 	all_nodes_ll.addr.part.prefix         = 0xff02000000000000;
 	all_nodes_ll.addr.part.interface_id   = 1;
-	all_dhcpv6_ll.addr.part.prefix        = 0xff02000000000000ULL;
-	all_dhcpv6_ll.addr.part.interface_id  = 0x10002ULL;
-	all_routers_ll.addr.part.prefix       = 0xff02000000000000;
-	all_routers_ll.addr.part.interface_id      = 2;
-
 	ip6addr_add(&all_nodes_ll);
-	/* ... */
 
-	/* Router list */
-	first_router = NULL;
-	last_router = first_router;
-
-	/* Init Neighbour cache */
-	first_neighbor = NULL;
-	last_neighbor  = first_neighbor;
+	ndp_init();
 
 	send_router_solicitation (fd);
 	for(i=0; i < 4 && !is_ra_received(); i++) {

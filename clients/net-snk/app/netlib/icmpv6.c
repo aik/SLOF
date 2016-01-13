@@ -40,9 +40,8 @@ send_router_solicitation (int fd)
 			  sizeof(struct ip6hdr));
 
 	/* Destination is "All routers multicast address" (link-local) */
-	dest_addr.part.prefix       = all_routers_ll.addr.part.prefix;
-	dest_addr.part.interface_id = all_routers_ll.addr.part.interface_id;
-
+	dest_addr.part.prefix       = 0xff02000000000000ULL;
+	dest_addr.part.interface_id = 2;
 
 	/* Fill IPv6 header */
 	fill_ip6hdr (ether_packet + sizeof(struct ethhdr),

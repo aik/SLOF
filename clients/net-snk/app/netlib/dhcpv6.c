@@ -27,6 +27,8 @@ static uint8_t tid[3];
 static uint32_t dhcpv6_state = -1;
 static filename_ip_t *my_fn_ip;
 
+static struct ip6addr_list_entry all_dhcpv6_ll; /* All DHCPv6 servers address */
+
 void
 dhcpv6_generate_transaction_id(void)
 {
@@ -114,6 +116,9 @@ int32_t
 dhcpv6 ( char *ret_buffer, void *fn_ip)
 {
 	int fd;
+
+	all_dhcpv6_ll.addr.part.prefix = 0xff02000000000000ULL;
+	all_dhcpv6_ll.addr.part.interface_id = 0x10002ULL;
 
 	my_fn_ip = (filename_ip_t *) fn_ip;
 	fd = my_fn_ip->fd;
