@@ -58,6 +58,8 @@ static uint8_t null_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 void
 set_ipv6_address (int fd, ip6_addr_t *_own_ip6)
 {
+	struct ip6addr_list_entry *ile;
+
 	own_ip6 = malloc (sizeof(struct ip6addr_list_entry));
 
 	/* If no address was passed as a parameter generate a link-local
@@ -73,6 +75,20 @@ set_ipv6_address (int fd, ip6_addr_t *_own_ip6)
 	ip6addr_add (own_ip6);
 
 	ipv6_init(fd);
+
+	/*
+	 * Check whether we've got a non-link-local address during
+	 * ipv6_init() and use that as preferred address if possible
+	 */
+	if (_own_ip6 == NULL) {
+		for (ile = first_ip6; ile != NULL ; ile = ile->next) {
+			if (!ip6_is_multicast(&ile->addr) &&
+			    !ip6_is_linklocal(&ile->addr)) {
+				own_ip6 = ile;
+				break;
+			}
+		}
+	}
 }
 
 /**
