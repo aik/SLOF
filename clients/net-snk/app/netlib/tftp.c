@@ -182,8 +182,7 @@ send_ack(int fd, int blckno, unsigned short dport)
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
 		ip6_payload_len = sizeof(struct udphdr) + 4;
-		ip_len = sizeof(struct ethhdr) + sizeof(struct ip6hdr) +
-		    	 ip6_payload_len;
+		ip_len = sizeof(struct ip6hdr) + ip6_payload_len;
 		fill_ip6hdr ((uint8_t *) ip6, ip6_payload_len, IPTYPE_UDP, get_ipv6_address(),
 			     &(fn_ip->server_ip6));
 	}
@@ -234,8 +233,7 @@ send_error(int fd, int error_code, unsigned short dport)
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
 		ip6_payload_len = sizeof(struct udphdr) + 5;
-		ip_len = sizeof(struct ethhdr) + sizeof(struct ip6hdr) +
-		         ip6_payload_len; 
+		ip_len = sizeof(struct ip6hdr) + ip6_payload_len;
 		fill_ip6hdr ((uint8_t *) ip6, ip6_payload_len, IPTYPE_UDP, get_ipv6_address(),
 			    &(fn_ip->server_ip6));
 	}
