@@ -411,8 +411,7 @@ ip6_cmp (ip6_addr_t *ip_1, ip6_addr_t *ip_2)
 int
 ip6_is_multicast (ip6_addr_t * ip)
 {
-	uint8_t mc = 0xFF;
-	return ! memcmp(&ip->addr[0], &mc, 1);
+	return ip->addr[0] == 0xFF;
 }
 
 /**
