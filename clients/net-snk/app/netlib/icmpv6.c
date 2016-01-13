@@ -78,8 +78,8 @@ handle_prefixoption (uint8_t *option)
 	prefix_option = (struct option_prefix *) option;
 	memcpy( &(prefix.addr), &(prefix_option->prefix.addr), IPV6_ADDR_LENGTH);
 
-	/* Link-local adresses in RAs are nonsense                  */
-	if ( (IPV6_LL_PREFIX & (prefix_option->prefix.part.prefix)) == IPV6_LL_PREFIX )
+	/* Link-local adresses in RAs are nonsense */
+	if (ip6_is_linklocal(&prefix))
 		return;
 
 	if (prefix_option->preferred_lifetime > prefix_option->valid_lifetime)

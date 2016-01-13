@@ -26,6 +26,7 @@
 
 #define IPV6_ADDR_LENGTH	 16 /* Size of IPv6 adress in bytes */
 #define IPV6_LL_PREFIX		 0xFE80000000000000ULL
+#define IPV6_LL_PREFIX_MASK	 0xFFC0000000000000ULL
 #define IPV6_SOLIC_NODE_PREFIX   0xFF02000000000000ULL
 #define IPV6_SOLIC_NODE_IFACE_ID 0x00000001FF000000ULL
 
@@ -178,6 +179,12 @@ void * ip6_prefix2addr (ip6_addr_t prefix);
 
 /* Compare IPv6 adresses */
 int8_t ip6_cmp( ip6_addr_t *ip_1, ip6_addr_t *ip_2 );
+
+/* Check if it is a link-local address */
+static inline int ip6_is_linklocal(ip6_addr_t *ip)
+{
+	return (ip->part.prefix & IPV6_LL_PREFIX_MASK) == IPV6_LL_PREFIX;
+}
 
 /* Check if prefix is already in our list */
 int8_t unknown_prefix (ip6_addr_t *ip);
