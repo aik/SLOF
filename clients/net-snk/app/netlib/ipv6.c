@@ -419,17 +419,12 @@ ip6_is_multicast (ip6_addr_t * ip)
  *      (e.g. UDP or ICMPv6)
  *
  * @param  *ip    - pointer to IPv6 address
+ * @param  *mc_mac  pointer to an array with 6 bytes (for the MAC address)
  * @return pointer to Multicast MAC address
  */
 static uint8_t *
-ip6_to_multicast_mac (ip6_addr_t * ip)
+ip6_to_multicast_mac (ip6_addr_t * ip, uint8_t *mc_mac)
 {
-	uint8_t *mc_mac;
-
-	mc_mac = malloc(ETH_ALEN);
-	if (!mc_mac)
-		return NULL;
-
 	mc_mac[0] = 0x33;
 	mc_mac[1] = 0x33;
 	memcpy (mc_mac+2, (uint8_t *) &(ip->addr)+12, 4);
@@ -532,7 +527,7 @@ send_ipv6 (int fd, void* buffer, int len)
 
 	// If address is a multicast address, create a proper mac address
 	if (ip6_is_multicast (&ip_dst)) {
-		mac_addr = ip6_to_multicast_mac (&ip_dst);
+		mac_addr = ip6_to_multicast_mac (&ip_dst, mac);
 	}
 	else {
 		// Check if the MAC address is already cached
