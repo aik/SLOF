@@ -530,16 +530,8 @@ send_ipv6 (int fd, void* buffer, int len)
 
 	n = find_neighbor (&ip_dst);
 
-	// If packet is a neighbor solicitation
-	if (icmp6h->type == ICMPV6_NEIGHBOUR_SOLICITATION) {
-		mac_addr = ip6_to_multicast_mac (&ip_dst);
-		fill_ethhdr( buffer-sizeof(struct ethhdr), htons(ETHERTYPE_IPv6),
-			     get_mac_address(),
-			     mac_addr);
-	}
-
 	// If address is a multicast address, create a proper mac address
-	else if (ip6_is_multicast (&ip_dst)) {
+	if (ip6_is_multicast (&ip_dst)) {
 		mac_addr = ip6_to_multicast_mac (&ip_dst);
 	}
 	else {
