@@ -130,8 +130,7 @@ dhcpv6 ( char *ret_buffer, void *fn_ip)
 	return 0;
 }
 
-static struct dhcp6_received_options *
-dhcp6_process_options (uint8_t *option, int32_t option_length)
+static void dhcp6_process_options (uint8_t *option, int32_t option_length)
 {
 	struct dhcp_boot_url *option_boot_url;
 	struct client_identifier *option_clientid;
@@ -139,24 +138,19 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 	struct dhcp_dns *option_dns;
 	struct dhcp_dns_list *option_dns_list;
 	struct dhcp6_gen_option *option_gen;
-	struct dhcp6_received_options *received_options;
 	char buffer[256];
 
-
-	received_options = malloc (sizeof(struct dhcp6_received_options));
 	while (option_length > 0) {
 		switch ((uint16_t) *(option+1)) {
 		case DHCPV6_OPTION_CLIENTID:
 			option_clientid = (struct client_identifier *) option;
 			option = option +  option_clientid->length + 4;
 			option_length = option_length - option_clientid->length - 4;
-			received_options->client_id = 1;
 			break;
 		case DHCPV6_OPTION_SERVERID:
 			option_serverid = (struct server_identifier *) option;
 			option = option +  option_serverid->length + 4;
 			option_length = option_length - option_serverid->length - 4;
-			received_options->server_id = 1;
 			break;
 		case DHCPV6_OPTION_DNS_SERVERS:
 			option_dns = (struct dhcp_dns *) option;
@@ -185,7 +179,7 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 					    (char *)my_fn_ip->filename,
 					    (int)my_fn_ip->fd,
 					    option_boot_url->length) == -1)
-				return NULL;
+				return;
 			break;
 		default:
 			option_gen = (struct dhcp6_gen_option *) option;
@@ -193,8 +187,6 @@ dhcp6_process_options (uint8_t *option, int32_t option_length)
 			option_length = option_length - option_gen->length - 4;
 		}
 	}
-
-	return received_options;
 }
 
 uint32_t

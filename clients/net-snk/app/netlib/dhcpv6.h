@@ -144,12 +144,6 @@ struct dhcp_boot_url {
 	uint8_t url[256];
 };
 
-struct dhcp6_received_options {
-	uint8_t filename;
-	uint8_t ip;
-	uint8_t client_id;
-	uint8_t server_id;
-};
 struct dhcp_message_reply {
 	uint8_t type;			    /* Message type   */
 	uint8_t transaction_id[3];          /* Transaction id */
