@@ -117,7 +117,10 @@ int32_t receive_ether(int fd)
 	if (!bytes_received) // No messages
 		return 0;
 
-	if (bytes_received < sizeof(struct ethhdr))
+	if (bytes_received < 0)
+		return -1; /* recv() failed */
+
+	if ((size_t) bytes_received < sizeof(struct ethhdr))
 		return -1; // packet is too small
 
 	ethh = (struct ethhdr *) ether_packet;
