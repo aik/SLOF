@@ -48,6 +48,7 @@
 #include <ipv4.h>
 #include <udp.h>
 #include <dns.h>
+#include <netapps/args.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -157,9 +158,6 @@ static void dhcp_send_discover(int fd);
 
 static void dhcp_send_request(int fd);
 
-static uint8_t strtoip(int8_t * str, uint32_t * ip);
-
-
 /***************************** LOCAL VARIABLES ***************************/
 
 static uint8_t  ether_packet[ETH_MTU_SIZE];
@@ -214,7 +212,7 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	}
 	else {
 		// TFTP server defined by its name
-		if (!strtoip(dhcp_tftp_name, &dhcp_tftp_ip)) {
+		if (!strtoip(dhcp_tftp_name, (uint8_t *)&dhcp_tftp_ip)) {
 			if (!dns_get_ip(fd, dhcp_tftp_name, (uint8_t *)&dhcp_tftp_ip, 4)) {
 				// DNS error - can't obtain TFTP-server name
 				// Use TFTP-ip from siaddr field, if presented
@@ -954,48 +952,4 @@ int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
 	}
 
 	return 0;
-}
-
-/**
- * DHCP: Converts "255.255.255.255" -> 32-bit long IP
- *
- * @param  str        string to be converted
- * @param  ip         in case of SUCCESS - 32-bit long IP
-                      in case of FAULT - zero
- * @return            TRUE - IP converted successfully;
- *                    FALSE - error condition occurs (e.g. bad format)
- */
-static uint8_t strtoip(int8_t * str, uint32_t * ip)
-{
-	int8_t ** ptr = &str;
-	int16_t i = 0, res, len;
-	char octet[256];
-
-	* ip = 0;
-
-	while (**ptr != 0) {
-		if (i > 3 || !isdigit(**ptr))
-			return 0;
-		if (strstr((char *) * ptr, ".") != NULL) {
-			len = (int16_t) ((int8_t *) strstr((char *) * ptr, ".") -
-			      (int8_t *) (* ptr));
-			strncpy(octet, (char *) * ptr, len); octet[len] = 0;
-			* ptr += len;
-		}
-		else {
-			strcpy(octet, (char *) * ptr);
-			* ptr += strlen(octet);
-		}
-		res = strtol(octet, NULL, 10);
-		if ((res > 255) || (res < 0))
-			return 0;
-		* ip = ((* ip) << 8) + res;
-		i++;
-		if (** ptr == '.')
-			(*ptr)++;
-	}
-
-	if (i != 4)
-		return 0;
-	return 1;
 }
