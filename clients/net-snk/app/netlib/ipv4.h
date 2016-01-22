@@ -60,7 +60,7 @@ struct arphdr {
 	uint32_t dest_ip;    /**< Proto address of target of this packet       */
 } __attribute((packed));
 
-/*>>>>>>>>>>>>> Initialization of the IPv4 network layer. <<<<<<<<<<<<<*/
+/************** Initialization of the IPv4 network layer. **************/
 extern void     set_ipv4_address(uint32_t own_ip);
 extern uint32_t get_ipv4_address(void);
 extern void     set_ipv4_multicast(uint32_t multicast_ip);

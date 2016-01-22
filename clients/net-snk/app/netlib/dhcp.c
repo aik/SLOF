@@ -11,7 +11,7 @@
  *****************************************************************************/
 
 
-/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ALGORITHMS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+/******************************* ALGORITHMS ******************************/
 
 /** \file dhcp.c <pre>
  * **************** State-transition diagram for DHCP client  *************
@@ -41,7 +41,7 @@
  * </pre> */
 
 
-/*>>>>>>>>>>>>>>>>>>>>> DEFINITIONS & DECLARATIONS <<<<<<<<<<<<<<<<<<<<<<*/
+/********************** DEFINITIONS & DECLARATIONS ***********************/
 
 #include <dhcp.h>
 #include <ethernet.h>
@@ -110,11 +110,11 @@ static uint8_t dhcp_magic[] = {0x63, 0x82, 0x53, 0x63};
  *  If flag[i] == TRUE then field for i-th option retains valid value and
  *  information from this field may retrived (in case of receiving) or will
  *  be transmitted (in case of transmitting).
- *  
+ *
  */
 typedef struct {
 	uint8_t    flag[256];         /**< Show if corresponding opt. is valid */
-	uint8_t    request_list[256]; /**< o.55 If i-th member is TRUE, then i-th  
+	uint8_t    request_list[256]; /**< o.55 If i-th member is TRUE, then i-th
 	                                  option will be requested from server */
 	uint32_t   server_ID;         /**< o.54 Identifies DHCP-server         */
 	uint32_t   requested_IP;      /**< o.50 Must be filled in DHCP-Request */
@@ -132,45 +132,35 @@ typedef struct {
 static uint8_t dhcp_state;
 
 
-/*>>>>>>>>>>>>>>>>>>>>>>>>>>>> PROTOTYPES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+/***************************** PROTOTYPES ********************************/
 
-static int32_t
-dhcp_attempt(int fd);
+static int32_t dhcp_attempt(int fd);
 
-static int32_t
-dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct);
+static int32_t dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct);
 
-static int32_t
-dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
-                    dhcp_options_t * opt_struct);
+static int32_t dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
+				   dhcp_options_t * opt_struct);
 
-static int8_t
-dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
-                   uint8_t src_options[], uint32_t src_len);
+static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
+				 uint8_t src_options[], uint32_t src_len);
 
-static int8_t
-dhcp_find_option(uint8_t options[], uint32_t len,
-                 uint8_t op_code, uint32_t * op_offset);
+static int8_t dhcp_find_option(uint8_t options[], uint32_t len,
+			       uint8_t op_code, uint32_t * op_offset);
 
-static void
-dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
-                   uint8_t * new_option);
+static void dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
+			       uint8_t * new_option);
 
-static void
-dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
-                    uint32_t dst_offset, uint8_t * new_option);
+static void dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
+				uint32_t dst_offset, uint8_t * new_option);
 
-static void
-dhcp_send_discover(int fd);
+static void dhcp_send_discover(int fd);
 
-static void
-dhcp_send_request(int fd);
+static void dhcp_send_request(int fd);
 
-static uint8_t
-strtoip(int8_t * str, uint32_t * ip);
+static uint8_t strtoip(int8_t * str, uint32_t * ip);
 
 
-/*>>>>>>>>>>>>>>>>>>>>>>>>>>>> LOCAL VARIABLES <<<<<<<<<<<<<<<<<<<<<<<<<<*/
+/***************************** LOCAL VARIABLES ***************************/
 
 static uint8_t  ether_packet[ETH_MTU_SIZE];
 static uint32_t dhcp_own_ip        = 0;
@@ -182,17 +172,15 @@ static uint32_t dhcp_xid;
 
 static char   * response_buffer;
 
-/*>>>>>>>>>>>>>>>>>>>>>>>>>>>> IMPLEMENTATION <<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+/***************************** IMPLEMENTATION ****************************/
 
-void
-dhcpv4_generate_transaction_id(void)
+void dhcpv4_generate_transaction_id(void)
 {
 	dhcp_xid = (rand() << 16) ^ rand();
 }
 
-int32_t
-dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
-
+int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
+{
 	uint32_t dhcp_tftp_ip     = 0;
 	int fd = fn_ip->fd;
 
@@ -226,9 +214,9 @@ dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
 	}
 	else {
 		// TFTP server defined by its name
-		if (!strtoip(dhcp_tftp_name, &(dhcp_tftp_ip))) {
-			if (!dns_get_ip(fd, dhcp_tftp_name, (uint8_t *)&(dhcp_tftp_ip), 4)) {
-				// DNS error - can't obtain TFTP-server name  
+		if (!strtoip(dhcp_tftp_name, &dhcp_tftp_ip)) {
+			if (!dns_get_ip(fd, dhcp_tftp_name, (uint8_t *)&dhcp_tftp_ip, 4)) {
+				// DNS error - can't obtain TFTP-server name
 				// Use TFTP-ip from siaddr field, if presented
 				if (dhcp_siaddr_ip) {
 					dhcp_tftp_ip = dhcp_siaddr_ip;
@@ -252,8 +240,8 @@ dhcpv4(char *ret_buffer, filename_ip_t * fn_ip) {
 /**
  * DHCP: Tries o obtain DHCP parameters, refer to state-transition diagram
  */
-static int32_t
-dhcp_attempt(int fd) {
+static int32_t dhcp_attempt(int fd)
+{
 	int sec;
 
 	// Send DISCOVER message and switch DHCP-client to SELECT state
@@ -277,7 +265,7 @@ dhcp_attempt(int fd) {
 		} while (get_timer() > 0);
 	}
 
-	// timeout 
+	// timeout
 	return 0;
 }
 
@@ -285,7 +273,7 @@ dhcp_attempt(int fd) {
  * DHCP: Supplements DHCP-message with options stored in structure.
  *       For more information about option coding see dhcp_options_t.
  *
- * @param  opt_field     Points to the "vend" field of DHCP-message  
+ * @param  opt_field     Points to the "vend" field of DHCP-message
  *                       (destination)
  * @param  opt_struct    this structure stores info about the options which
  *                       will be added to DHCP-message (source)
@@ -293,8 +281,8 @@ dhcp_attempt(int fd) {
  *                       FALSE - error condition occurs.
  * @see                  dhcp_options_t
  */
-static int32_t
-dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
+static int32_t dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct)
+{
 	uint8_t * options = opt_field;
 	uint16_t i, sum; // used to define is any options set
 
@@ -387,7 +375,7 @@ dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
  * DHCP: Extracts encoded options from DHCP-message into the structure.
  *       For more information about option coding see dhcp_options_t.
  *
- * @param  opt_field     Points to the "options" field of DHCP-message  
+ * @param  opt_field     Points to the "options" field of DHCP-message
  *                       (source).
  * @param  opt_len       Length of "options" field.
  * @param  opt_struct    this structure stores info about the options which
@@ -396,9 +384,9 @@ dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_struct) {
  *                       FALSE - error condition occurs.
  * @see                  dhcp_options_t
  */
-static int32_t
-dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
-                    dhcp_options_t * opt_struct) {
+static int32_t dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
+				   dhcp_options_t * opt_struct)
+{
 	int32_t offset = 0;
 
 	memset(opt_struct, 0, sizeof(dhcp_options_t));
@@ -414,30 +402,30 @@ dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
 		switch(opt_field[offset]) {
 		case DHCP_OVERLOAD :
 			opt_struct -> overload = opt_field[offset + 2];
-			offset += 2 + opt_field[offset + 1]; 
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_REQUESTED_IP :
 			opt_struct -> requested_IP = htonl(* (uint32_t *) (opt_field + offset + 2));
-			offset += 2 + opt_field[offset + 1]; 
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_MASK :
 			opt_struct -> flag[DHCP_MASK] = 1;
 			opt_struct -> subnet_mask = htonl(* (uint32_t *) (opt_field + offset + 2));
-			offset += 2 + opt_field[offset + 1]; 
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_DNS :
 			opt_struct -> flag[DHCP_DNS] = 1;
 			opt_struct -> dns_IP = htonl(* (uint32_t *) (opt_field + offset + 2));
-			offset += 2 + opt_field[offset + 1]; 
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_ROUTER :
 			opt_struct -> flag[DHCP_ROUTER] = 1;
 			opt_struct -> router_IP = htonl(* (uint32_t *) (opt_field + offset + 2));
-			offset += 2 + opt_field[offset + 1]; 
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_MSG_TYPE :
@@ -499,7 +487,8 @@ dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
  *                       FALSE - error condition occurs.
  */
 static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
-                                 uint8_t src_options[], uint32_t src_len) {
+				 uint8_t src_options[], uint32_t src_len)
+{
 	int32_t dst_offset, src_offset = 0;
 
 	// remove ENDOPT if presented
@@ -529,7 +518,7 @@ static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
 		}
 	}
 
-	if (src_offset == src_len) 
+	if (src_offset == src_len)
 		return 1;
 	return 0;
 }
@@ -547,7 +536,8 @@ static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
  *                       FALSE - option wasn't find.
  */
 static int8_t dhcp_find_option(uint8_t options[], uint32_t len,
-                               uint8_t op_code, uint32_t * op_offset) {
+			       uint8_t op_code, uint32_t * op_offset)
+{
 	uint32_t srch_offset = 0;
 	* op_offset = 0;
 
@@ -575,9 +565,9 @@ static int8_t dhcp_find_option(uint8_t options[], uint32_t len,
  * @param  dst_len       length of the "options" field (modified)
  * @param  new_option    points to an option in another list (src)
  */
-static void
-dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
-                   uint8_t * new_option) {
+static void dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
+			       uint8_t * new_option)
+{
 	memcpy(dst_options + ( * dst_len), new_option, 2 + (* (new_option + 1)));
 	* dst_len += 2 + *(new_option + 1);
 }
@@ -593,10 +583,9 @@ dhcp_append_option(uint8_t dst_options[], uint32_t * dst_len,
  * @param  dst_offset    offset of the option from beginning of the list
  * @param  new_option    points to an option in another list (src)
  */
-static void
-dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
-                    uint32_t dst_offset, uint8_t * new_option) {
-
+static void dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
+				uint32_t dst_offset, uint8_t * new_option)
+{
 	uint8_t tmp_buffer[1024]; // use to provide safe memcpy
 	uint32_t tail_len;
 
@@ -619,8 +608,8 @@ dhcp_combine_option(uint8_t dst_options[], uint32_t * dst_len,
 /**
  * DHCP: Sends DHCP-Discover message. Looks for DHCP servers.
  */
-static void
-dhcp_send_discover(int fd) {
+static void dhcp_send_discover(int fd)
+{
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -663,8 +652,8 @@ dhcp_send_discover(int fd) {
 /**
  * DHCP: Sends DHCP-Request message. Asks for acknowledgment to occupy IP.
  */
-static void
-dhcp_send_request(int fd) {
+static void dhcp_send_request(int fd)
+{
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -713,7 +702,8 @@ dhcp_send_request(int fd) {
 /**
  * DHCP: Sends DHCP-Release message. Releases occupied IP.
  */
-void dhcp_send_release(int fd) {
+void dhcp_send_release(int fd)
+{
 	uint32_t packetsize = sizeof(struct iphdr) +
 	                      sizeof(struct udphdr) + sizeof(struct btphdr);
 	struct btphdr *btph;
@@ -740,7 +730,7 @@ void dhcp_send_release(int fd) {
 
 	dhcp_encode_options(btph -> vend, &opt);
 
-	fill_udphdr(&ether_packet[sizeof(struct iphdr)], 
+	fill_udphdr(&ether_packet[sizeof(struct iphdr)],
 	            sizeof(struct btphdr) + sizeof(struct udphdr),
 	            UDPPORT_BOOTPC, UDPPORT_BOOTPS);
 	fill_iphdr(ether_packet, sizeof(struct btphdr) +
@@ -763,13 +753,13 @@ void dhcp_send_release(int fd) {
  * @see               btphdr
  */
 
-int8_t
-handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
+int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
+{
 	struct btphdr * btph;
 	struct iphdr * iph;
 	dhcp_options_t opt;
 
-	memset(&opt, 0, sizeof(dhcp_options_t));  
+	memset(&opt, 0, sizeof(dhcp_options_t));
 	btph = (struct btphdr *) packet;
 	iph = (struct iphdr *) packet - sizeof(struct udphdr) -
 	      sizeof(struct iphdr);
@@ -801,7 +791,7 @@ handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
 	}
 
 
-	// decode options  
+	// decode options
 	if (!dhcp_decode_options(btph -> vend, packetsize -
 	                         sizeof(struct btphdr) + sizeof(btph -> vend),
 	                         &opt)) {
@@ -915,7 +905,7 @@ handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
 				else {
 					strcpy((char *) dhcp_filename, "");
 					if (opt.overload != DHCP_OVERLOAD_FILE &&
-						opt.overload != DHCP_OVERLOAD_BOTH && 
+						opt.overload != DHCP_OVERLOAD_BOTH &&
 						strlen((char *) btph -> file)) {
 						strncpy((char *) dhcp_filename,
 						        (char *) btph->file,
@@ -975,8 +965,8 @@ handle_dhcp(int fd, uint8_t * packet, int32_t packetsize) {
  * @return            TRUE - IP converted successfully;
  *                    FALSE - error condition occurs (e.g. bad format)
  */
-static uint8_t
-strtoip(int8_t * str, uint32_t * ip) {
+static uint8_t strtoip(int8_t * str, uint32_t * ip)
+{
 	int8_t ** ptr = &str;
 	int16_t i = 0, res, len;
 	char octet[256];
@@ -987,7 +977,7 @@ strtoip(int8_t * str, uint32_t * ip) {
 		if (i > 3 || !isdigit(**ptr))
 			return 0;
 		if (strstr((char *) * ptr, ".") != NULL) {
-			len = (int16_t) ((int8_t *) strstr((char *) * ptr, ".") - 
+			len = (int16_t) ((int8_t *) strstr((char *) * ptr, ".") -
 			      (int8_t *) (* ptr));
 			strncpy(octet, (char *) * ptr, len); octet[len] = 0;
 			* ptr += len;
