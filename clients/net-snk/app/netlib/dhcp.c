@@ -387,7 +387,7 @@ static int32_t dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_str
 static int32_t dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
 				   dhcp_options_t * opt_struct)
 {
-	int32_t offset = 0;
+	uint32_t offset = 0;
 
 	memset(opt_struct, 0, sizeof(dhcp_options_t));
 
@@ -489,10 +489,10 @@ static int32_t dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
 static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
 				 uint8_t src_options[], uint32_t src_len)
 {
-	int32_t dst_offset, src_offset = 0;
+	uint32_t dst_offset, src_offset = 0;
 
 	// remove ENDOPT if presented
-	if (dhcp_find_option(dst_options, * dst_len, DHCP_ENDOPT, (uint32_t *) &dst_offset))
+	if (dhcp_find_option(dst_options, * dst_len, DHCP_ENDOPT, &dst_offset))
 		* dst_len = dst_offset;
 
 	while (src_offset < src_len) {
@@ -505,7 +505,7 @@ static int8_t dhcp_merge_options(uint8_t dst_options[], uint32_t * dst_len,
 		default:
 			if (dhcp_find_option(dst_options, * dst_len,
 			                     src_options[src_offset],
-			                     (uint32_t *) &dst_offset)) {
+			                     &dst_offset)) {
 				dhcp_combine_option(dst_options, dst_len,
 				                    dst_offset,
 				                    (uint8_t *) src_options +

@@ -137,7 +137,7 @@ extern struct ip6_config ip6_state;
 
 /******************** FUNCTIONS *********************************************/
 /* Handles IPv6-packets that are detected by receive_ether. */
-int8_t handle_ipv6(int fd, uint8_t * ip6_packet, int32_t packetsize);
+int8_t handle_ipv6(int fd, uint8_t * ip6_packet, uint32_t packetsize);
 
 /* Fill IPv6 header */
 void fill_ip6hdr(uint8_t * packet, uint16_t packetsize,

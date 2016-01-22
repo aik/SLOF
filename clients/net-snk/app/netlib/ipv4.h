@@ -88,9 +88,9 @@ extern void ping_ipv4(int fd, uint32_t _ping_dst_ip);
 extern uint32_t pong_ipv4(void);
 
 /* Handles IPv4-packets that are detected by receive_ether. */
-extern int8_t handle_ipv4(int fd, uint8_t * packet, int32_t packetsize);
+extern int8_t handle_ipv4(int fd, uint8_t * packet, uint32_t packetsize);
 
 /* Handles ARP-packets that are detected by receive_ether. */
-extern int8_t handle_arp(int fd, uint8_t * packet, int32_t packetsize);
+extern int8_t handle_arp(int fd, uint8_t * packet, uint32_t packetsize);
 
 #endif

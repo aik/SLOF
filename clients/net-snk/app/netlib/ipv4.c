@@ -295,7 +295,7 @@ void fill_iphdr(uint8_t * packet, uint16_t packetsize,
  * @see               receive_ether
  * @see               iphdr
  */
-int8_t handle_ipv4(int fd, uint8_t * ip_packet, int32_t packetsize)
+int8_t handle_ipv4(int fd, uint8_t * ip_packet, uint32_t packetsize)
 {
 	struct iphdr * iph;
 	int32_t old_sum;
@@ -682,7 +682,7 @@ static void fill_arphdr(uint8_t * packet, uint8_t opcode,
  * @see               receive_ether
  * @see               arphdr
  */
-int8_t handle_arp(int fd, uint8_t * packet, int32_t packetsize)
+int8_t handle_arp(int fd, uint8_t * packet, uint32_t packetsize)
 {
 	struct arphdr * arph = (struct arphdr *) packet;
 

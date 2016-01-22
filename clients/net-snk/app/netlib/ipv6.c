@@ -140,7 +140,7 @@ static int8_t find_ip6addr(ip6_addr_t *ip)
  * @see handle_udp
  * @see ip6hdr
  */
-int8_t handle_ipv6(int fd, uint8_t * ip6_packet, int32_t packetsize)
+int8_t handle_ipv6(int fd, uint8_t * ip6_packet, uint32_t packetsize)
 {
 
 	struct ip6hdr *ip6 = NULL;

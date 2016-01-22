@@ -58,7 +58,7 @@ void net_set_mtftp_port(uint16_t tftp_port)
  * @see               receive_ether
  * @see               udphdr
  */
-int8_t handle_udp(int fd, uint8_t * udp_packet, int32_t packetsize)
+int8_t handle_udp(int fd, uint8_t * udp_packet, uint32_t packetsize)
 {
 	struct udphdr * udph = (struct udphdr *) udp_packet;
 
