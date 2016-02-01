@@ -51,6 +51,31 @@ struct virtio_dev_common {
 	le64 q_used;
 } __attribute__ ((packed));
 
+/* virtio 1.0 Spec: 4.1.3 PCI Device Layout
+ *
+ * Fields of different sizes are present in the device configuration regions.
+ * All 64-bit, 32-bit and 16-bit fields are little-endian. 64-bit fields are to
+ * be treated as two 32-bit fields, with low 32 bit part followed by the high 32
+ * bit part.
+ */
+static void virtio_pci_write64(void *addr, uint64_t val)
+{
+	uint32_t hi = (val >> 32) & 0xFFFFFFFF;
+	uint32_t lo = val & 0xFFFFFFFF;
+
+	ci_write_32(addr, cpu_to_le32(lo));
+	ci_write_32(addr + 4, cpu_to_le32(hi));
+}
+
+static uint64_t virtio_pci_read64(void *addr)
+{
+	uint64_t hi, lo;
+
+	lo = le32_to_cpu(ci_read_32(addr));
+	hi = le32_to_cpu(ci_read_32(addr + 4));
+	return (hi << 32) | lo;
+}
+
 /**
  * Calculate ring size according to queue size number
  */
