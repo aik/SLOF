@@ -86,7 +86,7 @@ static void dprint_buffer(const char *name, uint8_t *buffer, int length)
  * @return	0 = success, -ve = error.
  */
 static int virtio_9p_transact(void *opaque, uint8_t *tx, int tx_size, uint8_t *rx,
-			      int *rx_size)
+			      uint32_t *rx_size)
 {
 	struct virtio_device *dev = opaque;
 	struct vring_desc *desc;
@@ -228,7 +228,7 @@ void virtio_9p_shutdown(struct virtio_device *dev)
  * @param buffer[out]	Where to read the file to.
  * @return	+ve = amount of data read, -ve = error.
  */
-int virtio_9p_load(struct virtio_device *dev, const char *file_name, uint8_t *buffer)
+long virtio_9p_load(struct virtio_device *dev, const char *file_name, uint8_t *buffer)
 {
 	int rc;
 	uint16_t tag_len;
@@ -332,5 +332,5 @@ cleanup_connection:
 
 
 	dprintf("%s : complete, read %llu bytes\n", __func__, offset);
-	return rc == 0 ? offset : rc;
+	return rc == 0 ? (long)offset : rc;
 }
