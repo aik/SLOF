@@ -23,7 +23,7 @@ enum {
 	VQ_TX = 1,	/* Transmit Queue */
 };
 
-extern net_driver_t *virtionet_open(char *mac_addr, int len, struct virtio_device *dev);
+extern net_driver_t *virtionet_open(struct virtio_device *dev);
 extern void virtionet_close(net_driver_t *driver);
 extern int virtionet_read(char *buf, int len);
 extern int virtionet_write(char *buf, int len);

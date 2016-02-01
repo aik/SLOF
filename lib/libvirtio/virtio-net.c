@@ -157,7 +157,9 @@ static int virtionet_init(net_driver_t *driver)
 	virtio_queue_notify(&virtiodev, VQ_RX);
 
 	driver->running = 1;
-
+	for(i = 0; i < (int)sizeof(driver->mac_addr); i++) {
+		driver->mac_addr[i] = virtio_get_config(&virtiodev, i, 1);
+	}
 	return 0;
 
 dev_error:
@@ -284,7 +286,7 @@ static int virtionet_receive(char *buf, int maxlen)
 	return len;
 }
 
-net_driver_t *virtionet_open(char *mac_addr, int len, struct virtio_device *dev)
+net_driver_t *virtionet_open(struct virtio_device *dev)
 {
 	net_driver_t *driver;
 
@@ -294,7 +296,6 @@ net_driver_t *virtionet_open(char *mac_addr, int len, struct virtio_device *dev)
 		return NULL;
 	}
 
-	memcpy(driver->mac_addr, mac_addr, 6);
 	driver->running = 0;
 
 	if (virtionet_init_pci(dev))
