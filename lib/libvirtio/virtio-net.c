@@ -123,23 +123,18 @@ static int virtionet_init(net_driver_t *driver)
 
 	/* Prepare receive buffer queue */
 	for (i = 0; i < RX_QUEUE_SIZE; i++) {
-		struct vring_desc *desc;
+		uint64_t addr = (uint64_t)vq[VQ_RX].buf_mem
+			+ i * (BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr));
+		uint32_t id = i*2;
 		/* Descriptor for net_hdr: */
-		desc = &vq[VQ_RX].desc[i*2];
-		desc->addr = (uint64_t)vq[VQ_RX].buf_mem
-			     + i * (BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr));
-		desc->len = sizeof(struct virtio_net_hdr);
-		desc->flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-		desc->next = i*2+1;
+		virtio_fill_desc(&vq[VQ_RX].desc[id], false, addr, sizeof(struct virtio_net_hdr),
+			  VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, id + 1);
 
 		/* Descriptor for data: */
-		desc = &vq[VQ_RX].desc[i*2+1];
-		desc->addr = vq[VQ_RX].desc[i*2].addr + sizeof(struct virtio_net_hdr);
-		desc->len = BUFFER_ENTRY_SIZE;
-		desc->flags = VRING_DESC_F_WRITE;
-		desc->next = 0;
+		virtio_fill_desc(&vq[VQ_RX].desc[id+1], false, addr + sizeof(struct virtio_net_hdr),
+			  BUFFER_ENTRY_SIZE, VRING_DESC_F_WRITE, 0);
 
-		vq[VQ_RX].avail->ring[i] = i*2;
+		vq[VQ_RX].avail->ring[i] = id;
 	}
 	sync();
 	vq[VQ_RX].avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
@@ -197,7 +192,6 @@ static int virtionet_term(net_driver_t *driver)
  */
 static int virtionet_xmit(char *buf, int len)
 {
-	struct vring_desc *desc;
 	int id;
 	static struct virtio_net_hdr nethdr;
 
@@ -214,18 +208,11 @@ static int virtionet_xmit(char *buf, int len)
 	id = (vq[VQ_TX].avail->idx * 2) % vq[VQ_TX].size;
 
 	/* Set up virtqueue descriptor for header */
-	desc = &vq[VQ_TX].desc[id];
-	desc->addr = (uint64_t)&nethdr;
-	desc->len = sizeof(struct virtio_net_hdr);
-	desc->flags = VRING_DESC_F_NEXT;
-	desc->next = id + 1;
+	virtio_fill_desc(&vq[VQ_TX].desc[id], false, (uint64_t)&nethdr,
+		  sizeof(struct virtio_net_hdr), VRING_DESC_F_NEXT, id + 1);
 
 	/* Set up virtqueue descriptor for data */
-	desc = &vq[VQ_TX].desc[id+1];
-	desc->addr = (uint64_t)buf;
-	desc->len = len;
-	desc->flags = 0;
-	desc->next = 0;
+	virtio_fill_desc(&vq[VQ_TX].desc[id+1], false, (uint64_t)buf, len, 0, 0);
 
 	vq[VQ_TX].avail->ring[vq[VQ_TX].avail->idx % vq[VQ_TX].size] = id;
 	sync();
