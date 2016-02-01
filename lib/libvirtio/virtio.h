@@ -61,10 +61,8 @@ struct vring_used {
 	struct vring_used_elem ring[];
 };
 
-#define VIRTIO_TYPE_PCI 0	/* For virtio-pci interface */
 struct virtio_device {
 	void *base;		/* base address */
-	int type;		/* VIRTIO_TYPE_PCI or VIRTIO_TYPE_VIO */
 };
 
 struct vqs {

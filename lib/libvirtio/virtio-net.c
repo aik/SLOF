@@ -69,7 +69,6 @@ static int virtionet_init_pci(struct virtio_device *dev)
 		return -1;
 
 	virtiodev.base = dev->base;
-	virtiodev.type = dev->type;
 
 	/* Reset device */
 	virtio_reset_device(&virtiodev);

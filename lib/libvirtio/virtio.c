@@ -54,12 +54,10 @@ int virtio_get_qsize(struct virtio_device *dev, int queue)
 {
 	int size = 0;
 
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
-			    cpu_to_le16(queue));
-		eieio();
-		size = le16_to_cpu(ci_read_16(dev->base+VIRTIOHDR_QUEUE_SIZE));
-	}
+	ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		    cpu_to_le16(queue));
+	eieio();
+	size = le16_to_cpu(ci_read_16(dev->base+VIRTIOHDR_QUEUE_SIZE));
 
 	return size;
 }
@@ -75,13 +73,11 @@ struct vring_desc *virtio_get_vring_desc(struct virtio_device *dev, int queue)
 {
 	struct vring_desc *desc = 0;
 
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
-			    cpu_to_le16(queue));
-		eieio();
-		desc = (void*)(4096L *
-			       le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS)));
-	}
+	ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		    cpu_to_le16(queue));
+	eieio();
+	desc = (void*)(4096L *
+		       le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS)));
 
 	return desc;
 }
@@ -138,9 +134,7 @@ void virtio_fill_desc(struct vring_desc *desc, bool is_modern,
  */
 void virtio_reset_device(struct virtio_device *dev)
 {
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_8(dev->base+VIRTIOHDR_DEVICE_STATUS, 0);
-	}
+	ci_write_8(dev->base+VIRTIOHDR_DEVICE_STATUS, 0);
 }
 
 
@@ -149,9 +143,7 @@ void virtio_reset_device(struct virtio_device *dev)
  */
 void virtio_queue_notify(struct virtio_device *dev, int queue)
 {
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_NOTIFY, cpu_to_le16(queue));
-	}
+	ci_write_16(dev->base+VIRTIOHDR_QUEUE_NOTIFY, cpu_to_le16(queue));
 }
 
 /**
@@ -159,15 +151,13 @@ void virtio_queue_notify(struct virtio_device *dev, int queue)
  */
 void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long qaddr)
 {
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		uint32_t val = qaddr;
-		val = val >> 12;
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
-			    cpu_to_le16(queue));
-		eieio();
-		ci_write_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS,
-			    cpu_to_le32(val));
-	}
+	uint32_t val = qaddr;
+	val = val >> 12;
+	ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		    cpu_to_le16(queue));
+	eieio();
+	ci_write_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS,
+		    cpu_to_le32(val));
 }
 
 int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id)
@@ -191,9 +181,7 @@ int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int
  */
 void virtio_set_status(struct virtio_device *dev, int status)
 {
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_8(dev->base+VIRTIOHDR_DEVICE_STATUS, status);
-	}
+	ci_write_8(dev->base+VIRTIOHDR_DEVICE_STATUS, status);
 }
 
 
@@ -203,9 +191,7 @@ void virtio_set_status(struct virtio_device *dev, int status)
 void virtio_set_guest_features(struct virtio_device *dev, int features)
 
 {
-	if (dev->type == VIRTIO_TYPE_PCI) {
-		ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, bswap_32(features));
-	}
+	ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, bswap_32(features));
 }
 
 /**
@@ -214,9 +200,7 @@ void virtio_set_guest_features(struct virtio_device *dev, int features)
 void virtio_get_host_features(struct virtio_device *dev, int *features)
 
 {
-	if (dev->type == VIRTIO_TYPE_PCI && features) {
-		*features = bswap_32(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
-	}
+	*features = bswap_32(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
 }
 
 
@@ -227,9 +211,6 @@ uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size)
 {
 	uint64_t val = ~0ULL;
 	void *confbase;
-
-	if (dev->type != VIRTIO_TYPE_PCI)
-		return val;
 
 	confbase = dev->base + VIRTIOHDR_DEVICE_CONFIG;
 	switch (size) {
@@ -264,9 +245,6 @@ int __virtio_read_config(struct virtio_device *dev, void *dst,
 	void *confbase;
 	unsigned char *buf = dst;
 	int i;
-
-	if (dev->type != VIRTIO_TYPE_PCI)
-		return 0;
 
 	confbase = dev->base + VIRTIOHDR_DEVICE_CONFIG;
 	for (i = 0; i < len; i++)
