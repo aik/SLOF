@@ -52,6 +52,8 @@ struct virtio_net_hdr {
 	// uint16_t  num_buffers;	/* Only if VIRTIO_NET_F_MRG_RXBUF */
 };
 
+static unsigned int net_hdr_size;
+
 static uint16_t last_rx_idx;	/* Last index in RX "used" ring */
 
 /**
@@ -114,8 +116,9 @@ static int virtionet_init(net_driver_t *driver)
 	/* Device specific setup - we do not support special features right now */
 	virtio_set_guest_features(&virtiodev,  0);
 
+	net_hdr_size = sizeof(struct virtio_net_hdr);
 	/* Allocate memory for one transmit an multiple receive buffers */
-	vq_rx.buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr))
+	vq_rx.buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+net_hdr_size)
 				   * RX_QUEUE_SIZE);
 	if (!vq_rx.buf_mem) {
 		printf("virtionet: Failed to allocate buffers!\n");
@@ -125,15 +128,15 @@ static int virtionet_init(net_driver_t *driver)
 	/* Prepare receive buffer queue */
 	for (i = 0; i < RX_QUEUE_SIZE; i++) {
 		uint64_t addr = (uint64_t)vq_rx.buf_mem
-			+ i * (BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr));
+			+ i * (BUFFER_ENTRY_SIZE+net_hdr_size);
 		uint32_t id = i*2;
 		/* Descriptor for net_hdr: */
-		virtio_fill_desc(&vq_rx.desc[id], false, addr, sizeof(struct virtio_net_hdr),
-			  VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, id + 1);
+		virtio_fill_desc(&vq_rx.desc[id], false, addr, net_hdr_size,
+				 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, id + 1);
 
 		/* Descriptor for data: */
-		virtio_fill_desc(&vq_rx.desc[id+1], false, addr + sizeof(struct virtio_net_hdr),
-			  BUFFER_ENTRY_SIZE, VRING_DESC_F_WRITE, 0);
+		virtio_fill_desc(&vq_rx.desc[id+1], false, addr + net_hdr_size,
+				 BUFFER_ENTRY_SIZE, VRING_DESC_F_WRITE, 0);
 
 		vq_rx.avail->ring[i] = id;
 	}
@@ -203,14 +206,14 @@ static int virtionet_xmit(char *buf, int len)
 
 	dprintf("\nvirtionet_xmit(packet at %p, %d bytes)\n", buf, len);
 
-	memset(&nethdr, 0, sizeof(nethdr));
+	memset(&nethdr, 0, net_hdr_size);
 
 	/* Determine descriptor index */
 	id = (vq_tx.avail->idx * 2) % vq_tx.size;
 
 	/* Set up virtqueue descriptor for header */
 	virtio_fill_desc(&vq_tx.desc[id], false, (uint64_t)&nethdr,
-		  sizeof(struct virtio_net_hdr), VRING_DESC_F_NEXT, id + 1);
+		  net_hdr_size, VRING_DESC_F_NEXT, id + 1);
 
 	/* Set up virtqueue descriptor for data */
 	virtio_fill_desc(&vq_tx.desc[id+1], false, (uint64_t)buf, len, 0, 0);
@@ -243,7 +246,7 @@ static int virtionet_receive(char *buf, int maxlen)
 	id = (vq_rx.used->ring[last_rx_idx % vq_rx.size].id + 1)
 	     % vq_rx.size;
 	len = vq_rx.used->ring[last_rx_idx % vq_rx.size].len
-	      - sizeof(struct virtio_net_hdr);
+	      - net_hdr_size;
 
 	dprintf("virtionet_receive() last_rx_idx=%i, vq_rx.used->idx=%i,"
 		" id=%i len=%i\n", last_rx_idx, vq_rx.used->idx, id, len);
