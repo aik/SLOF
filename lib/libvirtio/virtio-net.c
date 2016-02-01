@@ -38,7 +38,8 @@
 #define sync()  asm volatile (" sync \n" ::: "memory")
 
 struct virtio_device virtiodev;
-struct vqs vq[2];     /* Information about virtqueues */
+static struct vqs vq_rx;     /* Information about receive virtqueues */
+static struct vqs vq_tx;     /* Information about transmit virtqueues */
 
 /* See Virtio Spec, appendix C, "Device Operation" */
 struct virtio_net_hdr {
@@ -76,8 +77,8 @@ static int virtionet_init_pci(struct virtio_device *dev)
 	 * second the transmit queue, and the forth is the control queue for
 	 * networking options.
 	 * We are only interested in the receive and transmit queue here. */
-	if (virtio_queue_init_vq(dev, &vq[VQ_RX], VQ_RX) ||
-	    virtio_queue_init_vq(dev, &vq[VQ_TX], VQ_TX)) {
+	if (virtio_queue_init_vq(dev, &vq_rx, VQ_RX) ||
+	    virtio_queue_init_vq(dev, &vq_tx, VQ_TX)) {
 		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
 				  |VIRTIO_STAT_FAILED);
 		return -1;
@@ -114,36 +115,36 @@ static int virtionet_init(net_driver_t *driver)
 	virtio_set_guest_features(&virtiodev,  0);
 
 	/* Allocate memory for one transmit an multiple receive buffers */
-	vq[VQ_RX].buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr))
+	vq_rx.buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr))
 				   * RX_QUEUE_SIZE);
-	if (!vq[VQ_RX].buf_mem) {
+	if (!vq_rx.buf_mem) {
 		printf("virtionet: Failed to allocate buffers!\n");
 		goto dev_error;
 	}
 
 	/* Prepare receive buffer queue */
 	for (i = 0; i < RX_QUEUE_SIZE; i++) {
-		uint64_t addr = (uint64_t)vq[VQ_RX].buf_mem
+		uint64_t addr = (uint64_t)vq_rx.buf_mem
 			+ i * (BUFFER_ENTRY_SIZE+sizeof(struct virtio_net_hdr));
 		uint32_t id = i*2;
 		/* Descriptor for net_hdr: */
-		virtio_fill_desc(&vq[VQ_RX].desc[id], false, addr, sizeof(struct virtio_net_hdr),
+		virtio_fill_desc(&vq_rx.desc[id], false, addr, sizeof(struct virtio_net_hdr),
 			  VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, id + 1);
 
 		/* Descriptor for data: */
-		virtio_fill_desc(&vq[VQ_RX].desc[id+1], false, addr + sizeof(struct virtio_net_hdr),
+		virtio_fill_desc(&vq_rx.desc[id+1], false, addr + sizeof(struct virtio_net_hdr),
 			  BUFFER_ENTRY_SIZE, VRING_DESC_F_WRITE, 0);
 
-		vq[VQ_RX].avail->ring[i] = id;
+		vq_rx.avail->ring[i] = id;
 	}
 	sync();
-	vq[VQ_RX].avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
-	vq[VQ_RX].avail->idx = RX_QUEUE_SIZE;
+	vq_rx.avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
+	vq_rx.avail->idx = RX_QUEUE_SIZE;
 
-	last_rx_idx = vq[VQ_RX].used->idx;
+	last_rx_idx = vq_rx.used->idx;
 
-	vq[VQ_TX].avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
-	vq[VQ_TX].avail->idx = 0;
+	vq_tx.avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
+	vq_tx.avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;
@@ -205,18 +206,18 @@ static int virtionet_xmit(char *buf, int len)
 	memset(&nethdr, 0, sizeof(nethdr));
 
 	/* Determine descriptor index */
-	id = (vq[VQ_TX].avail->idx * 2) % vq[VQ_TX].size;
+	id = (vq_tx.avail->idx * 2) % vq_tx.size;
 
 	/* Set up virtqueue descriptor for header */
-	virtio_fill_desc(&vq[VQ_TX].desc[id], false, (uint64_t)&nethdr,
+	virtio_fill_desc(&vq_tx.desc[id], false, (uint64_t)&nethdr,
 		  sizeof(struct virtio_net_hdr), VRING_DESC_F_NEXT, id + 1);
 
 	/* Set up virtqueue descriptor for data */
-	virtio_fill_desc(&vq[VQ_TX].desc[id+1], false, (uint64_t)buf, len, 0, 0);
+	virtio_fill_desc(&vq_tx.desc[id+1], false, (uint64_t)buf, len, 0, 0);
 
-	vq[VQ_TX].avail->ring[vq[VQ_TX].avail->idx % vq[VQ_TX].size] = id;
+	vq_tx.avail->ring[vq_tx.avail->idx % vq_tx.size] = id;
 	sync();
-	vq[VQ_TX].avail->idx += 1;
+	vq_tx.avail->idx += 1;
 	sync();
 
 	/* Tell HV that TX queue is ready */
@@ -234,18 +235,18 @@ static int virtionet_receive(char *buf, int maxlen)
 	int len = 0;
 	int id;
 
-	if (last_rx_idx == vq[VQ_RX].used->idx) {
+	if (last_rx_idx == vq_rx.used->idx) {
 		/* Nothing received yet */
 		return 0;
 	}
 
-	id = (vq[VQ_RX].used->ring[last_rx_idx % vq[VQ_RX].size].id + 1)
-	     % vq[VQ_RX].size;
-	len = vq[VQ_RX].used->ring[last_rx_idx % vq[VQ_RX].size].len
+	id = (vq_rx.used->ring[last_rx_idx % vq_rx.size].id + 1)
+	     % vq_rx.size;
+	len = vq_rx.used->ring[last_rx_idx % vq_rx.size].len
 	      - sizeof(struct virtio_net_hdr);
 
-	dprintf("virtionet_receive() last_rx_idx=%i, vq[VQ_RX].used->idx=%i,"
-		" id=%i len=%i\n", last_rx_idx, vq[VQ_RX].used->idx, id, len);
+	dprintf("virtionet_receive() last_rx_idx=%i, vq_rx.used->idx=%i,"
+		" id=%i len=%i\n", last_rx_idx, vq_rx.used->idx, id, len);
 
 	if (len > maxlen) {
 		printf("virtio-net: Receive buffer not big enough!\n");
@@ -257,7 +258,7 @@ static int virtionet_receive(char *buf, int maxlen)
 	printf("\n");
 	int i;
 	for (i=0; i<64; i++) {
-		printf(" %02x", *(uint8_t*)(vq[VQ_RX].desc[id].addr+i));
+		printf(" %02x", *(uint8_t*)(vq_rx.desc[id].addr+i));
 		if ((i%16)==15)
 			printf("\n");
 	}
@@ -265,14 +266,14 @@ static int virtionet_receive(char *buf, int maxlen)
 #endif
 
 	/* Copy data to destination buffer */
-	memcpy(buf, (void*)vq[VQ_RX].desc[id].addr, len);
+	memcpy(buf, (void*)vq_rx.desc[id].addr, len);
 
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;
 
-	vq[VQ_RX].avail->ring[vq[VQ_RX].avail->idx % vq[VQ_RX].size] = id - 1;
+	vq_rx.avail->ring[vq_rx.avail->idx % vq_rx.size] = id - 1;
 	sync();
-	vq[VQ_RX].avail->idx += 1;
+	vq_rx.avail->idx += 1;
 
 	/* Tell HV that RX queue entry is ready */
 	virtio_queue_notify(&virtiodev, VQ_RX);
