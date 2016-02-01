@@ -31,32 +31,31 @@ virtioblk_init(struct virtio_device *dev)
 	struct vring_avail *vq_avail;
 	int blk_size = DEFAULT_SECTOR_SIZE;
 	int features;
+	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
 	/* Reset device */
 	virtio_reset_device(dev);
 
 	/* Acknowledge device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);
+	virtio_set_status(dev, status);
 
 	/* Tell HV that we know how to drive the device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER);
+	status |= VIRTIO_STAT_DRIVER;
+	virtio_set_status(dev, status);
 
 	/* Device specific setup - we support F_BLK_SIZE */
 	virtio_set_guest_features(dev,  VIRTIO_BLK_F_BLK_SIZE);
 
-	if (virtio_queue_init_vq(dev, &vq, 0)) {
-		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
-				  |VIRTIO_STAT_FAILED);
-		return 0;
-	}
+	if (virtio_queue_init_vq(dev, &vq, 0))
+		goto dev_error;
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
 	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
 	vq_avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
-				|VIRTIO_STAT_DRIVER_OK);
+	status |= VIRTIO_STAT_DRIVER_OK;
+	virtio_set_status(dev, status);
 
 	virtio_get_host_features(dev, &features);
 	if (features & VIRTIO_BLK_F_BLK_SIZE) {
@@ -66,6 +65,11 @@ virtioblk_init(struct virtio_device *dev)
 	}
 
 	return blk_size;
+dev_error:
+	printf("%s: failed\n", __func__);
+	status |= VIRTIO_STAT_FAILED;
+	virtio_set_status(dev, status);
+	return 0;
 }
 
 

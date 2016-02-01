@@ -97,6 +97,7 @@ static int virtionet_init_pci(struct virtio_device *dev)
 static int virtionet_init(net_driver_t *driver)
 {
 	int i;
+	int status = VIRTIO_STAT_ACKNOWLEDGE | VIRTIO_STAT_DRIVER;
 
 	dprintf("virtionet_init(%02x:%02x:%02x:%02x:%02x:%02x)\n",
 		driver->mac_addr[0], driver->mac_addr[1],
@@ -107,7 +108,7 @@ static int virtionet_init(net_driver_t *driver)
 		return 0;
 
 	/* Tell HV that we know how to drive the device. */
-	virtio_set_status(&virtiodev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER);
+	virtio_set_status(&virtiodev, status);
 
 	/* Device specific setup - we do not support special features right now */
 	virtio_set_guest_features(&virtiodev,  0);
@@ -117,8 +118,7 @@ static int virtionet_init(net_driver_t *driver)
 				   * RX_QUEUE_SIZE);
 	if (!vq[VQ_RX].buf_mem) {
 		printf("virtionet: Failed to allocate buffers!\n");
-		virtio_set_status(&virtiodev, VIRTIO_STAT_FAILED);
-		return -1;
+		goto dev_error;
 	}
 
 	/* Prepare receive buffer queue */
@@ -151,9 +151,8 @@ static int virtionet_init(net_driver_t *driver)
 	vq[VQ_TX].avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
-	virtio_set_status(&virtiodev, VIRTIO_STAT_ACKNOWLEDGE
-				      |VIRTIO_STAT_DRIVER
-				      |VIRTIO_STAT_DRIVER_OK);
+	status |= VIRTIO_STAT_DRIVER_OK;
+	virtio_set_status(&virtiodev, status);
 
 	/* Tell HV that RX queues are ready */
 	virtio_queue_notify(&virtiodev, VQ_RX);
@@ -161,6 +160,11 @@ static int virtionet_init(net_driver_t *driver)
 	driver->running = 1;
 
 	return 0;
+
+dev_error:
+	status |= VIRTIO_STAT_FAILED;
+	virtio_set_status(&virtiodev, status);
+	return -1;
 }
 
 

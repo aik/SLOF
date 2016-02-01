@@ -96,6 +96,7 @@ int virtioscsi_init(struct virtio_device *dev)
 	struct vring_avail *vq_avail;
 	unsigned int idx = 0;
 	int qsize = 0;
+	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
 	/* Reset device */
 	// XXX That will clear the virtq base. We need to move
@@ -104,10 +105,11 @@ int virtioscsi_init(struct virtio_device *dev)
 	//     virtio_reset_device(dev);
 
 	/* Acknowledge device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);
+	virtio_set_status(dev, status);
 
 	/* Tell HV that we know how to drive the device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER);
+	status |= VIRTIO_STAT_DRIVER;
+	virtio_set_status(dev, status);
 
 	/* Device specific setup - we do not support special features right now */
 	virtio_set_guest_features(dev,  0);
@@ -125,8 +127,8 @@ int virtioscsi_init(struct virtio_device *dev)
 	}
 
 	/* Tell HV that setup succeeded */
- 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
-			  |VIRTIO_STAT_DRIVER_OK);
+	status |= VIRTIO_STAT_DRIVER_OK;
+	virtio_set_status(dev, status);
 
 	return 0;
 }

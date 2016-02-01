@@ -166,6 +166,7 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 		   int buf_size)
 {
 	struct vring_avail *vq_avail;
+	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
 	/* Check for double open */
 	if (__buf_size)
@@ -178,27 +179,25 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 	virtio_reset_device(dev);
 
 	/* Acknowledge device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);
+	virtio_set_status(dev, status);
 
 	/* Tell HV that we know how to drive the device. */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE | VIRTIO_STAT_DRIVER);
+	status |= VIRTIO_STAT_DRIVER;
+	virtio_set_status(dev, status);
 
 	/* Device specific setup - we do not support special features */
 	virtio_set_guest_features(dev,  0);
 
-	if (virtio_queue_init_vq(dev, &vq, 0)) {
-		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
-				  |VIRTIO_STAT_FAILED);
-		return -1;
-	}
+	if (virtio_queue_init_vq(dev, &vq, 0))
+		goto dev_error;
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
 	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
 	vq_avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
-	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE | VIRTIO_STAT_DRIVER
-			  |VIRTIO_STAT_DRIVER_OK);
+	status |= VIRTIO_STAT_DRIVER_OK;
+	virtio_set_status(dev, status);
 
 	/* Setup 9P library. */
 	p9_reg_transport(virtio_9p_transact, dev,(uint8_t *)tx_buf,
@@ -206,6 +205,12 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 
 	dprintf("%s : complete\n", __func__);
 	return 0;
+
+dev_error:
+	printf("%s: failed\n", __func__);
+	status |= VIRTIO_STAT_FAILED;
+	virtio_set_status(dev, status);
+	return -1;
 }
 
 /**
