@@ -113,6 +113,25 @@ struct vring_used *virtio_get_vring_used(struct virtio_device *dev, int queue)
 			       * sizeof(struct vring_avail));
 }
 
+/**
+ * Fill the virtio ring descriptor depending on the legacy mode or virtio 1.0
+ */
+void virtio_fill_desc(struct vring_desc *desc, bool is_modern,
+                      uint64_t addr, uint32_t len,
+                      uint16_t flags, uint16_t next)
+{
+	if (is_modern) {
+		desc->addr = cpu_to_le64(addr);
+		desc->len = cpu_to_le32(len);
+		desc->flags = cpu_to_le16(flags);
+		desc->next = cpu_to_le16(next);
+	} else {
+		desc->addr = addr;
+		desc->len = len;
+		desc->flags = flags;
+		desc->next = next;
+	}
+}
 
 /**
  * Reset virtio device

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <cpu.h>
 #include <helpers.h>
+#include <byteorder.h>
 #include "virtio.h"
 #include "virtio-blk.h"
 
@@ -82,6 +83,19 @@ virtioblk_shutdown(struct virtio_device *dev)
 	virtio_reset_device(dev);
 }
 
+static void fill_blk_hdr(struct virtio_blk_req *blkhdr, bool is_modern,
+                         uint32_t type, uint32_t ioprio, uint32_t sector)
+{
+	if (is_modern) {
+		blkhdr->type = cpu_to_le32(type);
+		blkhdr->ioprio = cpu_to_le32(ioprio);
+		blkhdr->sector = cpu_to_le64(sector);
+	} else {
+		blkhdr->type = type;
+		blkhdr->ioprio = ioprio;
+		blkhdr->sector = sector;
+	}
+}
 
 /**
  * Read blocks
@@ -137,33 +151,25 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	current_used_idx = &vq_used->idx;
 
 	/* Set up header */
-	blkhdr.type = VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER;
-	blkhdr.ioprio = 1;
-	blkhdr.sector = blocknum * blk_size / DEFAULT_SECTOR_SIZE;
+	fill_blk_hdr(&blkhdr, false, VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER,
+		     1, blocknum * blk_size / DEFAULT_SECTOR_SIZE);
 
 	/* Determine descriptor index */
 	id = (vq_avail->idx * 3) % vq_size;
 
 	/* Set up virtqueue descriptor for header */
 	desc = &vq_desc[id];
-	desc->addr = (uint64_t)&blkhdr;
-	desc->len = sizeof(struct virtio_blk_req);
-	desc->flags = VRING_DESC_F_NEXT;
-	desc->next = (id + 1) % vq_size;
+	virtio_fill_desc(desc, false, (uint64_t)&blkhdr, sizeof(struct virtio_blk_req),
+		  VRING_DESC_F_NEXT, (id + 1) % vq_size);
 
 	/* Set up virtqueue descriptor for data */
 	desc = &vq_desc[(id + 1) % vq_size];
-	desc->addr = (uint64_t)buf;
-	desc->len = cnt * blk_size;
-	desc->flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-	desc->next = (id + 2) % vq_size;
+	virtio_fill_desc(desc, false, (uint64_t)buf, cnt * blk_size,
+		  VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, (id + 2) % vq_size);
 
 	/* Set up virtqueue descriptor for status */
 	desc = &vq_desc[(id + 2) % vq_size];
-	desc->addr = (uint64_t)&status;
-	desc->len = 1;
-	desc->flags = VRING_DESC_F_WRITE;
-	desc->next = 0;
+	virtio_fill_desc(desc, false, (uint64_t)&status, 1, VRING_DESC_F_WRITE, 0);
 
 	vq_avail->ring[vq_avail->idx % vq_size] = id;
 	mb();

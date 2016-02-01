@@ -14,6 +14,7 @@
 #define _LIBVIRTIO_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Device status bits */
 #define VIRTIO_STAT_ACKNOWLEDGE		1
@@ -83,6 +84,9 @@ extern int virtio_get_qsize(struct virtio_device *dev, int queue);
 extern struct vring_desc *virtio_get_vring_desc(struct virtio_device *dev, int queue);
 extern struct vring_avail *virtio_get_vring_avail(struct virtio_device *dev, int queue);
 extern struct vring_used *virtio_get_vring_used(struct virtio_device *dev, int queue);
+extern void virtio_fill_desc(struct vring_desc *desc, bool is_modern,
+                             uint64_t addr, uint32_t len,
+                             uint16_t flags, uint16_t next);
 extern int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id);
 
 extern void virtio_reset_device(struct virtio_device *dev);
