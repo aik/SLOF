@@ -23,6 +23,9 @@ enum {
 	VQ_TX = 1,	/* Transmit Queue */
 };
 
+/* VIRTIO_NET Feature bits */
+#define VIRTIO_NET_F_MAC       (1 << 5)
+
 extern net_driver_t *virtionet_open(struct virtio_device *dev);
 extern void virtionet_close(net_driver_t *driver);
 extern int virtionet_read(char *buf, int len);

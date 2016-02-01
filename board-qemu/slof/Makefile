@@ -66,6 +66,7 @@ USB_FFS_FILES = \
 
 VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1000.fs \
+	$(SLOFBRDDIR)/pci-device_1af4_1041.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1001.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1042.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1004.fs \
