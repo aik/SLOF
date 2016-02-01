@@ -301,19 +301,53 @@ void virtio_set_status(struct virtio_device *dev, int status)
 /**
  * Set guest feature bits
  */
-void virtio_set_guest_features(struct virtio_device *dev, int features)
+void virtio_set_guest_features(struct virtio_device *dev, uint64_t features)
 
 {
-	ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, bswap_32(features));
+	if (dev->is_modern) {
+		uint32_t f1 = (features >> 32) & 0xFFFFFFFF;
+		uint32_t f0 = features & 0xFFFFFFFF;
+		void *addr = dev->common.addr;
+
+		ci_write_32(addr + offset_of(struct virtio_dev_common, drv_features_sel),
+			    cpu_to_le32(1));
+		ci_write_32(addr + offset_of(struct virtio_dev_common, drv_features),
+			    cpu_to_le32(f1));
+
+		ci_write_32(addr + offset_of(struct virtio_dev_common, drv_features_sel),
+			    cpu_to_le32(0));
+		ci_write_32(addr + offset_of(struct virtio_dev_common, drv_features),
+			    cpu_to_le32(f0));
+	} else {
+		ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, cpu_to_le32(features));
+	}
 }
 
 /**
  * Get host feature bits
  */
-void virtio_get_host_features(struct virtio_device *dev, int *features)
+uint64_t virtio_get_host_features(struct virtio_device *dev)
 
 {
-	*features = bswap_32(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
+	uint64_t features = 0;
+	if (dev->is_modern) {
+		uint32_t f0 = 0, f1 = 0;
+		void *addr = dev->common.addr;
+
+		ci_write_32(addr + offset_of(struct virtio_dev_common, dev_features_sel),
+			    cpu_to_le32(1));
+		f1 = ci_read_32(addr +
+				offset_of(struct virtio_dev_common, dev_features));
+		ci_write_32(addr + offset_of(struct virtio_dev_common, dev_features_sel),
+			    cpu_to_le32(0));
+		f0 = ci_read_32(addr +
+				offset_of(struct virtio_dev_common, dev_features));
+
+		features = ((uint64_t)le32_to_cpu(f1) << 32) | le32_to_cpu(f0);
+	} else {
+		features = le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
+	}
+	return features;
 }
 
 

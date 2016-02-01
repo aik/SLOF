@@ -57,7 +57,7 @@ virtioblk_init(struct virtio_device *dev)
 	status |= VIRTIO_STAT_DRIVER_OK;
 	virtio_set_status(dev, status);
 
-	virtio_get_host_features(dev, &features);
+	features = virtio_get_host_features(dev);
 	if (features & VIRTIO_BLK_F_BLK_SIZE) {
 		blk_size = virtio_get_config(dev,
 				offset_of(struct virtio_blk_cfg, blk_size),
