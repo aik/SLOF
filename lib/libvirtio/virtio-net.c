@@ -52,7 +52,7 @@
 struct virtio_device virtiodev;
 struct vqs vq[2];     /* Information about virtqueues */
 
-/* See Virtio Spec, appendix C, "Device Operation" */ 
+/* See Virtio Spec, appendix C, "Device Operation" */
 struct virtio_net_hdr {
 	uint8_t  flags;
 	uint8_t  gso_type;

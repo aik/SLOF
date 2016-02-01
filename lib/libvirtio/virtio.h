@@ -34,7 +34,7 @@ struct vring_desc {
 	uint32_t len;		/* Length */
 	uint16_t flags;		/* The flags as indicated above */
 	uint16_t next;		/* Next field if flags & NEXT */
-}; 
+};
 
 /* Definitions for vring_avail.flags */
 #define VRING_AVAIL_F_NO_INTERRUPT	1
@@ -44,8 +44,7 @@ struct vring_avail {
 	uint16_t flags;
 	uint16_t idx;
 	uint16_t ring[];
-}; 
-
+};
 
 /* Definitions for vring_used.flags */
 #define VRING_USED_F_NO_NOTIFY		1

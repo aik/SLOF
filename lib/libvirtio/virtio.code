@@ -127,15 +127,15 @@ PRIM(virtio_X2d_net_X2d_open)
 {
 	void *dev = TOS.a; POP;
 	int len = TOS.u; POP;
-        char *mac_addr = TOS.a;
+	char *mac_addr = TOS.a;
 
-        net_driver_t *net_driver = virtionet_open(mac_addr, len, dev);
+	net_driver_t *net_driver = virtionet_open(mac_addr, len, dev);
 
-        if (net_driver) {
-                TOS.u = (unsigned long)net_driver; PUSH;
-                TOS.n = -1;
-        } else
-                TOS.n = 0;
+	if (net_driver) {
+		TOS.u = (unsigned long)net_driver; PUSH;
+		TOS.n = -1;
+	} else
+		TOS.n = 0;
 }
 MIRP
 
