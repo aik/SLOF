@@ -32,10 +32,7 @@ virtioblk_init(struct virtio_device *dev)
 	int features;
 
 	/* Reset device */
-	// XXX That will clear the virtq base. We need to move
-	//     initializing it to here anyway
-	//
-	//	 virtio_reset_device(dev);
+	virtio_reset_device(dev);
 
 	/* Acknowledge device. */
 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);

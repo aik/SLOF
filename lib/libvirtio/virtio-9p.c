@@ -175,11 +175,7 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
         dprintf("%s : device at %p\n", __func__, dev->base);
         dprintf("%s : type is %04x\n", __func__, dev->type);
 
-	/* Reset device */
-	// XXX That will clear the virtq base. We need to move
-	//     initializing it to here anyway
-	//
-	//	 virtio_reset_device(dev);
+	virtio_reset_device(dev);
 
 	/* Acknowledge device. */
 	virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE);
