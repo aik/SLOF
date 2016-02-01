@@ -104,7 +104,7 @@ struct vqs {
 #define VQ_ALIGN(addr)	(((addr) + 0xfff) & ~0xfff)
 
 extern unsigned long virtio_vring_size(unsigned int qsize);
-extern int virtio_get_qsize(struct virtio_device *dev, int queue);
+extern unsigned int virtio_get_qsize(struct virtio_device *dev, int queue);
 extern struct vring_desc *virtio_get_vring_desc(struct virtio_device *dev, int queue);
 extern struct vring_avail *virtio_get_vring_avail(struct virtio_device *dev, int queue);
 extern struct vring_used *virtio_get_vring_used(struct virtio_device *dev, int queue);
