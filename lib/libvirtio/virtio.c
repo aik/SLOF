@@ -10,10 +10,15 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <cpu.h>
 #include <cache.h>
 #include <byteorder.h>
 #include "virtio.h"
+#include "helpers.h"
 
 /* PCI virtio header offsets */
 #define VIRTIOHDR_DEVICE_FEATURES	0
@@ -133,7 +138,7 @@ void virtio_queue_notify(struct virtio_device *dev, int queue)
 /**
  * Set queue address
  */
-void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned int qaddr)
+void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long qaddr)
 {
 	if (dev->type == VIRTIO_TYPE_PCI) {
 		uint32_t val = qaddr;
@@ -144,6 +149,22 @@ void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned int qaddr)
 		ci_write_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS,
 			    cpu_to_le32(val));
 	}
+}
+
+int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id)
+{
+	vq->size = virtio_get_qsize(dev, id);
+	vq->desc = SLOF_alloc_mem_aligned(virtio_vring_size(vq->size), 4096);
+	if (!vq->desc) {
+		printf("memory allocation failed!\n");
+		return -1;
+	}
+	memset(vq->desc, 0, virtio_vring_size(vq->size));
+	virtio_set_qaddr(dev, id, (unsigned long)vq->desc);
+	vq->avail = virtio_get_vring_avail(dev, id);
+	vq->used = virtio_get_vring_used(dev, id);
+	vq->id = id;
+	return 0;
 }
 
 /**

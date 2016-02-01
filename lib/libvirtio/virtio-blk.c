@@ -18,6 +18,8 @@
 
 #define DEFAULT_SECTOR_SIZE 512
 
+static struct vqs vq;
+
 /**
  * Initialize virtio-block device.
  * @param  dev  pointer to virtio device information
@@ -43,6 +45,12 @@ virtioblk_init(struct virtio_device *dev)
 
 	/* Device specific setup - we support F_BLK_SIZE */
 	virtio_set_guest_features(dev,  VIRTIO_BLK_F_BLK_SIZE);
+
+	if (virtio_queue_init_vq(dev, &vq, 0)) {
+		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
+				  |VIRTIO_STAT_FAILED);
+		return 0;
+	}
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
 	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;

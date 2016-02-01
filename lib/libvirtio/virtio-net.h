@@ -23,18 +23,6 @@ enum {
 	VQ_TX = 1,	/* Transmit Queue */
 };
 
-struct vqs {
-	uint64_t id;	/* Queue ID */
-	uint32_t size;
-	void *buf_mem;
-	struct vring_desc *desc;
-	struct vring_avail *avail;
-	struct vring_used *used;
-};
-
-/* Device is identified by RX queue ID: */
-#define DEVICE_ID  vq[0].id
-
 extern net_driver_t *virtionet_open(char *mac_addr, int len, struct virtio_device *dev);
 extern void virtionet_close(net_driver_t *driver);
 extern int virtionet_read(char *buf, int len);

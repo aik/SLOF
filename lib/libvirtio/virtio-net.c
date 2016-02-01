@@ -37,18 +37,6 @@
 
 #define sync()  asm volatile (" sync \n" ::: "memory")
 
-/* PCI virtio header offsets */
-#define VIRTIOHDR_DEVICE_FEATURES       0
-#define VIRTIOHDR_GUEST_FEATURES        4
-#define VIRTIOHDR_QUEUE_ADDRESS         8
-#define VIRTIOHDR_QUEUE_SIZE            12
-#define VIRTIOHDR_QUEUE_SELECT          14
-#define VIRTIOHDR_QUEUE_NOTIFY          16
-#define VIRTIOHDR_DEVICE_STATUS         18
-#define VIRTIOHDR_ISR_STATUS            19
-#define VIRTIOHDR_DEVICE_CONFIG         20
-#define VIRTIOHDR_MAC_ADDRESS           20
-
 struct virtio_device virtiodev;
 struct vqs vq[2];     /* Information about virtqueues */
 
@@ -72,8 +60,6 @@ static uint16_t last_rx_idx;	/* Last index in RX "used" ring */
  */
 static int virtionet_init_pci(struct virtio_device *dev)
 {
-	int i;
-
 	dprintf("virtionet: doing virtionet_init_pci!\n");
 
 	if (!dev)
@@ -90,29 +76,11 @@ static int virtionet_init_pci(struct virtio_device *dev)
 	 * second the transmit queue, and the forth is the control queue for
 	 * networking options.
 	 * We are only interested in the receive and transmit queue here. */
-
-	for (i=VQ_RX; i<=VQ_TX; i++) {
-		/* Select ring (0=RX, 1=TX): */
-		vq[i].id = i-VQ_RX;
-		ci_write_16(virtiodev.base+VIRTIOHDR_QUEUE_SELECT,
-			    cpu_to_le16(vq[i].id));
-
-		vq[i].size = le16_to_cpu(ci_read_16(virtiodev.base+VIRTIOHDR_QUEUE_SIZE));
-		vq[i].desc = SLOF_alloc_mem_aligned(virtio_vring_size(vq[i].size), 4096);
-		if (!vq[i].desc) {
-			printf("memory allocation failed!\n");
-			return -1;
-		}
-		memset(vq[i].desc, 0, virtio_vring_size(vq[i].size));
-		ci_write_32(virtiodev.base+VIRTIOHDR_QUEUE_ADDRESS,
-			    cpu_to_le32((long)vq[i].desc / 4096));
-		vq[i].avail = (void*)vq[i].desc
-				    + vq[i].size * sizeof(struct vring_desc);
-		vq[i].used = (void*)VQ_ALIGN((long)vq[i].avail
-				    + vq[i].size * sizeof(struct vring_avail));
-
-		dprintf("%i: vq.id = %llx\nvq.size =%x\n vq.avail =%p\nvq.used=%p\n",
-			i, vq[i].id, vq[i].size, vq[i].avail, vq[i].used);
+	if (virtio_queue_init_vq(dev, &vq[VQ_RX], VQ_RX) ||
+	    virtio_queue_init_vq(dev, &vq[VQ_TX], VQ_TX)) {
+		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
+				  |VIRTIO_STAT_FAILED);
+		return -1;
 	}
 
 	/* Acknowledge device. */
