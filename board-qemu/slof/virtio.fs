@@ -13,6 +13,14 @@
 \ This struct must match "struct virtio_device" in virtio.h!
 STRUCT
    /n FIELD vd>base
+   /l FIELD vd>is-modern
+   10 FIELD vd>legacy
+   10 FIELD vd>common
+   10 FIELD vd>notify
+   10 FIELD vd>isr
+   10 FIELD vd>device
+   10 FIELD vd>pci
+   /l FIELD vd>notify_off_mul
 CONSTANT /vd-len
 
 

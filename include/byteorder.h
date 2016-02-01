@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+typedef uint16_t le16;
+typedef uint32_t le32;
+typedef uint64_t le64;
+
 static inline uint16_t bswap_16 (uint16_t x)
 {
 	return __builtin_bswap16(x);

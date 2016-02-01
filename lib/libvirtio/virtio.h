@@ -20,7 +20,16 @@
 #define VIRTIO_STAT_ACKNOWLEDGE		1
 #define VIRTIO_STAT_DRIVER		2
 #define VIRTIO_STAT_DRIVER_OK		4
+#define VIRTIO_STAT_FEATURES_OK		8
+#define VIRTIO_STAT_NEEDS_RESET		64
 #define VIRTIO_STAT_FAILED		128
+
+#define BIT(x) (1UL << (x))
+
+/* VIRTIO 1.0 Device independent feature bits */
+#define VIRTIO_F_RING_INDIRECT_DESC	BIT(28)
+#define VIRTIO_F_RING_EVENT_IDX		BIT(29)
+#define VIRTIO_F_VERSION_1		BIT(32)
 
 #define VIRTIO_TIMEOUT		        5000 /* 5 sec timeout */
 
@@ -61,9 +70,26 @@ struct vring_used {
 	struct vring_used_elem ring[];
 };
 
+/* Structure shared with SLOF and is 16bytes */
+struct virtio_cap {
+	void *addr;
+	uint8_t bar;
+	uint8_t is_io;
+	uint8_t cap_id;
+	uint8_t pad[5];
+} __attribute__ ((packed));
+
 struct virtio_device {
 	void *base;		/* base address */
-};
+	uint32_t is_modern;     /* Indicates whether to use virtio 1.0 */
+	struct virtio_cap legacy;
+	struct virtio_cap common;
+	struct virtio_cap notify;
+	struct virtio_cap isr;
+	struct virtio_cap device;
+	struct virtio_cap pci;
+	uint32_t notify_off_mul;
+} __attribute__ ((packed));
 
 struct vqs {
 	uint64_t id;	/* Queue ID */

@@ -31,6 +31,25 @@
 #define VIRTIOHDR_ISR_STATUS		19
 #define VIRTIOHDR_DEVICE_CONFIG 	20
 
+struct virtio_dev_common {
+	le32 dev_features_sel;
+	le32 dev_features;
+	le32 drv_features_sel;
+	le32 drv_features;
+	le16 msix_config;
+	le16 num_queues;
+	uint8_t dev_status;
+	uint8_t cfg_generation;
+
+	le16 q_select;
+	le16 q_size;
+	le16 q_msix_vec;
+	le16 q_enable;
+	le16 q_notify_off;
+	le64 q_desc;
+	le64 q_avail;
+	le64 q_used;
+} __attribute__ ((packed));
 
 /**
  * Calculate ring size according to queue size number
