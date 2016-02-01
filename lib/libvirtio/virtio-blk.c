@@ -16,8 +16,10 @@
 #include <byteorder.h>
 #include "virtio.h"
 #include "virtio-blk.h"
+#include "virtio-internal.h"
 
 #define DEFAULT_SECTOR_SIZE 512
+#define DRIVER_FEATURE_SUPPORT  (VIRTIO_BLK_F_BLK_SIZE | VIRTIO_F_VERSION_1)
 
 static struct vqs vq;
 
@@ -30,11 +32,8 @@ virtioblk_init(struct virtio_device *dev)
 {
 	struct vring_avail *vq_avail;
 	int blk_size = DEFAULT_SECTOR_SIZE;
-	int features;
+	uint64_t features;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
-
-	/* Keep it disabled until the driver is 1.0 capable */
-	dev->is_modern = false;
 
 	/* Reset device */
 	virtio_reset_device(dev);
@@ -46,14 +45,22 @@ virtioblk_init(struct virtio_device *dev)
 	status |= VIRTIO_STAT_DRIVER;
 	virtio_set_status(dev, status);
 
-	/* Device specific setup - we support F_BLK_SIZE */
-	virtio_set_guest_features(dev,  VIRTIO_BLK_F_BLK_SIZE);
+	if (dev->is_modern) {
+		/* Negotiate features and sets FEATURES_OK if successful */
+		if (virtio_negotiate_guest_features(dev, DRIVER_FEATURE_SUPPORT))
+			goto dev_error;
+
+		virtio_get_status(dev, &status);
+	} else {
+		/* Device specific setup - we support F_BLK_SIZE */
+		virtio_set_guest_features(dev,  VIRTIO_BLK_F_BLK_SIZE);
+	}
 
 	if (virtio_queue_init_vq(dev, &vq, 0))
 		goto dev_error;
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
-	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
+	vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
 	vq_avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
@@ -63,8 +70,8 @@ virtioblk_init(struct virtio_device *dev)
 	features = virtio_get_host_features(dev);
 	if (features & VIRTIO_BLK_F_BLK_SIZE) {
 		blk_size = virtio_get_config(dev,
-				offset_of(struct virtio_blk_cfg, blk_size),
-				sizeof(blk_size));
+					     offset_of(struct virtio_blk_cfg, blk_size),
+					     sizeof(blk_size));
 	}
 
 	return blk_size;
@@ -126,7 +133,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	struct vring_used *vq_used;		/* "Used" vring */
 	volatile uint8_t status = -1;
 	volatile uint16_t *current_used_idx;
-	uint16_t last_used_idx;
+	uint16_t last_used_idx, avail_idx;
 	int blk_size = DEFAULT_SECTOR_SIZE;
 
 	//printf("virtioblk_read: dev=%p buf=%p blocknum=%li count=%li\n",
@@ -154,33 +161,38 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	vq_avail = virtio_get_vring_avail(dev, 0);
 	vq_used = virtio_get_vring_used(dev, 0);
 
+	avail_idx = virtio_modern16_to_cpu(dev, vq_avail->idx);
+
 	last_used_idx = vq_used->idx;
 	current_used_idx = &vq_used->idx;
 
 	/* Set up header */
-	fill_blk_hdr(&blkhdr, false, VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER,
+	fill_blk_hdr(&blkhdr, dev->is_modern, VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER,
 		     1, blocknum * blk_size / DEFAULT_SECTOR_SIZE);
 
 	/* Determine descriptor index */
-	id = (vq_avail->idx * 3) % vq_size;
+	id = (avail_idx * 3) % vq_size;
 
 	/* Set up virtqueue descriptor for header */
 	desc = &vq_desc[id];
-	virtio_fill_desc(desc, false, (uint64_t)&blkhdr, sizeof(struct virtio_blk_req),
-		  VRING_DESC_F_NEXT, (id + 1) % vq_size);
+	virtio_fill_desc(desc, dev->is_modern, (uint64_t)&blkhdr,
+			 sizeof(struct virtio_blk_req),
+			 VRING_DESC_F_NEXT, (id + 1) % vq_size);
 
 	/* Set up virtqueue descriptor for data */
 	desc = &vq_desc[(id + 1) % vq_size];
-	virtio_fill_desc(desc, false, (uint64_t)buf, cnt * blk_size,
-		  VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, (id + 2) % vq_size);
+	virtio_fill_desc(desc, dev->is_modern, (uint64_t)buf, cnt * blk_size,
+			 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE,
+			 (id + 2) % vq_size);
 
 	/* Set up virtqueue descriptor for status */
 	desc = &vq_desc[(id + 2) % vq_size];
-	virtio_fill_desc(desc, false, (uint64_t)&status, 1, VRING_DESC_F_WRITE, 0);
+	virtio_fill_desc(desc, dev->is_modern, (uint64_t)&status, 1,
+			 VRING_DESC_F_WRITE, 0);
 
-	vq_avail->ring[vq_avail->idx % vq_size] = id;
+	vq_avail->ring[avail_idx % vq_size] = virtio_cpu_to_modern16 (dev, id);
 	mb();
-	vq_avail->idx += 1;
+	vq_avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
 
 	/* Tell HV that the queue is ready */
 	virtio_queue_notify(dev, 0);
