@@ -98,6 +98,9 @@ int virtioscsi_init(struct virtio_device *dev)
 	int qsize = 0;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
+	/* Keep it disabled until the driver is 1.0 capable */
+	dev->is_modern = false;
+
 	/* Reset device */
 	// XXX That will clear the virtq base. We need to move
 	//     initializing it to here anyway

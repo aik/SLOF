@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include <cpu.h>
 #include <cache.h>
 #include <byteorder.h>
@@ -30,6 +31,36 @@
 #define VIRTIOHDR_DEVICE_STATUS 	18
 #define VIRTIOHDR_ISR_STATUS		19
 #define VIRTIOHDR_DEVICE_CONFIG 	20
+
+/* PCI defines */
+#define PCI_BASE_ADDR_SPACE_IO	0x01
+#define PCI_BASE_ADDR_SPACE_64BIT 0x04
+#define PCI_BASE_ADDR_MEM_MASK	(~0x0fUL)
+#define PCI_BASE_ADDR_IO_MASK	(~0x03UL)
+
+#define PCI_BASE_ADDR_REG_0	0x10
+#define PCI_CONFIG_CAP_REG	0x34
+
+#define PCI_CAP_ID_VNDR		0x9
+
+/* Common configuration */
+#define VIRTIO_PCI_CAP_COMMON_CFG       1
+/* Notifications */
+#define VIRTIO_PCI_CAP_NOTIFY_CFG       2
+/* ISR access */
+#define VIRTIO_PCI_CAP_ISR_CFG          3
+/* Device specific configuration */
+#define VIRTIO_PCI_CAP_DEVICE_CFG       4
+/* PCI configuration access */
+#define VIRTIO_PCI_CAP_PCI_CFG          5
+
+#define VIRTIO_PCI_CAP_VNDR     0	  /* Generic PCI field: PCI_CAP_ID_VNDR */
+#define VIRTIO_PCI_CAP_NEXT     1	  /* Generic PCI field: next ptr. */
+#define VIRTIO_PCI_CAP_LEN      2	  /* Generic PCI field: capability length */
+#define VIRTIO_PCI_CAP_CFG_TYPE 3	  /* Identifies the structure. */
+#define VIRTIO_PCI_CAP_BAR      4	  /* Where to find it. */
+#define VIRTIO_PCI_CAP_OFFSET   8	  /* Offset within bar. */
+#define VIRTIO_PCI_CAP_LENGTH  12	  /* Length of the structure, in bytes. */
 
 struct virtio_dev_common {
 	le32 dev_features_sel;
@@ -76,6 +107,92 @@ static uint64_t virtio_pci_read64(void *addr)
 	return (hi << 32) | lo;
 }
 
+static void virtio_cap_set_base_addr(struct virtio_cap *cap, uint32_t offset)
+{
+	uint64_t addr;
+
+	addr = SLOF_pci_config_read32(PCI_BASE_ADDR_REG_0 + 4 * cap->bar);
+	if (addr & PCI_BASE_ADDR_SPACE_IO) {
+		addr = addr & PCI_BASE_ADDR_IO_MASK;
+		cap->is_io = 1;
+	} else {
+		if (addr & PCI_BASE_ADDR_SPACE_64BIT)
+			addr |= SLOF_pci_config_read32(PCI_BASE_ADDR_REG_0 + 4 * (cap->bar + 1)) << 32;
+		addr = addr & PCI_BASE_ADDR_MEM_MASK;
+		cap->is_io = 0;
+	}
+	addr = (uint64_t)SLOF_translate_my_address((void *)addr);
+	cap->addr = (void *)addr + offset;
+}
+
+static void virtio_process_cap(struct virtio_device *dev, uint8_t cap_ptr)
+{
+	struct virtio_cap *cap;
+	uint8_t cfg_type, bar;
+	uint32_t offset;
+
+	cfg_type = SLOF_pci_config_read8(cap_ptr + VIRTIO_PCI_CAP_CFG_TYPE);
+	bar = SLOF_pci_config_read8(cap_ptr + VIRTIO_PCI_CAP_BAR);
+	offset = SLOF_pci_config_read32(cap_ptr + VIRTIO_PCI_CAP_OFFSET);
+
+	switch(cfg_type) {
+	case VIRTIO_PCI_CAP_COMMON_CFG:
+		cap = &dev->common;
+		break;
+	case VIRTIO_PCI_CAP_NOTIFY_CFG:
+		cap = &dev->notify;
+		dev->notify_off_mul = SLOF_pci_config_read32(cap_ptr + sizeof(struct virtio_cap));
+		break;
+	case VIRTIO_PCI_CAP_ISR_CFG:
+		cap = &dev->isr;
+		break;
+	case VIRTIO_PCI_CAP_DEVICE_CFG:
+		cap = &dev->device;
+		break;
+	default:
+		return;
+	}
+
+	cap->bar = bar;
+	virtio_cap_set_base_addr(cap, offset);
+	cap->cap_id = cfg_type;
+}
+
+/**
+ * Reads the virtio device capabilities, gets called from SLOF routines The
+ * function determines legacy or modern device and sets up driver registers
+ */
+struct virtio_device *virtio_setup_vd(void)
+{
+	uint8_t cap_ptr, cap_vndr;
+	struct virtio_device *dev;
+
+	dev = SLOF_alloc_mem(sizeof(struct virtio_device));
+	if (!dev) {
+		printf("Failed to allocate memory");
+		return NULL;
+	}
+
+	cap_ptr = SLOF_pci_config_read8(PCI_CONFIG_CAP_REG);
+	while (cap_ptr != 0) {
+		cap_vndr = SLOF_pci_config_read8(cap_ptr + VIRTIO_PCI_CAP_VNDR);
+		if (cap_vndr == PCI_CAP_ID_VNDR)
+			virtio_process_cap(dev, cap_ptr);
+		cap_ptr = SLOF_pci_config_read8(cap_ptr+VIRTIO_PCI_CAP_NEXT);
+	}
+
+	if (dev->common.cap_id && dev->notify.cap_id &&
+	    dev->isr.cap_id && dev->device.cap_id) {
+		dev->is_modern = 1;
+	} else {
+		dev->is_modern = 0;
+		dev->legacy.cap_id = 0;
+		dev->legacy.bar = 0;
+		virtio_cap_set_base_addr(&dev->legacy, 0);
+	}
+	return dev;
+}
+
 /**
  * Calculate ring size according to queue size number
  */
@@ -106,10 +223,10 @@ unsigned int virtio_get_qsize(struct virtio_device *dev, int queue)
 		size = le16_to_cpu(ci_read_16(addr));
 	}
 	else {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		ci_write_16(dev->legacy.addr+VIRTIOHDR_QUEUE_SELECT,
 			    cpu_to_le16(queue));
 		eieio();
-		size = le16_to_cpu(ci_read_16(dev->base+VIRTIOHDR_QUEUE_SIZE));
+		size = le16_to_cpu(ci_read_16(dev->legacy.addr+VIRTIOHDR_QUEUE_SIZE));
 	}
 
 	return size;
@@ -134,11 +251,11 @@ struct vring_desc *virtio_get_vring_desc(struct virtio_device *dev, int queue)
 		eieio();
 		desc = (void *)(virtio_pci_read64(q_desc));
 	} else {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		ci_write_16(dev->legacy.addr+VIRTIOHDR_QUEUE_SELECT,
 			    cpu_to_le16(queue));
 		eieio();
 		desc = (void*)(4096L *
-			       le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS)));
+			       le32_to_cpu(ci_read_32(dev->legacy.addr+VIRTIOHDR_QUEUE_ADDRESS)));
 	}
 
 	return desc;
@@ -236,7 +353,7 @@ void virtio_queue_notify(struct virtio_device *dev, int queue)
 		addr = dev->notify.addr + q_notify_off * dev->notify_off_mul;
 		ci_write_16(addr, cpu_to_le16(queue));
 	} else {
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_NOTIFY, cpu_to_le16(queue));
+		ci_write_16(dev->legacy.addr+VIRTIOHDR_QUEUE_NOTIFY, cpu_to_le16(queue));
 	}
 }
 
@@ -260,10 +377,10 @@ void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long qaddr)
 	} else {
 		uint32_t val = qaddr;
 		val = val >> 12;
-		ci_write_16(dev->base+VIRTIOHDR_QUEUE_SELECT,
+		ci_write_16(dev->legacy.addr+VIRTIOHDR_QUEUE_SELECT,
 			    cpu_to_le16(queue));
 		eieio();
-		ci_write_32(dev->base+VIRTIOHDR_QUEUE_ADDRESS,
+		ci_write_32(dev->legacy.addr+VIRTIOHDR_QUEUE_ADDRESS,
 			    cpu_to_le32(val));
 	}
 }
@@ -293,7 +410,7 @@ void virtio_set_status(struct virtio_device *dev, int status)
 		ci_write_8(dev->common.addr +
 			   offset_of(struct virtio_dev_common, dev_status), status);
 	} else {
-		ci_write_8(dev->base+VIRTIOHDR_DEVICE_STATUS, status);
+		ci_write_8(dev->legacy.addr+VIRTIOHDR_DEVICE_STATUS, status);
 	}
 }
 
@@ -306,7 +423,7 @@ void virtio_get_status(struct virtio_device *dev, int *status)
 		*status = ci_read_8(dev->common.addr +
 				    offset_of(struct virtio_dev_common, dev_status));
 	} else {
-		*status = ci_read_8(dev->base+VIRTIOHDR_DEVICE_STATUS);
+		*status = ci_read_8(dev->legacy.addr+VIRTIOHDR_DEVICE_STATUS);
 	}
 }
 
@@ -331,7 +448,7 @@ void virtio_set_guest_features(struct virtio_device *dev, uint64_t features)
 		ci_write_32(addr + offset_of(struct virtio_dev_common, drv_features),
 			    cpu_to_le32(f0));
 	} else {
-		ci_write_32(dev->base+VIRTIOHDR_GUEST_FEATURES, cpu_to_le32(features));
+		ci_write_32(dev->legacy.addr+VIRTIOHDR_GUEST_FEATURES, cpu_to_le32(features));
 	}
 }
 
@@ -357,7 +474,7 @@ uint64_t virtio_get_host_features(struct virtio_device *dev)
 
 		features = ((uint64_t)le32_to_cpu(f1) << 32) | le32_to_cpu(f0);
 	} else {
-		features = le32_to_cpu(ci_read_32(dev->base+VIRTIOHDR_DEVICE_FEATURES));
+		features = le32_to_cpu(ci_read_32(dev->legacy.addr+VIRTIOHDR_DEVICE_FEATURES));
 	}
 	return features;
 }
@@ -405,7 +522,7 @@ uint64_t virtio_get_config(struct virtio_device *dev, int offset, int size)
 	if (dev->is_modern)
 		confbase = dev->device.addr;
 	else
-		confbase = dev->base+VIRTIOHDR_DEVICE_CONFIG;
+		confbase = dev->legacy.addr+VIRTIOHDR_DEVICE_CONFIG;
 
 	switch (size) {
 	case 1:
@@ -450,7 +567,7 @@ int __virtio_read_config(struct virtio_device *dev, void *dst,
 	if (dev->is_modern)
 		confbase = dev->device.addr;
 	else
-		confbase = dev->base+VIRTIOHDR_DEVICE_CONFIG;
+		confbase = dev->legacy.addr+VIRTIOHDR_DEVICE_CONFIG;
 
 	for (i = 0; i < len; i++)
 		buf[i] = ci_read_8(confbase + offset + i);

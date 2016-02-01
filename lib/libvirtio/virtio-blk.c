@@ -33,6 +33,9 @@ virtioblk_init(struct virtio_device *dev)
 	int features;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
+	/* Keep it disabled until the driver is 1.0 capable */
+	dev->is_modern = false;
+
 	/* Reset device */
 	virtio_reset_device(dev);
 

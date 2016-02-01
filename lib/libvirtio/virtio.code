@@ -18,6 +18,11 @@
 
 /******** core virtio ********/
 
+// : virtio-setup-vd  ( -- dev )
+PRIM(virtio_X2d_setup_X2d_vd)
+	PUSH; TOS.a = virtio_setup_vd();
+MIRP
+
 // : virtio-vring-size  ( queuesize -- ringsize )
 PRIM(virtio_X2d_vring_X2d_size)
 	TOS.u = virtio_vring_size(TOS.u);

@@ -176,6 +176,9 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
         dprintf("%s : device at %p\n", __func__, dev->base);
         dprintf("%s : type is %04x\n", __func__, dev->type);
 
+	/* Keep it disabled until the driver is 1.0 capable */
+	dev->is_modern = false;
+
 	virtio_reset_device(dev);
 
 	/* Acknowledge device. */

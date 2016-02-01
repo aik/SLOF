@@ -68,7 +68,8 @@ static int virtionet_init_pci(struct virtio_device *dev)
 	if (!dev)
 		return -1;
 
-	virtiodev.base = dev->base;
+	/* Keep it disabled until the driver is 1.0 capable */
+	virtiodev.is_modern = false;
 
 	/* Reset device */
 	virtio_reset_device(&virtiodev);

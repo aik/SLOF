@@ -76,11 +76,9 @@ struct virtio_cap {
 	uint8_t bar;
 	uint8_t is_io;
 	uint8_t cap_id;
-	uint8_t pad[5];
-} __attribute__ ((packed));
+};
 
 struct virtio_device {
-	void *base;		/* base address */
 	uint32_t is_modern;     /* Indicates whether to use virtio 1.0 */
 	struct virtio_cap legacy;
 	struct virtio_cap common;
@@ -89,7 +87,7 @@ struct virtio_device {
 	struct virtio_cap device;
 	struct virtio_cap pci;
 	uint32_t notify_off_mul;
-} __attribute__ ((packed));
+};
 
 struct vqs {
 	uint64_t id;	/* Queue ID */
@@ -113,6 +111,7 @@ extern void virtio_fill_desc(struct vring_desc *desc, bool is_modern,
                              uint16_t flags, uint16_t next);
 extern int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id);
 
+extern struct virtio_device *virtio_setup_vd(void);
 extern void virtio_reset_device(struct virtio_device *dev);
 extern void virtio_queue_notify(struct virtio_device *dev, int queue);
 extern void virtio_set_status(struct virtio_device *dev, int status);

@@ -16,8 +16,7 @@ s" network" device-type
 
 INSTANCE VARIABLE obp-tftp-package
 
-/vd-len BUFFER: virtiodev
-virtiodev virtio-setup-vd
+virtio-setup-vd VALUE virtiodev
 0 VALUE virtio-net-priv
 0 VALUE open-count
 
