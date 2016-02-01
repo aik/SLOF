@@ -297,6 +297,18 @@ void virtio_set_status(struct virtio_device *dev, int status)
 	}
 }
 
+/**
+ * Get device status bits
+ */
+void virtio_get_status(struct virtio_device *dev, int *status)
+{
+	if (dev->is_modern) {
+		*status = ci_read_8(dev->common.addr +
+				    offset_of(struct virtio_dev_common, dev_status));
+	} else {
+		*status = ci_read_8(dev->base+VIRTIOHDR_DEVICE_STATUS);
+	}
+}
 
 /**
  * Set guest feature bits
@@ -350,6 +362,36 @@ uint64_t virtio_get_host_features(struct virtio_device *dev)
 	return features;
 }
 
+int virtio_negotiate_guest_features(struct virtio_device *dev, uint64_t features)
+{
+	uint64_t host_features = 0;
+	int status;
+
+	/* Negotiate features */
+	host_features = virtio_get_host_features(dev);
+	if (!(host_features & VIRTIO_F_VERSION_1)) {
+		fprintf(stderr, "Device does not support virtio 1.0 %llx\n", host_features);
+		return -1;
+	}
+
+	virtio_set_guest_features(dev,  features);
+	host_features = virtio_get_host_features(dev);
+	if ((host_features & features) != features) {
+		fprintf(stderr, "Features error %llx\n", features);
+		return -1;
+	}
+
+	virtio_get_status(dev, &status);
+	status |= VIRTIO_STAT_FEATURES_OK;
+	virtio_set_status(dev, status);
+
+	/* Read back to verify the FEATURES_OK bit */
+	virtio_get_status(dev, &status);
+	if ((status & VIRTIO_STAT_FEATURES_OK) != VIRTIO_STAT_FEATURES_OK)
+		return -1;
+
+	return 0;
+}
 
 /**
  * Get additional config values
