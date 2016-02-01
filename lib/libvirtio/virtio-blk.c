@@ -87,7 +87,7 @@ virtioblk_shutdown(struct virtio_device *dev)
  * @return number of blocks that have been read successfully
  */
 int
-virtioblk_read(struct virtio_device *dev, char *buf, long blocknum, long cnt)
+virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt)
 {
 	struct vring_desc *desc;
 	int id;
