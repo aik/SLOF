@@ -12,6 +12,7 @@ Index
 2.4 Extending the Forth engine
 3.0 Limitations
 4.0 Submitting patches
+5.0 Coding style
 
 
 1.0 Introduction to Slimline Open Firmware
@@ -247,6 +248,24 @@ confirm that you certify the Developer Certificate of Origin  Version 1.1,
 see [3] for details.
 
 
+5.0 Coding style
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+New C code submitted to SLOF should follow the coding style guidelines
+for the Linux kernel [4] with the following exceptions:
+
+- in the event that you require a specific width, use a standard type
+  like int32_t, uint32_t, uint64_t, etc. Don't use Linux kernel internal
+  types like u32, __u32 or __le32.
+
+New Forth code should use 4 space indentations and no tabs. Patches for
+the old code should keep the existing style which usually is
+3 space indentation.
+
+New assembly code submitted to SLOF should follow the coding style
+guidelines for the Linux kernel [4], i.e. indent with tabs, not with spaces.
+
+
 Documentation
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -258,3 +277,6 @@ Documentation
 
 [3] Developer Certificate of Origin Version 1.1
     http://developercertificate.org/
+
+[4] Linux kernel coding style
+    https://github.com/torvalds/linux/blob/master/Documentation/CodingStyle
