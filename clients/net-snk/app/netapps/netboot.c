@@ -844,7 +844,7 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd,
 		tmp = raw + 7;
 		tmp[j] = '\0';
 		strcpy(domainname, tmp);
-		if (dns_get_ip(fd, (int8_t *)domainname, server_ip6, 6) == 0) {
+		if (dns_get_ip(fd, domainname, server_ip6, 6) == 0) {
 			printf("\n DNS failed for IPV6\n");
                         return -1;
                 }

@@ -164,8 +164,8 @@ static uint8_t  ether_packet[ETH_MTU_SIZE];
 static uint32_t dhcp_own_ip        = 0;
 static uint32_t dhcp_server_ip     = 0;
 static uint32_t dhcp_siaddr_ip     = 0;
-static int8_t   dhcp_filename[256];
-static int8_t   dhcp_tftp_name[256];
+static char   dhcp_filename[256];
+static char   dhcp_tftp_name[256];
 static uint32_t dhcp_xid;
 
 static char   * response_buffer;
@@ -182,8 +182,8 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	uint32_t dhcp_tftp_ip     = 0;
 	int fd = fn_ip->fd;
 
-	strcpy((char *) dhcp_filename, "");
-	strcpy((char *) dhcp_tftp_name, "");
+	strcpy(dhcp_filename, "");
+	strcpy(dhcp_tftp_name, "");
 
 	response_buffer = ret_buffer;
 
@@ -197,11 +197,11 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 		dhcp_siaddr_ip = fn_ip->server_ip;
 	}
 	if(fn_ip->filename[0] != 0) {
-		strcpy((char *) dhcp_filename, (char *) fn_ip->filename);
+		strcpy(dhcp_filename, (char *) fn_ip->filename);
 	}
 
 	// TFTP SERVER
-	if (!strlen((char *) dhcp_tftp_name)) {
+	if (!strlen(dhcp_tftp_name)) {
 		if (!dhcp_siaddr_ip) {
 			// ERROR: TFTP name is not presented
 			return -3;
@@ -212,7 +212,7 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	}
 	else {
 		// TFTP server defined by its name
-		if (!strtoip(dhcp_tftp_name, (uint8_t *)&dhcp_tftp_ip)) {
+		if (!strtoip(dhcp_tftp_name, (char *)&dhcp_tftp_ip)) {
 			if (!dns_get_ip(fd, dhcp_tftp_name, (uint8_t *)&dhcp_tftp_ip, 4)) {
 				// DNS error - can't obtain TFTP-server name
 				// Use TFTP-ip from siaddr field, if presented
@@ -230,7 +230,7 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	// Store configuration info into filename_ip strucutre
 	fn_ip -> own_ip = dhcp_own_ip;
 	fn_ip -> server_ip = dhcp_tftp_ip;
-	strcpy((char *) fn_ip -> filename, (char *) dhcp_filename);
+	strcpy((char *) fn_ip -> filename, dhcp_filename);
 
 	return 0;
 }
