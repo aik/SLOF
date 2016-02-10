@@ -22,7 +22,6 @@ int virtioscsi_send(struct virtio_device *dev,
 		    struct virtio_scsi_resp_cmd *resp,
 		    int is_read, void *buf, uint64_t buf_len)
 {
-	struct vring_desc *desc;
 	struct vring_desc *vq_desc;		/* Descriptor vring */
 	struct vring_avail *vq_avail;		/* "Available" vring */
 	struct vring_used *vq_used;		/* "Used" vring */
@@ -45,28 +44,25 @@ int virtioscsi_send(struct virtio_device *dev,
 	/* Determine descriptor index */
 	id = (vq_avail->idx * 3) % vq_size;
 
-	desc = &vq_desc[id];
-	desc->addr = (uint64_t)req;
-	desc->len = sizeof(*req);
-	desc->flags = VRING_DESC_F_NEXT;
-	desc->next = (id + 1) % vq_size;
+	virtio_fill_desc(&vq_desc[id], 0, (uint64_t)req, sizeof(*req), VRING_DESC_F_NEXT,
+			 (id + 1) % vq_size);
 
 	/* Set up virtqueue descriptor for data */
-	desc = &vq_desc[(id + 1) % vq_size];
-	desc->addr = (uint64_t)resp;
-	desc->len = sizeof(*resp);
-	desc->flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-	desc->next = (id + 2) % vq_size;
-
 	if (buf && buf_len) {
+		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], 0,
+				 (uint64_t)resp, sizeof(*resp),
+				 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE,
+				 (id + 2) % vq_size);
+
 		/* Set up virtqueue descriptor for status */
-		desc = &vq_desc[(id + 2) % vq_size];
-		desc->addr = (uint64_t)buf;
-		desc->len = buf_len;
-		desc->flags = is_read ? VRING_DESC_F_WRITE : 0;
-		desc->next = 0;
-	} else
-		desc->flags &= ~VRING_DESC_F_NEXT;
+		virtio_fill_desc(&vq_desc[(id + 2) % vq_size], 0,
+				 (uint64_t)buf, buf_len,
+				 (is_read ? VRING_DESC_F_WRITE : 0), 0);
+	} else {
+		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], 0,
+				 (uint64_t)resp, sizeof(*resp),
+				 VRING_DESC_F_WRITE, 0);
+	}
 
 	vq_avail->ring[vq_avail->idx % vq_size] = id;
 	mb();
