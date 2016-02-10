@@ -123,7 +123,7 @@ int virtioscsi_init(struct virtio_device *dev)
 			break;
 		virtio_vring_size(qsize);
 
-		vq_avail = virtio_get_vring_avail(dev, 0);
+		vq_avail = virtio_get_vring_avail(dev, idx);
 		vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
 		vq_avail->idx = 0;
 		idx++;
