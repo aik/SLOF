@@ -70,6 +70,7 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1001.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1042.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1004.fs \
+	$(SLOFBRDDIR)/pci-device_1af4_1048.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1009.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1050.fs \
 	$(SLOFBRDDIR)/vio-hvterm.fs \

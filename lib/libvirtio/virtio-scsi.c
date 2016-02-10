@@ -15,6 +15,7 @@
 #include <cpu.h>
 #include <helpers.h>
 #include "virtio.h"
+#include "virtio-internal.h"
 #include "virtio-scsi.h"
 
 int virtioscsi_send(struct virtio_device *dev,
@@ -27,7 +28,7 @@ int virtioscsi_send(struct virtio_device *dev,
 	struct vring_used *vq_used;		/* "Used" vring */
 
 	volatile uint16_t *current_used_idx;
-	uint16_t last_used_idx;
+	uint16_t last_used_idx, avail_idx;
 	int id;
 	uint32_t vq_size, time;
 
@@ -38,35 +39,35 @@ int virtioscsi_send(struct virtio_device *dev,
 	vq_avail = virtio_get_vring_avail(dev, vq);
 	vq_used = virtio_get_vring_used(dev, vq);
 
+	avail_idx = virtio_modern16_to_cpu(dev, vq_avail->idx);
+
 	last_used_idx = vq_used->idx;
 	current_used_idx = &vq_used->idx;
 
 	/* Determine descriptor index */
-	id = (vq_avail->idx * 3) % vq_size;
-
-	virtio_fill_desc(&vq_desc[id], 0, (uint64_t)req, sizeof(*req), VRING_DESC_F_NEXT,
+	id = (avail_idx * 3) % vq_size;
+	virtio_fill_desc(&vq_desc[id], dev->is_modern, (uint64_t)req, sizeof(*req), VRING_DESC_F_NEXT,
 			 (id + 1) % vq_size);
 
 	/* Set up virtqueue descriptor for data */
 	if (buf && buf_len) {
-		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], 0,
+		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], dev->is_modern,
 				 (uint64_t)resp, sizeof(*resp),
 				 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE,
 				 (id + 2) % vq_size);
-
 		/* Set up virtqueue descriptor for status */
-		virtio_fill_desc(&vq_desc[(id + 2) % vq_size], 0,
+		virtio_fill_desc(&vq_desc[(id + 2) % vq_size], dev->is_modern,
 				 (uint64_t)buf, buf_len,
 				 (is_read ? VRING_DESC_F_WRITE : 0), 0);
 	} else {
-		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], 0,
+		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], dev->is_modern,
 				 (uint64_t)resp, sizeof(*resp),
 				 VRING_DESC_F_WRITE, 0);
 	}
 
-	vq_avail->ring[vq_avail->idx % vq_size] = id;
+	vq_avail->ring[avail_idx % vq_size] = virtio_cpu_to_modern16(dev, id);
 	mb();
-	vq_avail->idx += 1;
+	vq_avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
 
 	/* Tell HV that the vq is ready */
 	virtio_queue_notify(dev, vq);
@@ -94,9 +95,6 @@ int virtioscsi_init(struct virtio_device *dev)
 	int qsize = 0;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
-	/* Keep it disabled until the driver is 1.0 capable */
-	dev->is_modern = false;
-
 	/* Reset device */
 	// XXX That will clear the virtq base. We need to move
 	//     initializing it to here anyway
@@ -111,7 +109,13 @@ int virtioscsi_init(struct virtio_device *dev)
 	virtio_set_status(dev, status);
 
 	/* Device specific setup - we do not support special features right now */
-	virtio_set_guest_features(dev,  0);
+	if (dev->is_modern) {
+		if (virtio_negotiate_guest_features(dev, VIRTIO_F_VERSION_1))
+			goto dev_error;
+		virtio_get_status(dev, &status);
+	} else {
+		virtio_set_guest_features(dev, 0);
+	}
 
 	while(1) {
 		qsize = virtio_get_qsize(dev, idx);
@@ -120,7 +124,7 @@ int virtioscsi_init(struct virtio_device *dev)
 		virtio_vring_size(qsize);
 
 		vq_avail = virtio_get_vring_avail(dev, idx);
-		vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
+		vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
 		vq_avail->idx = 0;
 		idx++;
 	}
@@ -130,6 +134,11 @@ int virtioscsi_init(struct virtio_device *dev)
 	virtio_set_status(dev, status);
 
 	return 0;
+dev_error:
+	printf("%s: failed\n", __func__);
+	status |= VIRTIO_STAT_FAILED;
+	virtio_set_status(dev, status);
+	return -1;
 }
 
 /**
