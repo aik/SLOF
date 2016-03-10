@@ -91,3 +91,10 @@ virtio-setup-vd VALUE virtiodev
    THEN
 ;
 setup-alias
+
+\ Create instance, this will populate the mac address
+: virtio-net-init ( -- )
+    0 0 get-node open-node ?dup 0= IF ." exiting " cr EXIT THEN
+    close-node
+;
+virtio-net-init
