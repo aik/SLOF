@@ -62,9 +62,6 @@
 ;
 
 
-#include "sms/sms-load.fs"
-
-
 \ Watchdog will be rearmed during load if use-load-watchdog variable is TRUE
 TRUE VALUE use-load-watchdog?
 

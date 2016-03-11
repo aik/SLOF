@@ -50,7 +50,7 @@ hex
 : mm-log-warning 2drop ;
 
 : write-mm-log ( data length type -- status )
-	3drop 0
+    3drop 0
 ;
 
 100 cp

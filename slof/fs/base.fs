@@ -27,8 +27,6 @@
 VARIABLE mask -1 mask !
 
 VARIABLE huge-tftp-load 1 huge-tftp-load !
-\ Default implementation for sms-get-tftp-blocksize that return 1432 (decimal)
-: sms-get-tftp-blocksize 598 ;
 
 : default-hw-exception s" Exception #" type . ;
 
