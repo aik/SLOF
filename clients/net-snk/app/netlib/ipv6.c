@@ -478,8 +478,10 @@ static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned short *packet,
  * @param fd          socket fd
  * @param ip6_packet  Pointer to IPv6 header in packet
  * @param packetsize  Size of IPv6 packet
- * @return -1 == ERRROR
- *	   return of handle_udp() or handle_icmp6()
+ * @return -1 : Some error occured
+ *          0 : packet stored (NDP request sent - packet will be sent if
+ *                             NDP response is received)
+ *         >0 : packet sent   (number of transmitted bytes is returned)
  *
  * @see receive_ether
  * @see ip6hdr
@@ -562,7 +564,10 @@ int send_ipv6(int fd, void* buffer, int len)
 				set_timer(TICKS_SEC);
 				do {
 					receive_ether(fd);
+					if (n->status == NB_REACHABLE)
+						return len;
 				} while (get_timer() > 0);
+				return 0;
 			}
 		}
 	}

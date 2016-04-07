@@ -336,7 +336,7 @@ handle_na (int fd, uint8_t *packet)
 			return 0;
 	} else {
 		memcpy (&(n->mac), &(headers.ethh->src_mac[0]), 6);
-
+		n->status = NB_REACHABLE;
 		if (n->eth_len > 0) {
 			struct ethhdr * ethh = (struct ethhdr *) &(n->eth_frame);
 			memcpy(ethh->dest_mac, &(n->mac), 6);
