@@ -331,13 +331,13 @@ int8_t ip6addr_add(struct ip6addr_list_entry *new_address)
 		ip6addr_add (solicited_node);
 	}
 
-        if (NULL == first_ip6)
-                first_ip6 = new_address;
-        last_ip6->next = new_address;
-        last_ip6 = new_address;
-        last_ip6->next = NULL;
+	if (first_ip6 == NULL)
+		first_ip6 = new_address;
+	last_ip6->next = new_address;
+	last_ip6 = new_address;
+	last_ip6->next = NULL;
 
-        return 1; /* no error */
+	return 1; /* no error */
 }
 
 /**

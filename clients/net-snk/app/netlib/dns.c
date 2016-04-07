@@ -278,10 +278,9 @@ handle_dns(uint8_t * packet, int32_t packetsize)
 						return -1;
 					}
 					break;
-                                case DNS_QTYPE_AAAA :
-                                        memcpy(dns_result_ipv6, (resp_section + 10), 16);
-                                        return 0; // IP successfully obtained
-                                        break;
+				case DNS_QTYPE_AAAA :
+					memcpy(dns_result_ipv6, (resp_section + 10), 16);
+					return 0; // IP successfully obtained
 				}
 			}
 			// continue with next record in answer section

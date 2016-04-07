@@ -317,9 +317,8 @@ handle_na (int fd, uint8_t *packet)
 	ip6_addr_t ip;
 
 	headers.ethh = (struct ethhdr *) packet;
-	headers.ip6h = (struct ip6hdr *) ((unsigned char *) headers.ethh +
-		                                        sizeof(struct ethhdr));
-        headers.icmp6h = (struct icmp6hdr *) (packet +
+	headers.ip6h = (struct ip6hdr *) (packet + sizeof(struct ethhdr));
+	headers.icmp6h = (struct icmp6hdr *) (packet +
 					      sizeof(struct ethhdr) +
 					      sizeof(struct ip6hdr));
 

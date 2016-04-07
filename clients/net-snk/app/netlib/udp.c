@@ -78,9 +78,9 @@ int8_t handle_udp(int fd, uint8_t * udp_packet, uint32_t packetsize)
 			                  packetsize - sizeof(struct udphdr));
 		else
 			return -1;
-        case UDPPORT_DHCPV6C:
-                return handle_dhcpv6(udp_packet+sizeof(struct udphdr),
-                                     packetsize - sizeof(struct udphdr));
+	case UDPPORT_DHCPV6C:
+		return handle_dhcpv6(udp_packet+sizeof(struct udphdr),
+		                     packetsize - sizeof(struct udphdr));
 	case UDPPORT_TFTPC:
 #ifdef USE_MTFTP
 		return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
