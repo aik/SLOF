@@ -491,9 +491,9 @@ int send_ipv6(int fd, void* buffer, int len)
 	struct udphdr *udph;
 	struct icmp6hdr *icmp6h;
 	ip6_addr_t ip_dst;
-	uint8_t *mac_addr, mac[6];
+	uint8_t *mac_addr, mc_mac[6];
 
-	mac_addr = mac;
+	mac_addr = null_mac;
 
 	ip6h    = (struct ip6hdr *) buffer;
 	udph   = (struct udphdr *)   ((uint8_t *) ip6h + sizeof (struct ip6hdr));
@@ -526,13 +526,13 @@ int send_ipv6(int fd, void* buffer, int len)
 
 	// If address is a multicast address, create a proper mac address
 	if (ip6_is_multicast (&ip_dst)) {
-		mac_addr = ip6_to_multicast_mac (&ip_dst, mac);
+		mac_addr = ip6_to_multicast_mac (&ip_dst, mc_mac);
 	}
 	else {
 		// Check if the MAC address is already cached
 		if (n) {
 			if (memcmp(n->mac, null_mac, ETH_ALEN) != 0)
-				memcpy (mac_addr, &(n->mac), ETH_ALEN); /* found it */
+				mac_addr = n->mac;		/* found it */
 		} else if (!is_ip6addr_in_my_net(&ip_dst)) {
 			struct router *gw;
 			gw = ipv6_get_default_router(&ip6h->src);
