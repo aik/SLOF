@@ -84,6 +84,23 @@ find_router( ip6_addr_t *ip )
 	return NULL; /* router is unknown */
 }
 
+/**
+ * Find a router for a given host address
+ * @param  ip - IPv6 address with the prefered prefix
+ * @return pointer to router, or NULL if none is available
+ */
+struct router *ipv6_get_default_router(ip6_addr_t *ip)
+{
+	struct router *n = NULL;
+
+	for (n = first_router; n != NULL; n = n->next) {
+		if (n->ip.part.prefix == ip->part.prefix)
+			return n;
+	}
+
+	return first_router;
+}
+
 /*
  * NET: add new neighbor to list
  * @param  struct neighbor nghb  - new neighbor

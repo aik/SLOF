@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 #include <ctype.h>
 #include <sys/socket.h>
@@ -417,6 +418,21 @@ static uint8_t *ip6_to_multicast_mac(ip6_addr_t * ip, uint8_t *mc_mac)
 }
 
 /**
+ * Check whether an IPv6 address is on the same network as we are
+ */
+static bool is_ip6addr_in_my_net(ip6_addr_t *ip)
+{
+	struct ip6addr_list_entry *n = NULL;
+
+	for (n = first_ip6; n != NULL; n = n->next) {
+		if (n->addr.part.prefix == ip->part.prefix)
+			return true;  /* IPv6 address is in our neighborhood */
+	}
+
+	return false;    /* not in our neighborhood */
+}
+
+/**
  * NET: calculate checksum over IPv6 header and upper-layer protocol
  *      (e.g. UDP or ICMPv6)
  *
@@ -517,6 +533,10 @@ int send_ipv6(int fd, void* buffer, int len)
 		if (n) {
 			if (memcmp(n->mac, null_mac, ETH_ALEN) != 0)
 				memcpy (mac_addr, &(n->mac), ETH_ALEN); /* found it */
+		} else if (!is_ip6addr_in_my_net(&ip_dst)) {
+			struct router *gw;
+			gw = ipv6_get_default_router(&ip6h->src);
+			mac_addr = gw ? gw->mac : null_mac;
 		} else {
 			mac_addr = null_mac;
 			n = malloc(sizeof(struct neighbor));
@@ -546,6 +566,9 @@ int send_ipv6(int fd, void* buffer, int len)
 			}
 		}
 	}
+
+	if (mac_addr == null_mac)
+		return -1;
 
 	fill_ethhdr (n->eth_frame, htons(ETHERTYPE_IPv6), get_mac_address(),
 		     mac_addr);

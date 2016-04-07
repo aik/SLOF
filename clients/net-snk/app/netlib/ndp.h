@@ -67,5 +67,6 @@ struct neighbor * find_neighbor (ip6_addr_t *);
 int8_t router_add(struct router*);
 void * router_create(uint8_t *mac, ip6_addr_t *ip);
 struct router * find_router(ip6_addr_t *);
+struct router *ipv6_get_default_router(ip6_addr_t *ip);
 
 #endif //_NDP_H_
