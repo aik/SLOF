@@ -171,8 +171,8 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 		return -1;
 	__buf_size = buf_size;
 
-        dprintf("%s : device at %p\n", __func__, dev->base);
-        dprintf("%s : type is %04x\n", __func__, dev->type);
+	dprintf("%s : device at %p\n", __func__, dev->base);
+	dprintf("%s : type is %04x\n", __func__, dev->type);
 
 	virtio_reset_device(dev);
 
@@ -222,11 +222,11 @@ dev_error:
  */
 void virtio_9p_shutdown(struct virtio_device *dev)
 {
-        /* Quiesce device */
-        virtio_set_status(dev, VIRTIO_STAT_FAILED);
+	/* Quiesce device */
+	virtio_set_status(dev, VIRTIO_STAT_FAILED);
 
-        /* Reset device */
-        virtio_reset_device(dev);
+	/* Reset device */
+	virtio_reset_device(dev);
 
 	__buf_size = 0;
 }
