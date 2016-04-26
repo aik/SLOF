@@ -15,6 +15,7 @@
 s" virtio [ network ]" type cr
 
 my-space pci-device-generic-setup
+s" virtio-9p" device-name
 
 pci-master-enable
 pci-mem-enable
