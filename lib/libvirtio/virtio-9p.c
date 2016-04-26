@@ -18,6 +18,7 @@
 
 #include "virtio-9p.h"
 #include "p9.h"
+#include "virtio-internal.h"
 
 static struct vqs vq;
 
@@ -97,8 +98,7 @@ static int virtio_9p_transact(void *opaque, uint8_t *tx, int tx_size, uint8_t *r
 	struct vring_avail *vq_avail;
 	struct vring_used *vq_used;
 	volatile uint16_t *current_used_idx;
-	uint16_t last_used_idx;
-
+	uint16_t last_used_idx, avail_idx;
 
 	/* Virt IO queues. */
 	vq_size = virtio_get_qsize(dev, 0);
@@ -109,29 +109,27 @@ static int virtio_9p_transact(void *opaque, uint8_t *tx, int tx_size, uint8_t *r
 	last_used_idx = vq_used->idx;
 	current_used_idx = &vq_used->idx;
 
+	avail_idx = virtio_modern16_to_cpu(dev, vq_avail->idx);
+
 	/* Determine descriptor index */
-	id = (vq_avail->idx * 3) % vq_size;
+	id = (avail_idx * 3) % vq_size;
 
 	/* TX in first queue item. */
 	dprint_buffer("TX", tx, tx_size);
 
 	desc = &vq_desc[id];
-	desc->addr = (uint64_t)tx;
-	desc->len = tx_size;
-	desc->flags = VRING_DESC_F_NEXT;
-	desc->next = (id + 1) % vq_size;
+	virtio_fill_desc(desc, dev->is_modern, (uint64_t)tx, tx_size,
+			 VRING_DESC_F_NEXT, (id + 1) % vq_size);
 
 	/* RX in the second queue item. */
 	desc = &vq_desc[(id + 1) % vq_size];
-	desc->addr = (uint64_t)rx;
-	desc->len = *rx_size;
-	desc->flags = VRING_DESC_F_WRITE;
-	desc->next = 0;
+	virtio_fill_desc(desc, dev->is_modern, (uint64_t)rx, *rx_size,
+			 VRING_DESC_F_WRITE, 0);
 
 	/* Tell HV that the queue is ready */
-	vq_avail->ring[vq_avail->idx % vq_size] = id;
+	vq_avail->ring[avail_idx % vq_size] = virtio_cpu_to_modern16 (dev, id);
 	mb();
-	vq_avail->idx += 1;
+	vq_avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
 	virtio_queue_notify(dev, 0);
 
 	/* Receive the response. */
@@ -176,9 +174,6 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
         dprintf("%s : device at %p\n", __func__, dev->base);
         dprintf("%s : type is %04x\n", __func__, dev->type);
 
-	/* Keep it disabled until the driver is 1.0 capable */
-	dev->is_modern = false;
-
 	virtio_reset_device(dev);
 
 	/* Acknowledge device. */
@@ -189,13 +184,19 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 	virtio_set_status(dev, status);
 
 	/* Device specific setup - we do not support special features */
-	virtio_set_guest_features(dev,  0);
+	if (dev->is_modern) {
+		if (virtio_negotiate_guest_features(dev, VIRTIO_F_VERSION_1))
+			goto dev_error;
+		virtio_get_status(dev, &status);
+	} else {
+		virtio_set_guest_features(dev, 0);
+	}
 
 	if (virtio_queue_init_vq(dev, &vq, 0))
 		goto dev_error;
 
 	vq_avail = virtio_get_vring_avail(dev, 0);
-	vq_avail->flags = VRING_AVAIL_F_NO_INTERRUPT;
+	vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
 	vq_avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
