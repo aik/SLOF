@@ -42,19 +42,6 @@ VARIABLE mask -1 mask !
 
 : 0.r  0 swap <# 0 ?DO # LOOP #> type ;
 
-\ count the number of bits equal 1
-\ the idea is to clear in each step the least significant bit
-\ v&(v-1) does exactly this, so count the steps until v == 0
-: cnt-bits  ( 64-bit-value -- #bits=1 )
-	dup IF
-		41 1 DO dup 1- and dup 0= IF drop i LEAVE THEN LOOP
-	THEN
-;
-
-: bcd-to-bin  ( bcd -- bin )
-   dup f and swap 4 rshift a * +
-;
-
 \ calcs the exponent of the highest power of 2 not greater than n
 : 2log ( n -- lb{n} )
    8 cells 0 DO 1 rshift dup 0= IF drop i LEAVE THEN LOOP
