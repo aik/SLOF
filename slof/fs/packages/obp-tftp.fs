@@ -12,6 +12,8 @@
 
 s" obp-tftp" device-name
 
+VARIABLE huge-tftp-load 1 huge-tftp-load !
+
 INSTANCE VARIABLE ciregs-buffer
 
 : open ( -- okay? ) 
