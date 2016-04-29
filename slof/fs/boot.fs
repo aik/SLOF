@@ -274,23 +274,3 @@ read-bootlist
 ;
 
 : load load 0= IF -65 boot-exception-handler THEN ;
-
-\ \\\\ Temporary hacks for backwards compatibility
-: yaboot ." Use 'boot disk' instead " ;
-
-: netboot ( -- rc ) ." Use 'boot net' instead " ;
-
-: netboot-arg ( arg-string -- rc )
-   s" boot net " 2swap $cat (parse-line) $cat
-   evaluate
-;
-
-: netload ( -- rc ) (parse-line)
-   load-base-override >r flash-load-base to load-base-override
-   s" load net:" strdup 2swap $cat strdup evaluate
-   r> to load-base-override
-   load-size
-;
-
-: neteval ( -- ) FLASH-LOAD-BASE netload evaluate ;
-
