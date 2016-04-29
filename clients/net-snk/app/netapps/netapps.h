@@ -20,7 +20,6 @@
 
 int netboot(int argc, char *argv[]);
 int netsave(int argc, char *argv[]);
-int netflash(int argc, char *argv[]);
 int bcmflash(int argc, char *argv[]);
 int mac_sync(int argc, char *argv[]);
 int net_eeprom_version( void );

@@ -60,10 +60,6 @@ CREATE load-list 2 cells allot load-list 2 cells erase
 : .client-exec ( arg len -- rc ) set-bootargs (client-exec) ;
 ' .client-exec to client-exec
 
-: netflash ( -- rc ) s" netflash 2000000 " (parse-line) $cat set-netbootpath
-   client-exec
-;
-
 : netsave  ( "addr len {filename}[,params]" -- rc )
    (parse-line) dup 0> IF
       s" netsave " 2swap $cat set-netbootpath client-exec
