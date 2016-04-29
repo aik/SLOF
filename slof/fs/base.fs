@@ -582,26 +582,3 @@ defer cursor-off ( -- )
 
 : $dnumber base @ >r decimal $number r> base ! ;
 : (.d) base @ >r decimal (.) r> base ! ;
-
-\ IP address conversion
-
-: (ipaddr) ( "a.b.c.d" -- FALSE | n1 n2 n3 n4 TRUE )
-   base @ >r decimal
-   over s" 000.000.000.000" comp 0= IF 2drop false r> base ! EXIT THEN
-   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
-   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
-   [char] . left-parse-string $number IF 2drop false r> base ! EXIT THEN -rot
-   $number IF false r> base ! EXIT THEN
-   true r> base !
-;
-
-: (ipformat)  ( n1 n2 n3 n4 -- str len )
-   base @ >r decimal
-   0 <# # # # [char] . hold drop # # # [char] . hold
-   drop # # # [char] . hold drop # # #s #>
-   r> base !
-;
-
-: ipformat  ( n1 n2 n3 n4 -- ) (ipformat) type ;
-
-
