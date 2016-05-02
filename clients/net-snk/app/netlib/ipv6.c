@@ -77,9 +77,7 @@ void set_ipv6_address(int fd, ip6_addr_t *_own_ip6)
 	/* If no address was passed as a parameter generate a link-local
 	 * address from our MAC address.*/
 	if (_own_ip6 == NULL)
-		memcpy(&(own_ip6->addr.addr),
-			ip6_create_ll_address(get_mac_address()),
-		       IPV6_ADDR_LENGTH);
+		ip6_create_ll_address(get_mac_address(), &own_ip6->addr);
 	else
 		memcpy (&(own_ip6->addr.addr), _own_ip6, 16);
 
@@ -225,18 +223,12 @@ uint64_t mac2eui64(const uint8_t *mac)
  * NET: create link-local IPv6 address
  *
  * @param  own_mac    MAC of NIC
- * @return ll_addr    pointer to newly created link-local address
+ * @param ll_addr     pointer to link-local address which should be created
  */
-ip6_addr_t *ip6_create_ll_address(const uint8_t *own_mac)
+void ip6_create_ll_address(const uint8_t *own_mac, ip6_addr_t *ll_addr)
 {
-	ip6_addr_t *ll_addr;
-
-	ll_addr = malloc (sizeof (struct ip6addr_list_entry));
-	memset (ll_addr, 0, IPV6_ADDR_LENGTH);
-	ll_addr->part.prefix       |= IPV6_LL_PREFIX;
-	ll_addr->part.interface_id |= mac2eui64((uint8_t *) own_mac);
-
-	return ll_addr;
+	ll_addr->part.prefix = IPV6_LL_PREFIX;
+	ll_addr->part.interface_id = mac2eui64((uint8_t *) own_mac);
 }
 
 /*

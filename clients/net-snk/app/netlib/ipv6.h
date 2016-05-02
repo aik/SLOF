@@ -150,7 +150,7 @@ void set_ipv6_address(int fd, ip6_addr_t *own_ip6);
 ip6_addr_t *get_ipv6_address(void);
 
 /* Create link-local address from a given Mac Address */
-ip6_addr_t * ip6_create_ll_address (const uint8_t *own_mac);
+void ip6_create_ll_address (const uint8_t *own_mac, ip6_addr_t *ll_addr);
 
 /* For a given MAC calculates EUI64-Identifier.*/
 uint64_t mac2eui64 (const uint8_t *mac);
