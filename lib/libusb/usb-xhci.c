@@ -973,6 +973,7 @@ static void fill_trb_buff(struct xhci_command_trb *cmd,  uint32_t field1,
 	cycle_state = (val & 0x1) ? 0 : 1;
 	val =  cycle_state | (field4 & ~0x1);
 	cmd->field[3] = cpu_to_le32(val);
+	mb();
 
 	dprintf("CMD %016lx val %08x cycle_state %d field1 %08x, field2  %08x, field3 %08x field4 %08x\n",
 		cmd, val, cycle_state,
