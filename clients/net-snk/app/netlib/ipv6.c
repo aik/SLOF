@@ -330,7 +330,8 @@ int8_t ip6addr_add(struct ip6addr_list_entry *new_address)
 
 	if (first_ip6 == NULL)
 		first_ip6 = new_address;
-	last_ip6->next = new_address;
+	else
+		last_ip6->next = new_address;
 	last_ip6 = new_address;
 	last_ip6->next = NULL;
 
