@@ -238,7 +238,7 @@ static uint64_t xhci_poll_event(struct xhci_hcd *xhcd,
 	flags = le32_to_cpu(event->flags);
 
 	dprintf("Reading from event ptr %p %08x\n", event, flags);
-	time = SLOF_GetTimer() + USB_TIMEOUT;
+	time = SLOF_GetTimer() + ((event_type == XHCI_POLL_NO_WAIT)? 0: USB_TIMEOUT);
 
 	while ((flags & TRB_CYCLE_STATE) != xhcd->ering.cycle_state) {
 		mb();
@@ -1148,9 +1148,34 @@ static inline void *xhci_get_trb(struct xhci_seg *seg)
 	return (void *)enq;
 }
 
+static inline void *xhci_get_trb_deq(struct xhci_seg *seg)
+{
+	uint64_t deq_next, deq;
+	int index;
+
+	deq = seg->deq;
+	deq_next = deq + XHCI_TRB_SIZE;
+	index = (deq - (uint64_t)seg->trbs) / XHCI_TRB_SIZE + 1;
+	dprintf("%s: deq %llx, deq_next %llx index %x\n", __func__, deq, deq_next, index);
+	/* TRBs being a cyclic buffer, here we cycle back to beginning. */
+	if (index == (seg->size - 1)) {
+		dprintf("%s: rounding \n", __func__);
+		seg->deq = (uint64_t)seg->trbs;
+	}
+	else {
+		seg->deq = deq_next;
+	}
+	return (void *)deq;
+}
+
 static uint64_t xhci_get_trb_phys(struct xhci_seg *seg, uint64_t trb)
 {
 	return seg->trbs_dma + (trb - (uint64_t)seg->trbs);
+}
+
+static uint32_t xhci_trb_get_index(struct xhci_seg *seg, struct xhci_transfer_trb *trb)
+{
+	return trb - (struct xhci_transfer_trb *)seg->trbs;
 }
 
 static int usb_kb = false;
@@ -1332,9 +1357,9 @@ static int xhci_get_pipe_intr(struct usb_pipe *pipe,
 		xhci_init_seg(seg, XHCI_EVENT_TRBS_SIZE, TYPE_BULK);
 	}
 
-	xpipe->buf = buf;
-	xpipe->buf_phys = SLOF_dma_map_in(buf, len, false);
-	xpipe->buflen = len;
+	xpipe->buflen = pipe->mps * XHCI_INTR_TRBS_SIZE/(sizeof(struct xhci_transfer_trb));
+	xpipe->buf = SLOF_dma_alloc(xpipe->buflen);
+	xpipe->buf_phys = SLOF_dma_map_in(xpipe->buf, xpipe->buflen, false);
 
 	ctrl = xhci_get_control_ctx(&xdev->in_ctx);
 	x_epno = xhci_get_epno(pipe);
@@ -1350,7 +1375,8 @@ static int xhci_get_pipe_intr(struct usb_pipe *pipe,
 	xpipe->seg = seg;
 
 	trb = xhci_get_trb(seg);
-	fill_normal_trb(trb, (void *)xpipe->buf_phys, pipe->mps);
+	buf = (char *)(xpipe->buf_phys + xhci_trb_get_index(seg, trb) * pipe->mps);
+	fill_normal_trb(trb, (void *)buf, pipe->mps);
 	return true;
 }
 
@@ -1412,6 +1438,7 @@ static void xhci_put_pipe(struct usb_pipe *pipe)
 	} else if (pipe->type == USB_EP_TYPE_INTR) {
 		xpipe = xhci_pipe_get_xpipe(pipe);
 		SLOF_dma_map_out(xpipe->buf_phys, xpipe->buf, xpipe->buflen);
+		SLOF_dma_free(xpipe->buf, xpipe->buflen);
 		xpipe->seg = NULL;
 	}
 	if (xhcd->end)
@@ -1449,26 +1476,26 @@ static int xhci_poll_intr(struct usb_pipe *pipe, uint8_t *data)
 	if (usb_kb == true) {
 		/* This event was consumed by bulk transfer */
 		usb_kb = false;
+		xhci_get_trb_deq(seg);
 		goto skip_poll;
 	}
-	buf = xpipe->buf;
-	memset(buf, 0, 8);
 
-	mb();
 	/* Ring the doorbell - x_epno */
 	dbr = xhcd->db_regs;
 	write_reg32(&dbr->db[xdev->slot_id], x_epno);
-	if (!xhci_poll_event(xhcd, 0)) {
-		printf("poll intr failed\n");
+	if (!xhci_poll_event(xhcd, XHCI_POLL_NO_WAIT)) {
 		return 0;
 	}
 	mb();
+	trb = xhci_get_trb_deq(seg);
+	buf = xpipe->buf + xhci_trb_get_index(seg, trb) * pipe->mps;
 	memcpy(data, buf, 8);
+	memset(buf, 0, 8);
 
 skip_poll:
 	trb = xhci_get_trb(seg);
-	fill_normal_trb(trb, (void *)xpipe->buf_phys, pipe->mps);
-	mb();
+	buf = (uint8_t *)(xpipe->buf_phys + xhci_trb_get_index(seg, trb) * pipe->mps);
+	fill_normal_trb(trb, (void *)buf, pipe->mps);
 	return ret;
 }
 

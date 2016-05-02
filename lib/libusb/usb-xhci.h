@@ -269,6 +269,8 @@ struct xhci_seg {
 #define XHCI_INTR_TRBS_SIZE    4096
 #define XHCI_ERST_NUM_SEGS     1
 
+#define XHCI_POLL_NO_WAIT      1
+
 #define XHCI_MAX_BULK_SIZE    0xF000
 
 struct xhci_erst_entry {
