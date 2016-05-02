@@ -488,12 +488,12 @@ static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned short *packet,
  */
 int send_ipv6(int fd, void* buffer, int len)
 {
-	struct neighbor *n;
 	struct ip6hdr *ip6h;
 	struct udphdr *udph;
 	struct icmp6hdr *icmp6h;
 	ip6_addr_t ip_dst;
 	uint8_t *mac_addr, mc_mac[6];
+	static uint8_t ethframe[ETH_MTU_SIZE];
 
 	mac_addr = null_mac;
 
@@ -524,21 +524,20 @@ int send_ipv6(int fd, void* buffer, int len)
 						 (unsigned short *) icmp6h,
 						 ip6h->pl >> 1);
 
-	n = find_neighbor (&ip_dst);
-
-	// If address is a multicast address, create a proper mac address
 	if (ip6_is_multicast (&ip_dst)) {
+		/* If multicast, then create a proper multicast mac address */
 		mac_addr = ip6_to_multicast_mac (&ip_dst, mc_mac);
-	}
-	else {
-		// Check if the MAC address is already cached
-		if (n) {
+	} else if (!is_ip6addr_in_my_net(&ip_dst)) {
+		/* If server is not in same subnet, user MAC of the router */
+		struct router *gw;
+		gw = ipv6_get_default_router(&ip6h->src);
+		mac_addr = gw ? gw->mac : null_mac;
+	} else {
+		/* Normal unicast, so use neighbor cache to look up MAC */
+		struct neighbor *n = find_neighbor (&ip_dst);
+		if (n) {				/* Already cached ? */
 			if (memcmp(n->mac, null_mac, ETH_ALEN) != 0)
 				mac_addr = n->mac;		/* found it */
-		} else if (!is_ip6addr_in_my_net(&ip_dst)) {
-			struct router *gw;
-			gw = ipv6_get_default_router(&ip6h->src);
-			mac_addr = gw ? gw->mac : null_mac;
 		} else {
 			mac_addr = null_mac;
 			n = malloc(sizeof(struct neighbor));
@@ -575,10 +574,11 @@ int send_ipv6(int fd, void* buffer, int len)
 	if (mac_addr == null_mac)
 		return -1;
 
-	fill_ethhdr (n->eth_frame, htons(ETHERTYPE_IPv6), get_mac_address(),
-		     mac_addr);
-	memcpy (&(n->eth_frame[sizeof(struct ethhdr)]), buffer, len);
-	return send_ether (fd, n->eth_frame, len + sizeof(struct ethhdr));
+	fill_ethhdr(ethframe, htons(ETHERTYPE_IPv6), get_mac_address(),
+	            mac_addr);
+	memcpy(&ethframe[sizeof(struct ethhdr)], buffer, len);
+
+	return send_ether(fd, ethframe, len + sizeof(struct ethhdr));
 }
 
 static int check_colons(const char *str)
