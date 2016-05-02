@@ -140,6 +140,7 @@ neighbor_create (uint8_t *packet, struct packeth *headers)
 	new_neighbor = malloc (sizeof(struct neighbor));
 	if( !new_neighbor )
 		return NULL;
+	memset(new_neighbor, 0, sizeof(struct neighbor));
 
 	/* fill neighbor struct */
 	memcpy (&(new_neighbor->mac),

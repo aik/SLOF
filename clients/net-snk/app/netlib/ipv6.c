@@ -68,7 +68,11 @@ void set_ipv6_address(int fd, ip6_addr_t *_own_ip6)
 {
 	struct ip6addr_list_entry *ile;
 
-	own_ip6 = malloc (sizeof(struct ip6addr_list_entry));
+	ile = malloc(sizeof(struct ip6addr_list_entry));
+	if (!ile)
+		return;
+	memset(ile, 0, sizeof(struct ip6addr_list_entry));
+	own_ip6 = ile;
 
 	/* If no address was passed as a parameter generate a link-local
 	 * address from our MAC address.*/
@@ -263,6 +267,7 @@ struct prefix_info *ip6_create_prefix_info()
 	prfx_info = malloc (sizeof(struct prefix_info));
 	if (!prfx_info)
 		return NULL;
+	memset(prfx_info, 0, sizeof(struct prefix_info));
 
 	return prfx_info;
 }
@@ -282,6 +287,7 @@ void *ip6_prefix2addr(ip6_addr_t prefix)
 	new_address = malloc (sizeof(struct ip6addr_list_entry));
 	if( !new_address )
 		return NULL;
+	memset(new_address, 0, sizeof(struct ip6addr_list_entry));
 
 	/* fill new addr struct */
 	/* extract prefix from Router Advertisement */
@@ -317,11 +323,10 @@ int8_t ip6addr_add(struct ip6addr_list_entry *new_address)
 	 * for its solicited-node multicast address.
 	 * See RFC 2373 - IP Version 6 Adressing Architecture */
 	if (! ip6_is_multicast(&(new_address->addr))) {
-
-
 		solicited_node = malloc(sizeof(struct ip6addr_list_entry));
 		if (! solicited_node)
 			return 0;
+		memset(solicited_node, 0, sizeof(struct ip6addr_list_entry));
 
 		solicited_node->addr.part.prefix       = IPV6_SOLIC_NODE_PREFIX;
 		solicited_node->addr.part.interface_id = IPV6_SOLIC_NODE_IFACE_ID;
@@ -541,6 +546,9 @@ int send_ipv6(int fd, void* buffer, int len)
 		} else {
 			mac_addr = null_mac;
 			n = malloc(sizeof(struct neighbor));
+			if (!n)
+				return -1;
+			memset(n, 0, sizeof(struct neighbor));
 			memcpy(&(n->ip.addr[0]), &ip_dst, 16);
 			n->status = NB_PROBE;
 			n->times_asked += 1;
