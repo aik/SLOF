@@ -48,7 +48,7 @@ struct neighbor {
 	uint8_t times_asked;
 	/* ... */
 	struct neighbor *next;
-	uint8_t eth_frame[1500]; //FIXME
+	uint8_t eth_frame[ETH_MTU_SIZE];
 	uint32_t eth_len;
 
 #define NB_INCOMPLETE 1

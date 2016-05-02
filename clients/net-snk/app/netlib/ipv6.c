@@ -501,7 +501,7 @@ int send_ipv6(int fd, void* buffer, int len)
 
 	memcpy(&ip_dst, &ip6h->dst, 16);
 
-	if(len + sizeof(struct ethhdr) > 1500)
+	if(len + sizeof(struct ethhdr) > ETH_MTU_SIZE)
 		return -1;
 
 	if ( ip6_cmp (&ip6h->src, &null_ip6))
@@ -553,7 +553,6 @@ int send_ipv6(int fd, void* buffer, int len)
 				send_neighbour_solicitation (fd, &ip_dst);
 
 				// Store the packet until we know the MAC address
-				memset(n->eth_frame, 0, 1500);
 				fill_ethhdr (n->eth_frame,
 					     htons(ETHERTYPE_IPv6),
 					     get_mac_address(),
