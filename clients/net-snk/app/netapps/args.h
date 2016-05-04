@@ -18,5 +18,6 @@ unsigned int get_args_count(const char *);
 unsigned int get_arg_length(const char *);
 char *argncpy(const char *, unsigned int, char *, unsigned int);
 int strtoip(const char *, char[4]);
+int strtoip_netmask(const char *, char[4], unsigned int *netmask);
 
 #endif				/* _ARGS_H */

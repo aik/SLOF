@@ -250,6 +250,27 @@ uint32_t get_ipv4_netmask(void)
 }
 
 /**
+ * IPv4: Get the default subnet mask according to the IP class
+ *
+ * @param ip_addr IPv4 address
+ * @return default netmask according to the IP class
+ */
+uint32_t get_default_ipv4_netmask(char *ip_addr)
+{
+	unsigned char top;
+
+	top = ip_addr[0];
+	if (top > 0 && top < 128)
+		return 0xFF000000; /* Class A: 255.0.0.0 */
+	else if (top >= 128 && top < 192)
+		return 0xFFFF0000; /* Class B: 255.255.0.0 */
+	else if (top >= 192 && top < 224)
+		return 0xFFFFFF00; /* Class C: 255.255.255.0 */
+	else
+		return 0;
+}
+
+/**
  * IPv4: Creates IP-packet. Places IP-header in a packet and fills it
  *       with corresponding information.
  *       <p>

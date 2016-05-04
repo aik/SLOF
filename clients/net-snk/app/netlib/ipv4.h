@@ -69,6 +69,7 @@ extern void     set_ipv4_router(uint32_t router_ip);
 extern uint32_t get_ipv4_router(void);
 extern void     set_ipv4_netmask(uint32_t subnet_mask);
 extern uint32_t get_ipv4_netmask(void);
+extern uint32_t get_default_ipv4_netmask(char *ip_addr);
 
 extern int   (*send_ip) (int fd, void *, int);
 

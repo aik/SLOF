@@ -35,13 +35,14 @@ struct ping_args {
 		unsigned int integer;
 	} gateway_ip;
 	unsigned int timeout;
+	unsigned int netmask;
 };
 
 static void
 usage(void)
 {
 	printf
-	    ("\nping device-path:[device-args,]server-ip,[client-ip],[gateway-ip][,timeout]\n");
+	    ("\nping device-path:[device-args,]server-ip,[client-ip[\\nn]],[gateway-ip][,timeout]\n");
 
 }
 
@@ -82,7 +83,7 @@ parse_args(const char *args, struct ping_args *ping_args)
 	}
 
 	argncpy(args, 0, buf, 64);
-	if (!strtoip(buf, ping_args->client_ip.string)) {
+	if (!strtoip_netmask(buf, ping_args->client_ip.string, &ping_args->netmask)) {
 		/* this should have been the client (our) IP address */
 		return -1;
 	} else {
@@ -112,6 +113,7 @@ ping(int argc, char *argv[])
 	int fd_device;
 	struct ping_args ping_args;
 	uint8_t own_mac[6];
+	uint32_t netmask;
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
@@ -163,6 +165,14 @@ ping(int argc, char *argv[])
 
 	} else {
 		memcpy(&fn_ip.own_ip, &ping_args.client_ip.integer, 4);
+		if (!ping_args.netmask) {
+			/* Netmask is not provided, assume default according to
+			 * the network class
+			 */
+			ping_args.netmask = get_default_ipv4_netmask(ping_args.client_ip.string);
+		}
+		set_ipv4_netmask(ping_args.netmask);
+
 		arp_failed = 1;
 		printf("  Own IP address: ");
 	}
@@ -173,6 +183,13 @@ ping(int argc, char *argv[])
 	printf("%d.%d.%d.%d\n",
 	       ((fn_ip.own_ip >> 24) & 0xFF), ((fn_ip.own_ip >> 16) & 0xFF),
 	       ((fn_ip.own_ip >> 8) & 0xFF), (fn_ip.own_ip & 0xFF));
+
+	netmask = get_ipv4_netmask();
+	if (netmask) {
+		printf("  Netmask : ");
+		printf("%d.%d.%d.%d\n", ((netmask >> 24) & 0xFF), ((netmask >> 16) & 0xFF),
+		       ((netmask >> 8) & 0xFF), (netmask & 0xFF));
+	}
 
 	memcpy(&fn_ip.server_ip, &ping_args.server_ip.integer, 4);
 	printf("  Ping to %d.%d.%d.%d ", ((fn_ip.server_ip >> 24) & 0xFF),

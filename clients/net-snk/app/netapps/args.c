@@ -98,20 +98,22 @@ argncpy(const char *arg_str, unsigned int index, char *buffer,
 }
 
 /**
- * Converts "255.255.255.255" -> char[4] = { 0xff, 0xff, 0xff, 0xff }
+ * Converts "255.255.255.255\nn" -> char[4] = { 0xff, 0xff, 0xff, 0xff }
+ *                                  *netmask = subnet_netmask(nn)
  *
  * @param  str        string to be converted
  * @param  ip         in case of SUCCESS - 32-bit long IP
-                      in case of FAULT - zero
+ *                    in case of FAULT - zero
+ * @param  netmask    return netmask if there is a valid /nn encoding in IP
  * @return            TRUE - IP converted successfully;
  *                    FALSE - error condition occurs (e.g. bad format)
  */
 int
-strtoip(const char *str, char ip[4])
+strtoip_netmask(const char *str, char ip[4], unsigned int *netmask)
 {
 	char octet[10];
 	int res;
-	unsigned int i = 0, len;
+	unsigned int i = 0, len, has_nn = 0;
 
 	while (*str != 0) {
 		if (i > 3 || !isdigit(*str))
@@ -123,6 +125,14 @@ strtoip(const char *str, char ip[4])
 			strncpy(octet, str, len);
 			octet[len] = 0;
 			str += len;
+		} else if (strchr(str, '\\') != NULL) {
+			len = (short) (strchr(str, '\\') - str);
+			if (len >= 10)
+				return 0;
+			strncpy(octet, str, len);
+			octet[len] = 0;
+			str += len;
+			has_nn = 1;
 		} else {
 			strncpy(octet, str, 9);
 			octet[9] = 0;
@@ -135,9 +145,35 @@ strtoip(const char *str, char ip[4])
 		i++;
 		if (*str == '.')
 			str++;
+		if(has_nn) {
+			str++;
+			strncpy(octet, str, 9);
+			octet[9] = 0;
+			res = strtol(octet, NULL, 10);
+			str += strlen(octet);
+			if (res > 31 || res < 1)
+				return 0;
+			if (netmask)
+				*netmask = 0xFFFFFFFF << (32 - res);
+		}
 	}
 
 	if (i != 4)
 		return 0;
 	return -1;
+}
+
+/**
+ * Converts "255.255.255.255" -> char[4] = { 0xff, 0xff, 0xff, 0xff }
+ *
+ * @param  str        string to be converted
+ * @param  ip         in case of SUCCESS - 32-bit long IP
+ *                    in case of FAULT - zero
+ * @return            TRUE - IP converted successfully;
+ *                    FALSE - error condition occurs (e.g. bad format)
+ */
+int
+strtoip(const char *str, char ip[4])
+{
+	return strtoip_netmask(str, ip, NULL);
 }

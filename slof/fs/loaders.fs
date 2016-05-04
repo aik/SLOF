@@ -70,7 +70,7 @@ CREATE load-list 2 cells allot load-list 2 cells erase
    THEN
 ;
 
-: ping  ( "{device-path:[device-args,]server-ip,[client-ip],[gateway-ip][,timeout]}" -- )
+: ping  ( "{device-path:[device-args,]server-ip,[client-ip[\nn]],[gateway-ip][,timeout]}" -- )
    my-self >r current-node @ >r  \ Save my-self
    (parse-line) open-dev dup  IF
       dup to my-self dup ihandle>phandle set-node
@@ -83,7 +83,7 @@ CREATE load-list 2 cells allot load-list 2 cells erase
       swap close-dev
    ELSE
       cr
-      ." Usage: ping device-path:[device-args,]server-ip,[client-ip],[gateway-ip][,timeout]"
+      ." Usage: ping device-path:[device-args,]server-ip,[client-ip[\nn]],[gateway-ip][,timeout]"
       cr drop
    THEN
    r> set-node r> to my-self  \ Restore my-self
