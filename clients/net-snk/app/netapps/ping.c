@@ -165,6 +165,8 @@ ping(int argc, char *argv[])
 
 	} else {
 		memcpy(&fn_ip.own_ip, &ping_args.client_ip.integer, 4);
+		if (ping_args.gateway_ip.integer)
+			set_ipv4_router(ping_args.gateway_ip.integer);
 		if (!ping_args.netmask) {
 			/* Netmask is not provided, assume default according to
 			 * the network class
