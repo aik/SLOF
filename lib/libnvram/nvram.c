@@ -373,6 +373,17 @@ void erase_nvram(int offset, int len)
 {
 	int i;
 
+#ifdef RTAS_NVRAM
+	char *erase_buf = get_nvram_buffer(len);
+	if (erase_buf) {
+		/* Speed up by erasing all memory at once */
+		memset(erase_buf, 0, len);
+		nvram_store(offset, erase_buf, len);
+		free_nvram_buffer(erase_buf);
+		return;
+	}
+	/* If get_nvram_buffer failed, fall through to default code */
+#endif
 	for (i=offset; i<offset+len; i++)
 		nvram_write_byte(i, 0);
 }
