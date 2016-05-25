@@ -91,18 +91,27 @@ TRUE VALUE use-load-watchdog?
 ;
 
 : boot-start
-   \ Remove multiple F12 key presses if any
-   BEGIN key? WHILE
-      key drop
-   REPEAT
-
    decimal
    BEGIN parse-word dup WHILE
       my-boot-dev (u.) s" . " $cat type 2dup type ." : " de-alias type cr
       my-boot-dev 1 + to my-boot-dev
    REPEAT 2drop 0 0 load-list 2!
 
-   cr BEGIN KEY dup emit
+   \ Clear pending keys (to remove multiple F12 key presses for example)
+   BEGIN key? WHILE
+      key drop
+   REPEAT
+
+   cr
+   BEGIN
+      KEY
+      dup 1b = IF         \ ESC sequence ... could be yet another F12 key press
+         BEGIN key? WHILE
+            key drop
+         REPEAT
+      ELSE
+         dup emit
+      THEN
       dup isdigit IF
          dup 30 - to digit-val
          boot-dev-no a * digit-val + to boot-dev-no
