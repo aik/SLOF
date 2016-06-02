@@ -1017,9 +1017,9 @@ static void fill_setup_data(struct xhci_command_trb *cmd, void *data,
 	field1 = TRB_ADDR_LOW(data);
 	field2 = TRB_ADDR_HIGH(data);
 	field3 = size;
+	field4 = TRB_CMD_TYPE(TRB_DATA_STAGE);
 	if (dir)
-		field4 = TRB_DIR_IN;
-	field4 |= TRB_CMD_TYPE(TRB_DATA_STAGE);
+		field4 |= TRB_DIR_IN;
 	fill_trb_buff(cmd, field1, field2, field3, field4);
 }
 
@@ -1030,10 +1030,9 @@ static void fill_status_trb(struct xhci_command_trb *cmd, uint32_t dir)
 	field1 = 0;
 	field2 = 0;
 	field3 = 0;
+	field4 = TRB_CMD_TYPE(TRB_STATUS_STAGE) | TRB_IOC;
 	if (dir)
-		field4 = TRB_DIR_IN;
-
-	field4 |= TRB_CMD_TYPE(TRB_STATUS_STAGE) | TRB_IOC;
+		field4 |= TRB_DIR_IN;
 	fill_trb_buff(cmd, field1, field2, field3, field4);
 }
 
