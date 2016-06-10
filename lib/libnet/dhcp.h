@@ -14,12 +14,7 @@
 #define _DHCP_H_
 
 #include <stdint.h>
-
-#ifdef USE_MTFTP
-#include <mtftp.h>
-#else
-#include <tftp.h>
-#endif
+#include "tftp.h"
 
 /** \struct btphdr
  *  A header for BootP/DHCP-messages.

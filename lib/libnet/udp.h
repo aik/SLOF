@@ -50,9 +50,4 @@ extern void handle_udp_dun(uint8_t * udp_packet, uint32_t packetsize, uint8_t er
 extern void fill_udphdr(uint8_t *packet, uint16_t packetsize,
                         uint16_t src_port, uint16_t dest_port);
 
-#ifdef USE_MTFTP
-extern void net_set_tftp_port(uint16_t tftp_port);
-extern void net_set_mtftp_port(uint16_t tftp_port);
-#endif
-
 #endif

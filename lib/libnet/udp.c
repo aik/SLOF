@@ -17,33 +17,8 @@
 #include <dhcp.h>
 #include <dhcpv6.h>
 #include <dns.h>
-#ifdef USE_MTFTP
-#include <mtftp.h>
-#else
 #include <tftp.h>
-#endif
 
-
-
-/****************************** LOCAL VARIABLES **************************/
-
-
-#ifdef USE_MTFTP
-
-uint16_t net_tftp_uport;
-uint16_t net_mtftp_uport;
-
-void net_set_tftp_port(uint16_t tftp_port)
-{
-	net_tftp_uport = tftp_port;
-}
-
-void net_set_mtftp_port(uint16_t tftp_port)
-{
-	net_mtftp_uport = tftp_port;
-}
-
-#endif
 
 /****************************** IMPLEMENTATION ***************************/
 
@@ -82,21 +57,8 @@ int8_t handle_udp(int fd, uint8_t * udp_packet, uint32_t packetsize)
 		return handle_dhcpv6(udp_packet+sizeof(struct udphdr),
 		                     packetsize - sizeof(struct udphdr));
 	case UDPPORT_TFTPC:
-#ifdef USE_MTFTP
-		return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
-			               packetsize - sizeof(struct udphdr));
-#else
 		return handle_tftp(fd, udp_packet, packetsize);
-#endif
 	default:
-#ifdef USE_MTFTP
-		if (htons(udph -> uh_dport) == net_tftp_uport)
-			return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
-                       packetsize - sizeof(struct udphdr));
-		else if (htons(udph -> uh_dport) == net_mtftp_uport)
-			return handle_tftp(fd, udp_packet + sizeof(struct udphdr),
-                       packetsize - sizeof(struct udphdr));
-#endif
 		return -1;
 	}
 }
