@@ -16,7 +16,7 @@ export TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS +=$(ADDCFLAGS)
+CFLAGS +=$(ADDCFLAGS) -Inetlib
 
 OBJS = main.o
 OBJDIRS = netlib/netlib.o netapps/netboot.o 

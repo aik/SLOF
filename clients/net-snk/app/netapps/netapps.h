@@ -13,7 +13,7 @@
 #ifndef _NETAPPS_H_
 #define _NETAPPS_H_
 
-#include <netlib/tftp.h>
+#include <tftp.h>
 
 #define F_IPV4	4
 #define F_IPV6	6

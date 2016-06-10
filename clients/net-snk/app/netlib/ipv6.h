@@ -14,7 +14,7 @@
 #define _IPV6_H_
 
 #include <stdint.h>
-#include <netlib/ethernet.h>
+#include "ethernet.h"
 
 #define __IPV6_DEBUG__
 

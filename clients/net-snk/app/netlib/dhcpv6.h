@@ -14,7 +14,7 @@
 #define _DHCPV6_H_
 
 #include <stdint.h>
-#include <netlib/ethernet.h>
+#include "ethernet.h"
 
 #define DHCPV6_STATELESS 0
 #define DHCPV6_STATEFUL  1

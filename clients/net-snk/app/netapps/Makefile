@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS += -I../ -I../../../../lib/ -Wall -W
+CFLAGS += -I.. -I../netlib -I../../../../lib/ -Wall -W
 
 OBJS    = netboot.o ping.o args.o
 

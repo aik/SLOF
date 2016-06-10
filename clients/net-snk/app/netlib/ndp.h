@@ -13,7 +13,7 @@
 #ifndef _NDP_H_
 #define _NDP_H_
 
-#include <netlib/ipv6.h>
+#include "ipv6.h"
 
 #define __NDP_DEBUG__
 

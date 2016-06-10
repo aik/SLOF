@@ -10,15 +10,15 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <netlib/ipv4.h>
-#include <netlib/dhcp.h>
-#include <netlib/ethernet.h>
+#include <ipv4.h>
+#include <dhcp.h>
+#include <ethernet.h>
 #include <sys/socket.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <netapps/args.h>
+#include "args.h"
 #include "netapps.h"
 
 struct ping_args {

@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <netlib/ipv6.h>
-#include <netlib/icmpv6.h>
-#include <netlib/ndp.h>
+#include "ipv6.h"
+#include "icmpv6.h"
+#include "ndp.h"
 
 /* Neighbor cache */
 static struct neighbor *first_neighbor;

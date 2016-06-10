@@ -16,7 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS += -I../
+CFLAGS += -I../netapps
 
 ifeq ($(SNK_USE_MTFTP), 1)
 CFLAGS += -DUSE_MTFTP

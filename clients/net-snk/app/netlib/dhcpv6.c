@@ -16,12 +16,12 @@
 #include <stdint.h>
 #include <sys/socket.h>
 #include <time.h>
-#include <netlib/ethernet.h>
-#include <netlib/ipv6.h>
-#include <netlib/udp.h>
-#include <netlib/dhcpv6.h>
-#include <netlib/tftp.h>
-#include <netlib/dns.h>
+#include "ethernet.h"
+#include "ipv6.h"
+#include "udp.h"
+#include "dhcpv6.h"
+#include "tftp.h"
+#include "dns.h"
 
 static uint8_t tid[3];
 static uint32_t dhcpv6_state = -1;

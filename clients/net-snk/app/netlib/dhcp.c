@@ -48,7 +48,7 @@
 #include <ipv4.h>
 #include <udp.h>
 #include <dns.h>
-#include <netapps/args.h>
+#include <args.h>
 
 #include <stdio.h>
 #include <string.h>

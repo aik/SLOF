@@ -15,7 +15,7 @@
 #define _TFTP_H_
 
 #include <stdint.h>
-#include <netlib/ipv6.h>
+#include "ipv6.h"
 
 struct tftphdr {
 	int16_t th_opcode;

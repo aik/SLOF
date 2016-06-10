@@ -17,11 +17,11 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/socket.h>
-#include <netlib/ethernet.h>
-#include <netlib/ipv6.h>
-#include <netlib/icmpv6.h>
-#include <netlib/ndp.h>
-#include <netlib/udp.h>
+#include "ethernet.h"
+#include "ipv6.h"
+#include "icmpv6.h"
+#include "ndp.h"
+#include "udp.h"
 
 #undef IPV6_DEBUG
 //#define IPV6_DEBUG

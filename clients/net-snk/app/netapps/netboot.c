@@ -10,21 +10,21 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#include <netlib/tftp.h>
-#include <netlib/ethernet.h>
-#include <netlib/dhcp.h>
-#include <netlib/dhcpv6.h>
-#include <netlib/ipv4.h>
-#include <netlib/ipv6.h>
-#include <netlib/dns.h>
+#include <tftp.h>
+#include <ethernet.h>
+#include <dhcp.h>
+#include <dhcpv6.h>
+#include <ipv4.h>
+#include <ipv6.h>
+#include <dns.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include <netapps/args.h>
 #include <libbootmsg/libbootmsg.h>
 #include <of.h>
+#include "args.h"
 #include "netapps.h"
 
 #define IP_INIT_DEFAULT 5

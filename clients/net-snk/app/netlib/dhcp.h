@@ -16,9 +16,9 @@
 #include <stdint.h>
 
 #ifdef USE_MTFTP
-#include <netlib/mtftp.h>
+#include <mtftp.h>
 #else
-#include <netlib/tftp.h>
+#include <tftp.h>
 #endif
 
 /** \struct btphdr

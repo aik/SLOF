@@ -14,8 +14,8 @@
 #define _ICMPV6_H_
 
 #include <stdint.h>
-#include <netlib/ethernet.h>
-#include <netlib/ipv6.h>
+#include "ethernet.h"
+#include "ipv6.h"
 
 #define __ICMPV6_DEBUG__
 

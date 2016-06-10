@@ -15,11 +15,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <netlib/ethernet.h>
-#include <netlib/ipv6.h>
-#include <netlib/icmpv6.h>
-#include <netlib/ndp.h>
-#include <netlib/dhcpv6.h>
+#include "ethernet.h"
+#include "ipv6.h"
+#include "icmpv6.h"
+#include "ndp.h"
+#include "dhcpv6.h"
 
 static int ra_received = 0;
 
