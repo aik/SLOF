@@ -19,9 +19,6 @@ include $(TOP)/make.rules
 CFLAGS +=$(ADDCFLAGS) -I$(LIBCMNDIR)/libnet
 
 OBJS = main.o
-OBJDIRS = netapps/netboot.o
-OBJDIRS += netapps/ping.o
-OBJDIRS += netapps/args.o
 
 ifeq ($(SNK_BIOSEMU_APPS), 1)
 OBJDIRS += biosemu/biosemu_app.o

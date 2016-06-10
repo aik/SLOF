@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <of.h>
-#include <netapps/netapps.h>
+#include <netapps.h>
 #include <libbootmsg.h>
 
 #ifdef SNK_BIOSEMU_APPS
