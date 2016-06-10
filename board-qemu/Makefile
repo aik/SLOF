@@ -14,8 +14,8 @@ BOARD_TARGETS = tools_build romfs_build clients_build stage1 subdirs
 
 SUBDIRS = slof
 
-COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall libvirtio libusb \
-              libveth libe1k
+COMMON_LIBS = libc libbootmsg libbases libnvram libelf libhvcall libvirtio \
+              libusb libveth libe1k libnet
 
 all: $(BOARD_TARGETS)
 	$(MAKE) boot_rom.bin

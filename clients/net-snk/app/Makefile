@@ -16,10 +16,10 @@ export TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS +=$(ADDCFLAGS) -Inetlib
+CFLAGS +=$(ADDCFLAGS) -I$(LIBCMNDIR)/libnet
 
 OBJS = main.o
-OBJDIRS = netlib/netlib.o netapps/netboot.o 
+OBJDIRS = netapps/netboot.o
 OBJDIRS += netapps/ping.o
 OBJDIRS += netapps/args.o
 

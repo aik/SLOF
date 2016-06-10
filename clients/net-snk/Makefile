@@ -17,7 +17,7 @@ include $(TOP)/make.rules
 OBJS	=  kernel/kernel.o oflib/oflib.o libc/libc-glue.o app/app.o
 .PHONY : subdirs clean depend mrproper
 
-CLIENTLIBS = $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libc.a
+CLIENTLIBS = $(LIBCMNDIR)/libelf.a $(LIBCMNDIR)/libnet.a $(LIBCMNDIR)/libc.a
 
 all:	.depend subdirs
 	$(MAKE) client

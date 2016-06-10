@@ -16,27 +16,36 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS += -I../netapps
+CFLAGS += -I. -I.. -I../libc/include
+CFLAGS += -I../../clients/net-snk/app/netapps -I../../clients/net-snk/include
 
-ifeq ($(SNK_USE_MTFTP), 1)
-CFLAGS += -DUSE_MTFTP
-endif
+SRCS =	ethernet.c ipv4.c udp.c tcp.c dns.c bootp.c dhcp.c tftp.c \
+	ipv6.c dhcpv6.c icmpv6.c ndp.c
 
-OBJS    = ethernet.o ipv4.o udp.o tcp.o  dns.o bootp.o \
-	  dhcp.o ipv6.o dhcpv6.o icmpv6.o ndp.o
+OBJS = $(SRCS:%.c=%.o)
 
-ifeq ($(SNK_USE_MTFTP), 1)
-OBJS += mtftp.o
-else
-OBJS += tftp.o
-endif
+TARGET = ../libnet.a
 
-all: netlib.o
+all: $(TARGET)
 
-netlib.o: $(OBJS) 
-		$(LD) $(LDFLAGS) $^ -o $@ -r
+$(TARGET): $(OBJS)
+	$(AR) -rc $@ $(OBJS)
+	$(RANLIB) $@
 
-clean:	
-		$(RM) -f *.o *.a *.i
+clean:
+	$(RM) $(TARGET) $(OBJS)
 
-include $(TOP)/make.depend
+distclean: clean
+	$(RM) Makefile.dep
+
+
+# Rules for creating the dependency file:
+depend:
+	$(RM) Makefile.dep
+	$(MAKE) Makefile.dep
+
+Makefile.dep: Makefile
+	$(CC) -M $(CPPFLAGS) $(CFLAGS) $(SRCS) > Makefile.dep
+
+# Include dependency file if available:
+-include Makefile.dep
