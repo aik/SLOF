@@ -23,6 +23,7 @@
 #include <getopt.h>
 
 #include <calculatecrc.h>
+#include <crclib.h>
 
 #define VERSION 1
 
@@ -139,11 +140,24 @@ sloffs_dump(const void *data)
 	printf(" (0x%lx) bytes\n", be64_to_cpu(header->flashlen));
 	printf("  Revision    : %s\n", header->platform_revision);
 	crc = be64_to_cpu(header->ui64CRC);
-	printf("  Header CRC  : 0x%016lx\n", crc);
+	printf("  Header CRC  : 0x%016lx CRC check: ", crc);
+	crc = calCRCword((unsigned char *)data, be64_to_cpu(sloffs->len), 0);
+	if (!crc)
+		printf("[OK]");
+	else
+		printf("[FAILED]");
+	printf("\n");
+
 	crc = be64_to_cpu(header->flashlen);
 	crc = *(uint64_t *)(unsigned char *)(data + crc - 8);
 	crc = be64_to_cpu(crc);
-	printf("  Image CRC   : 0x%016lx\n", crc);
+	printf("  Image CRC   : 0x%016lx CRC check: ", crc);
+	crc = calCRCword((unsigned char *)data, be64_to_cpu(header->flashlen), 0);
+	if (!crc)
+		printf("[OK]");
+	else
+		printf("[FAILED]");
+	printf("\n");
 
 	/* count number of files */
 	sloffs = (struct sloffs *)data;
