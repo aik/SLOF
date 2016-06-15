@@ -17,14 +17,11 @@ all: gen_reloc_table
 %.o: %.c
 		$(HOSTCC) -W $(HOSTCFLAGS) -c $^
 
-elf2tst:	elf2tst.o
-		$(HOSTCC) $(HOSTCFLAGS) -o $@ $^
-
 gen_reloc_table: gen_reloc_table.o
 		$(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 clean_here:
-	rm -f elf2tst *.o gen_reloc_table
+	rm -f *.o gen_reloc_table
 
 clean:	clean_here
 
