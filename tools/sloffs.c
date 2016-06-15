@@ -66,14 +66,55 @@ struct sloffs {
 #define ALIGN64(x) (((x) + 7) & ~7)
 
 static struct sloffs *
-next_file(struct sloffs *sloffs)
+next_file_mm(struct sloffs *sloffs)
 {
 	return (struct sloffs *)((unsigned char *)sloffs +
 				 be64_to_cpu(sloffs->next));
 }
 
+static int
+next_file(const int fd, struct sloffs *sloffs)
+{
+	int ret;
+	uint64_t size;
+	uint64_t offset;
+	char *name;
+
+	offset = 0;
+
+	/* if sloffs is not all NULL we want the next file
+	 * else we just take the first file */
+	if (sloffs->name && sloffs->len && sloffs->data) {
+		offset = be64_to_cpu(sloffs->next);
+		/* we already read over the header; skip it in the seek */
+		offset -= be64_to_cpu(sloffs->data);
+		free(sloffs->name);
+		sloffs->name = NULL;
+		lseek(fd, offset, SEEK_CUR);
+	} else {
+		lseek(fd, offset, SEEK_SET);
+	}
+
+	ret = read(fd, sloffs, SLOFFS_META);
+	if (ret == -1)
+		return -1;
+	/* read the size of the header */
+	size = be64_to_cpu(sloffs->data);
+	/* get the size of the filename */
+	size -= SLOFFS_META;
+	name = malloc(size);
+
+	ret = read(fd, name, size);
+	if (ret == -1) {
+		free(name);
+		return -1;
+	}
+	sloffs->name = name;
+	return 0;
+}
+
 static struct sloffs *
-find_file(const void *data, const char *name)
+find_file_mm(const void *data, const char *name)
 {
 	struct sloffs *sloffs = (struct sloffs *)data;
 
@@ -83,20 +124,42 @@ find_file(const void *data, const char *name)
 
 		if (be64_to_cpu(sloffs->next) == 0)
 			break;
-		sloffs = next_file(sloffs);
+		sloffs = next_file_mm(sloffs);
 	}
 	return NULL;
 }
 
+static struct sloffs *
+find_file(const int fd, const char *name, struct sloffs *sloffs)
+{
+	memset(sloffs, 0, sizeof(struct sloffs));
+
+	if (next_file(fd, sloffs))
+		return NULL;
+
+	for (;;) {
+		if (!strcmp(sloffs->name, name))
+			return sloffs;
+
+		if (be64_to_cpu(sloffs->next) == 0)
+			break;
+		if (next_file(fd, sloffs))
+			return NULL;
+	}
+
+	free(sloffs->name);
+	return NULL;
+}
+
 static struct stH *
-sloffs_header(const void *data)
+sloffs_header_mm(const void *data)
 {
 	struct sloffs *sloffs;
 	struct stH *header;
 
 	/* find the "header" file with all the information about
 	 * the flash image */
-	sloffs = find_file(data, "header");
+	sloffs = find_file_mm(data, "header");
 	if (!sloffs) {
 		printf("sloffs file \"header\" not found. aborting...\n");
 		return NULL;
@@ -107,14 +170,36 @@ sloffs_header(const void *data)
 	return header;
 }
 
+static struct stH *
+sloffs_header(const int fd)
+{
+	struct sloffs file;
+	struct sloffs *sloffs;
+	struct stH *header;
+
+	header = (struct stH *)malloc(sizeof(struct stH));
+
+	/* find the "header" file with all the information about
+	 * the flash image */
+	sloffs = find_file(fd, "header", &file);
+	if (!sloffs) {
+		printf("sloffs file \"header\" not found. aborting...\n");
+		return NULL;
+	}
+
+	read(fd, header, sizeof(struct stH));
+	free(sloffs->name);
+	return header;
+}
+
 static uint64_t
-header_length(const void *data)
+header_length_mm(const void *data)
 {
 	struct sloffs *sloffs;
 
 	/* find the "header" file with all the information about
 	 * the flash image */
-	sloffs = find_file(data, "header");
+	sloffs = find_file_mm(data, "header");
 	if (!sloffs) {
 		printf("sloffs file \"header\" not found. aborting...\n");
 		return 0;
@@ -122,6 +207,23 @@ header_length(const void *data)
 	return be64_to_cpu(sloffs->len);
 }
 
+static uint64_t
+header_length(const int fd)
+{
+	struct sloffs file;
+	struct sloffs *sloffs;
+
+	/* find the "header" file with all the information about
+	 * the flash image */
+	sloffs = find_file(fd, "header", &file);
+	if (!sloffs) {
+		printf("sloffs file \"header\" not found. aborting...\n");
+		return 0;
+	}
+
+	free(sloffs->name);
+	return be64_to_cpu(sloffs->len);
+}
 
 static void
 update_modification_time(struct stH *header)
@@ -149,20 +251,40 @@ static void
 update_crc(void *data)
 {
 	uint64_t crc;
-	struct stH *header = sloffs_header(data);
+	struct stH *header = sloffs_header_mm(data);
 	uint64_t len = be64_to_cpu(header->flashlen);
 
 	/* calculate header CRC */
 	header->ui64CRC = 0;
-	crc = checkCRC(data, header_length(data), 0);
+	crc = checkCRC(data, header_length_mm(data), 0);
 	header->ui64CRC = cpu_to_be64(crc);
 	/* calculate flash image CRC */
 	crc = checkCRC(data, len, 0);
 	*(uint64_t *)(data + len - 8) = cpu_to_be64(crc);
 }
 
+static uint64_t
+check_image_crc(const int fd, uint64_t len)
+{
+	uint64_t crc;
+	uint64_t i;
+	uint64_t read_bytes;
+	unsigned char buffer[4096];
+
+	lseek(fd, 0, SEEK_SET);
+	crc = 0;
+	read_bytes = 0;
+	while (read_bytes < len) {
+		i = read(fd, buffer, 4096);
+		read_bytes += i;
+		if (read_bytes > len)
+			i -= read_bytes - len;
+		crc = calCRCword(buffer, i, crc);
+	}
+	return crc;
+}
 static void
-sloffs_append(const void *data, const char *name, const char *dest)
+sloffs_append(const int file, const char *name, const char *dest)
 {
 	void *append;
 	unsigned char *write_data;
@@ -174,6 +296,8 @@ sloffs_append(const void *data, const char *name, const char *dest)
 	uint64_t new_len;
 	struct sloffs *sloffs;
 	struct sloffs new_file;
+	uint64_t read_len;
+	int i;
 
 	fd = open(name, O_RDONLY);
 
@@ -184,7 +308,7 @@ sloffs_append(const void *data, const char *name, const char *dest)
 
 	fstat(fd, &stat);
 	append = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	header = sloffs_header(data);
+	header = sloffs_header(file);
 
 	if (!header)
 		return;
@@ -219,9 +343,22 @@ sloffs_append(const void *data, const char *name, const char *dest)
 		exit(1);
 	}
 
-	write_data = memcpy(write_start, data, be64_to_cpu(header->flashlen));
+	lseek(file, 0, SEEK_SET);
+	write_data = write_start;
+	read_len = be64_to_cpu(header->flashlen);
+	for (;;) {
+		i = read(file, write_data, read_len);
+		if (i < 0) {
+			perror("read");
+			exit(1);
+		}
+		if (i == 0)
+			break;
+		write_data += i;
+		read_len -= i;
+	}
 	/* -8: overwrite old CRC */
-	write_data += be64_to_cpu(header->flashlen) - 8;
+	write_data = write_start + be64_to_cpu(header->flashlen) - 8;
 	memcpy(write_data, &new_file, SLOFFS_META);
 	write_data += SLOFFS_META;
 	/* write the filename */
@@ -236,7 +373,7 @@ sloffs_append(const void *data, const char *name, const char *dest)
 	for (;;) {
 		if (be64_to_cpu(sloffs->next) == 0)
 			break;
-		sloffs = next_file(sloffs);
+		sloffs = next_file_mm(sloffs);
 	}
 	/* get the distance to the next file */
 	sloffs->next = ALIGN64(be64_to_cpu(sloffs->len));
@@ -253,8 +390,9 @@ sloffs_append(const void *data, const char *name, const char *dest)
 
 	sloffs->next = cpu_to_be64(sloffs->next);
 
+	free(header);
 	/* update new length of flash image */
-	header = sloffs_header(write_start);
+	header = sloffs_header_mm(write_start);
 	header->flashlen = cpu_to_be64(new_len);
 
 	update_modification_time(header);
@@ -268,15 +406,17 @@ sloffs_append(const void *data, const char *name, const char *dest)
 }
 
 static void
-sloffs_dump(const void *data)
+sloffs_dump(const int fd)
 {
+	void *data;
 	struct stH *header;
-	struct sloffs *sloffs;
+	struct sloffs file;
 	int i;
 	uint64_t crc;
 	uint64_t *datetmp;
+	uint64_t header_len;
 
-	header = sloffs_header(data);
+	header = sloffs_header(fd);
 
 	if (!header)
 		return;
@@ -325,7 +465,13 @@ sloffs_dump(const void *data)
 	 * which could be easily obtained with sizeof(struct stH);
 	 * the actual size can only be obtained from the filesystem
 	 * meta information */
-	crc = calCRCword((unsigned char *)data, header_length(data), 0);
+	header_len = header_length(fd);
+	/* no copy the header to memory to crc test it */
+	data = malloc(header_len);
+	lseek(fd, 0, SEEK_SET);
+	read(fd, data, header_len);
+	crc = calCRCword((unsigned char *)data, header_length(fd), 0);
+	free(data);
 	if (!crc)
 		printf("[OK]");
 	else
@@ -333,10 +479,13 @@ sloffs_dump(const void *data)
 	printf("\n");
 
 	crc = be64_to_cpu(header->flashlen);
-	crc = *(uint64_t *)(unsigned char *)(data + crc - 8);
+	/* move to the CRC */
+	lseek(fd, crc - 8, SEEK_SET);
+	/* read it */
+	read(fd, &crc, 8);
 	crc = be64_to_cpu(crc);
 	printf("  Image CRC   : 0x%016lx CRC check: ", crc);
-	crc = calCRCword((unsigned char *)data, be64_to_cpu(header->flashlen), 0);
+	crc = check_image_crc(fd, be64_to_cpu(header->flashlen));
 	if (!crc)
 		printf("[OK]");
 	else
@@ -344,36 +493,52 @@ sloffs_dump(const void *data)
 	printf("\n");
 
 	/* count number of files */
-	sloffs = (struct sloffs *)data;
 	i = 0;
+	memset(&file, 0, sizeof(struct sloffs));
+	if (next_file(fd, &file))
+		return;
 	for (;;) {
 		i++;
-		if (be64_to_cpu(sloffs->next) == 0)
+
+		if (be64_to_cpu(file.next) == 0)
 			break;
-		sloffs = next_file(sloffs);
+		if (next_file(fd, &file))
+			return;
 	}
+	free(file.name);
 	printf("  Files       : %d\n", i);
+	free(header);
 }
 
 static void
-sloffs_list(const void *data)
+sloffs_list(const int fd)
 {
-	struct sloffs *sloffs = (struct sloffs *)data;
 	const char *name_header = "File Name";
 	unsigned int i;
 	unsigned int max;
 	unsigned int line;
+	struct sloffs file;
+	uint64_t offset = 0;
+
+	memset(&file, 0, sizeof(struct sloffs));
+
+	if (next_file(fd, &file))
+		return;
 
 	/* find largest name */
-	max = strlen(name_header);;
+	max = strlen(name_header);
 	for (;;) {
-		if (max < strlen((char *)&sloffs->name))
-			max = strlen((char *)&sloffs->name);
+		if (max < strlen((char *)file.name))
+			max = strlen((char *)file.name);
 
-		if (be64_to_cpu(sloffs->next) == 0)
+		if (be64_to_cpu(file.next) == 0)
 			break;
-		sloffs = next_file(sloffs);
+		if (next_file(fd, &file))
+			return;
 	}
+
+	free(file.name);
+
 
 	/* have at least two spaces between name and size column */
 	max += 2;
@@ -390,21 +555,28 @@ sloffs_list(const void *data)
 		printf("=");
 	printf("\n");
 
-	sloffs = (struct sloffs *)data;
+	memset(&file, 0, sizeof(struct sloffs));
+
+	if (next_file(fd, &file))
+		return;
+
 	for (;;) {
-		printf("   0x%08lx", (void *)sloffs - (void *)data);
-		printf("  %s", (char *)&sloffs->name);
-		for (i = 0; i < max - strlen((char *)&sloffs->name); i++)
+		printf("   0x%08lx", offset);
+		offset += be64_to_cpu(file.next);
+		printf("  %s", file.name);
+		for (i = 0; i < max - strlen(file.name); i++)
 			printf(" ");
 
-		printf("%07ld ", be64_to_cpu(sloffs->len));
-		printf("(0x%06lx)", be64_to_cpu(sloffs->len));
-		printf("  0x%08lx\n", be64_to_cpu(sloffs->flags));
+		printf("%07ld ", be64_to_cpu(file.len));
+		printf("(0x%06lx)", be64_to_cpu(file.len));
+		printf("  0x%08lx\n", be64_to_cpu(file.flags));
 
-		if (be64_to_cpu(sloffs->next) == 0)
+		if (be64_to_cpu(file.next) == 0)
 			break;
-		sloffs = next_file(sloffs);
+		if (next_file(fd, &file))
+			return;
 	}
+	free(file.name);
 }
 
 static void
@@ -431,8 +603,6 @@ int
 main(int argc, char *argv[])
 {
 	int fd;
-	void *file;
-	struct stat stat;
 	const struct option loption[] = {
 		{ "help", 0, NULL, 'h' },
 		{ "list", 0, NULL, 'l' },
@@ -485,15 +655,14 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	fstat(fd, &stat);
-	file = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+	lseek(fd, 0, SEEK_SET);
 
 	switch (mode) {
 	case 'l':
-		sloffs_list(file);
+		sloffs_list(fd);
 		break;
 	case 'd':
-		sloffs_dump(file);
+		sloffs_dump(fd);
 		break;
 	case 'a':
 		if (!output) {
@@ -501,13 +670,12 @@ main(int argc, char *argv[])
 			       " when in append mode\n\n");
 			usage();
 		}
-		sloffs_append(file, append, output);
+		sloffs_append(fd, append, output);
 		break;
 	}
 
 	free(append);
 	free(output);
-	munmap(file, stat.st_size);
 	close(fd);
 	return 0;
 }
