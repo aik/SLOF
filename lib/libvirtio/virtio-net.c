@@ -266,6 +266,7 @@ static int virtionet_receive(char *buf, int maxlen)
 {
 	uint32_t len = 0;
 	uint32_t id, idx;
+	uint16_t avail_idx;
 
 	idx = virtio_modern16_to_cpu(&virtiodev, vq_rx.used->idx);
 
@@ -304,9 +305,10 @@ static int virtionet_receive(char *buf, int maxlen)
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;
 
-	vq_rx.avail->ring[idx % vq_rx.size] = virtio_cpu_to_modern16(&virtiodev, id - 1);
+	avail_idx = virtio_modern16_to_cpu(&virtiodev, vq_rx.avail->idx);
+	vq_rx.avail->ring[avail_idx % vq_rx.size] = virtio_cpu_to_modern16(&virtiodev, id - 1);
 	sync();
-	vq_rx.avail->idx = virtio_cpu_to_modern16(&virtiodev, idx + 1);
+	vq_rx.avail->idx = virtio_cpu_to_modern16(&virtiodev, avail_idx + 1);
 
 	/* Tell HV that RX queue entry is ready */
 	virtio_queue_notify(&virtiodev, VQ_RX);
