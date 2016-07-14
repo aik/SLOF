@@ -87,7 +87,6 @@ uint8_t set_leds;
 const uint8_t *key_std       = NULL;
 const uint8_t *key_std_shift = NULL;
 
-uint8_t ctrl; /* modifiers */
 
 /**
  * read character from Keyboard-Buffer
@@ -205,12 +204,6 @@ static void check_key_code(uint8_t *buf)
 					set_leds ^= LED_CAPS_LOCK;
 					break;
 
-				case 0x36:		                /*Shift pressed*/
-					ctrl |= MODIFIER_SHIFT;
-					break;
-				case 0xb6:		                /*Shift unpressed*/
-					ctrl &= ~MODIFIER_SHIFT;
-					break;
 				case 0x3a:	                        /* F1 */
 					write_key(0x1b);
 					write_key(0x5b);
