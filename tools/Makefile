@@ -12,7 +12,9 @@
 
 include ../make.rules
 
-all: gen_reloc_table
+TARGETS = gen_reloc_table sloffs
+
+all: $(TARGETS)
 
 %.o: %.c
 		$(HOSTCC) -W $(HOSTCFLAGS) -c $^
@@ -20,11 +22,13 @@ all: gen_reloc_table
 gen_reloc_table: gen_reloc_table.o
 		$(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
+sloffs: sloffs.o
+		$(HOSTCC) $(HOSTCFLAGS) -o $@ $^
+
 clean_here:
-	rm -f *.o gen_reloc_table
+	rm -f *.o $(TARGETS)
 
-clean:	clean_here
+clean: clean_here
 
 
-distclean:	clean_here
-
+distclean: clean_here
