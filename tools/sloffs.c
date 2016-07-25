@@ -580,6 +580,57 @@ sloffs_list(const int fd)
 }
 
 static void
+sloffs_copy(const int file, const char *name)
+{
+	uint64_t len;
+	int out;
+	unsigned char *write_buf;
+	int i;
+	struct stH *header;
+
+	header = sloffs_header(file);
+
+	if (!header)
+		return;
+
+	len = be64_to_cpu(header->flashlen);
+	free(header);
+
+	out = open(name, O_CREAT | O_RDWR | O_TRUNC, 00666);
+
+	if (out == -1) {
+		perror(name);
+		exit(1);
+	}
+	/* write byte at the end to be able to mmap it */
+	lseek(out, len - 1, SEEK_SET);
+	write(out, "", 1);
+	write_buf = mmap(NULL, len, PROT_WRITE, MAP_SHARED, out, 0);
+
+	if (write_buf == MAP_FAILED) {
+		perror("mmap");
+		exit(1);
+	}
+
+	lseek(file, 0, SEEK_SET);
+
+	for (;;) {
+		i = read(file, write_buf, len);
+		if (i < 0) {
+			perror("read");
+			exit(1);
+		}
+		if (i == 0)
+			break;
+		write_buf += i;
+		len -= i;
+	}
+
+	munmap(write_buf, len);
+	close(out);
+}
+
+static void
 usage(void)
 {
 	printf("sloffs lists or changes a SLOF flash image\n\n");
@@ -595,6 +646,9 @@ usage(void)
 	printf("  -o, --output=FILENAME  if appending a file this parameter\n");
 	printf("                         is necessary to specify the name of\n");
 	printf("                         the output file\n");
+	printf("  -c, --copy=FILENAME    copy SLOF image to specified file\n");
+	printf("                         this is especially useful if the\n");
+	printf("                         source file is /dev/slof_flash\n");
 	printf("\n");
 	exit(1);
 }
@@ -610,9 +664,10 @@ main(int argc, char *argv[])
 		{ "dump", 0, NULL, 'd' },
 		{ "append", 1, NULL, 'a' },
 		{ "output", 1, NULL, 'o' },
+		{ "copy", 1, NULL, 'o' },
 		{ 0, 0, 0, 0 }
 	};
-	const char *soption = "dhlva:o:";
+	const char *soption = "dhlva:o:c:";
 	int c;
 	char mode = 0;
 	char *append = NULL;
@@ -637,6 +692,10 @@ main(int argc, char *argv[])
 			append = strdup(optarg);
 			break;
 		case 'o':
+			output = strdup(optarg);
+			break;
+		case 'c':
+			mode = 'c';
 			output = strdup(optarg);
 			break;
 		case 'h':
@@ -671,6 +730,9 @@ main(int argc, char *argv[])
 			usage();
 		}
 		sloffs_append(fd, append, output);
+		break;
+	case 'c':
+		sloffs_copy(fd, output);
 		break;
 	}
 
