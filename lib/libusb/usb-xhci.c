@@ -529,7 +529,7 @@ static uint32_t usb_control_max_packet(uint32_t speed)
 }
 
 static bool xhci_alloc_dev(struct xhci_hcd *xhcd, struct usb_dev *hub,
-			   uint32_t slot_id, uint32_t port)
+			   uint32_t slot_id, uint32_t port, uint32_t slotspeed)
 {
 	struct usb_dev *dev;
 	struct xhci_dev *xdev;
@@ -572,7 +572,7 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, struct usb_dev *hub,
 		rootport = dev->port;
 	}
 	val >>= 4;			/* Remove root hub ID from the string */
-	val |= LAST_CONTEXT(1) | SLOT_SPEED_SS;  /* FIXME speed, read from PS */
+	val |= LAST_CONTEXT(1) | slotspeed;
 	slot->field1 = cpu_to_le32(val);
 	slot->field2 = cpu_to_le32(ROOT_HUB_PORT(rootport));
 
@@ -662,7 +662,8 @@ static void xhci_free_dev(struct xhci_dev *xdev)
 	xhci_free_ctx(&xdev->out_ctx, XHCI_CTX_BUF_SIZE);
 }
 
-bool usb3_dev_init(struct xhci_hcd *xhcd, struct usb_dev *hub, uint32_t port)
+bool usb3_dev_init(struct xhci_hcd *xhcd, struct usb_dev *hub, uint32_t port,
+		   uint32_t slotspeed)
 {
 	/* Device enable slot */
 	xhci_send_enable_slot(xhcd, port);
@@ -671,7 +672,7 @@ bool usb3_dev_init(struct xhci_hcd *xhcd, struct usb_dev *hub, uint32_t port)
 		return false;
 	}
 	dprintf("SLOT ID: %d\n", xhcd->slot_id);
-	if (!xhci_alloc_dev(xhcd, hub, xhcd->slot_id, port)) {
+	if (!xhci_alloc_dev(xhcd, hub, xhcd->slot_id, port, slotspeed)) {
 		dprintf("Unable to allocate device\n");
 		return false;
 	}
@@ -749,7 +750,8 @@ static int xhci_port_scan(struct xhci_hcd *xhcd,
 				dprintf("Port reset complete %d\n", i);
 			}
 			print_port_status(prs);
-			if (!usb3_dev_init(xhcd, NULL, (i - (port_off - 1)))) {
+			if (!usb3_dev_init(xhcd, NULL, i - (port_off - 1),
+					   ((portsc >> 10) & 0xf) << 20)) {
 				dprintf("USB device initialization failed\n");
 			}
 		}

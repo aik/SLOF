@@ -39,6 +39,7 @@ struct usb_hub_ps {
 #define HUB_PS_RESET                 (1 << 4)
 #define HUB_PS_POWER                 (1 << 8)
 #define HUB_PS_LOW_SPEED             (1 << 9)
+#define HUB_PS_HIGH_SPEED            (1 << 10)
 
 #define HUB_PF_CONNECTION        0
 #define HUB_PF_ENABLE            1
@@ -157,6 +158,17 @@ static bool usb_hub_init_dev(struct usb_dev *hub_dev, int port)
 	struct usb_dev *newdev;
 
 	if (hub_dev->hcidev->type == USB_XHCI) {
+		struct usb_hub_ps ps;
+		int slotspeed;
+
+		hub_get_port_status(hub_dev, port, &ps, sizeof(ps));
+		if (le16_to_cpu(ps.wPortStatus) & HUB_PS_LOW_SPEED)
+			slotspeed = SLOT_SPEED_LS;
+		else if (le16_to_cpu(ps.wPortStatus) & HUB_PS_HIGH_SPEED)
+			slotspeed = SLOT_SPEED_HS;
+		else
+			slotspeed = SLOT_SPEED_FS;
+
 		/*
 		 * USB3 devices need special setup (e.g. with assigning
 		 * a slot ID and route string), which will all be done
@@ -164,7 +176,8 @@ static bool usb_hub_init_dev(struct usb_dev *hub_dev, int port)
 		 * usb_setup_new_device() and usb_slof_populate_new_device()
 		 * internally, so we can return immediately after this step.
 		 */
-		return usb3_dev_init(hub_dev->hcidev->priv, hub_dev, port);
+		return usb3_dev_init(hub_dev->hcidev->priv, hub_dev, port,
+				     slotspeed);
 	}
 
 	newdev = usb_devpool_get();

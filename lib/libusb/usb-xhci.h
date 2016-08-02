@@ -373,6 +373,6 @@ struct xhci_pipe {
 };
 
 extern bool usb3_dev_init(struct xhci_hcd *xhcd, struct usb_dev *hub,
-			  uint32_t port);
+			  uint32_t port, uint32_t slotspeed);
 
 #endif	/* USB_XHCI_H */
