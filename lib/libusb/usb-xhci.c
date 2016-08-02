@@ -25,6 +25,23 @@
 #define dprintf(_x ...)
 #endif
 
+struct port_state ps_array_usb2[] = {
+	{1, 0, 0, 0, PORTSC_PLS_U0, "ERROR"}
+};
+
+struct port_state ps_array_usb3[] = {
+	{0, 0, 0, 0, PORTSC_PLS_DISABLED, "Powered-OFF"},
+	{1, 0, 0, 0, PORTSC_PLS_POLLING,  "Polling"},
+	{1, 0, 0, 0, PORTSC_PLS_U0,       "Polling"},
+	{1, 0, 0, 0, PORTSC_PLS_RXDETECT, "***  Disconnected ***"},
+	{1, 0, 0, 0, PORTSC_PLS_DISABLED, "Disabled"},
+	{1, 0, 0, 0, PORTSC_PLS_INACTIVE, "Error"},
+	{1, 0, 0, 0, PORTSC_PLS_TEST_MODE,"Loopback"},
+	{1, 0, 0, 0, PORTSC_PLS_COMP_MODE,"Compliancek"},
+	{1, 1, 0, 1, PORTSC_PLS_U0,       "******  Reset  ******"},
+	{1, 1, 1, 0, PORTSC_PLS_U0,       "****** Enabled ******"},
+};
+
 static void dump_xhci_regs(struct xhci_hcd *xhcd)
 {
 #ifdef XHCI_DEBUG
