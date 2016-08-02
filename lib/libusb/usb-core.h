@@ -79,6 +79,7 @@ enum USB_SPEED_TYPE {
 
 struct usb_dev {
 	struct usb_dev     *next;
+	struct usb_dev     *hub;
 	struct usb_hcd_dev *hcidev;
 	struct usb_pipe    *intr;
 	struct usb_pipe    *control;

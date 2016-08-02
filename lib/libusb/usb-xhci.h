@@ -372,4 +372,7 @@ struct xhci_pipe {
 	uint32_t buflen;
 };
 
+extern bool usb3_dev_init(struct xhci_hcd *xhcd, struct usb_dev *hub,
+			  uint32_t port);
+
 #endif	/* USB_XHCI_H */
