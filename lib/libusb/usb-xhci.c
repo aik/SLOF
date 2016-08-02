@@ -538,7 +538,7 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, struct usb_dev *hub,
 	struct xhci_ep_ctx *ep0;
 	uint32_t ctx_size, val;
 	uint16_t max_packet;
-	uint32_t newport;
+	uint32_t newport, rootport;
 
 	if (slot_id > XHCI_CONFIG_MAX_SLOT) {
 		printf("USB3 slot ID %d is too high (max is %d)\n", slot_id,
@@ -565,10 +565,16 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, struct usb_dev *hub,
 
 	/* Step 3 */
 	slot = xhci_get_slot_ctx(&xdev->in_ctx, ctx_size);
-	newport = port + 1;
-	val = LAST_CONTEXT(1) | SLOT_SPEED_SS | (newport << 16); /* FIXME speed, read from PS */
+	newport = rootport = port + 1;
+	val = newport & 0xf;
+	for (dev = hub; dev != NULL; dev = dev->hub) {
+		val = (val << 4) | (dev->port & 0xf);	/* Build route string */
+		rootport = dev->port;
+	}
+	val >>= 4;			/* Remove root hub ID from the string */
+	val |= LAST_CONTEXT(1) | SLOT_SPEED_SS;  /* FIXME speed, read from PS */
 	slot->field1 = cpu_to_le32(val);
-	slot->field2 = cpu_to_le32(ROOT_HUB_PORT(newport)); /* FIXME how to get port no */
+	slot->field2 = cpu_to_le32(ROOT_HUB_PORT(rootport));
 
 	/* Step 4 */
 	if (!xhci_alloc_seg(&xdev->control, XHCI_CONTROL_TRBS_SIZE, TYPE_CTRL)) {
