@@ -539,6 +539,12 @@ static bool xhci_alloc_dev(struct xhci_hcd *xhcd, uint32_t slot_id, uint32_t por
 	uint16_t max_packet;
 	uint32_t newport;
 
+	if (slot_id > XHCI_CONFIG_MAX_SLOT) {
+		printf("USB3 slot ID %d is too high (max is %d)\n", slot_id,
+			XHCI_CONFIG_MAX_SLOT);
+		return false;
+	}
+
 	ctx_size = CTX_SIZE(xhcd->hcc_csz_64);
 	xdev = &xhcd->xdevs[slot_id];
 	xdev->slot_id = slot_id;

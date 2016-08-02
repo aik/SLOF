@@ -126,7 +126,7 @@ struct xhci_op_regs {
 #define XHCI_DCBAAP_MAX_SIZE      2048
 
 	uint32_t config;         /* Configure */
-#define XHCI_CONFIG_MAX_SLOT      4
+#define XHCI_CONFIG_MAX_SLOT      44
 
 	uint8_t reserved2[964]; /* 3C - 3FF */
 	/* USB Port register set */
