@@ -12,31 +12,29 @@
 #ifndef CALCULATECRC_H
 #define CALCULATECRC_H
 
-	#define FLASHFS_DATADDR 0x18                // uint64_t position of pointer to data
-	#define FLASHFS_FILE_SIZE_ADDR 0x08         // uint64_t pos of total flashimage size value relative to data
-	#define FLASHFS_HEADER_SIZE_ADDR 0x08       // uint64_t position of total flash header size value
+#define FLASHFS_DATADDR 0x18		// uint64_t position of pointer to data
+#define FLASHFS_FILE_SIZE_ADDR 0x08	// uint64_t pos of total flashimage size value relative to data
+#define FLASHFS_HEADER_SIZE_ADDR 0x08	// uint64_t position of total flash header size value
 
-	#ifndef __ASSEMBLER__
-		#define FLASHFS_ROMADDR 0x00		// uint64_t position of pointer to next file
-		#define FLASHFS_HEADER_DATA_SIZE 0x68	// 104 bytes of total header data size
-		#define CRC_METHODE Ethernet_32		// define the CRc genarator (CRC 16 bit to 64 is supported)
+#define FLASHFS_ROMADDR 0x00		// uint64_t position of pointer to next file
+#define FLASHFS_HEADER_DATA_SIZE 0x68	// 104 bytes of total header data size
+#define CRC_METHODE Ethernet_32		// define the CRC genarator (CRC 16 bit to 64 is supported)
 
-	//--- header format ---------------------------------
-		struct stH {
-				char magic[8];            // (generic!) headerfile
-				uint64_t flashlen;        // dyn
-				char version[16];         // $DRIVER_INFO alignment!
-				char platform_name[32];   // (hardware)   headerfile
-				char date[6];             // dyn (format -> JB)
-				char padding1[2];         // padding byte
-				char mdate[6];            // modify date
-				char padding2[2];         // padding byte
-				char platform_revision[4];// (hardware)   headerfile
-				uint32_t padding;
-				uint64_t ui64CRC;         // insert calculated CRC here
-				uint64_t ui64FileEnd;     // = 0xFFFF FFFF FFFF FFFF
-		};
-	#endif		/* __ASSEMBLER__ */
+//--- header format ---------------------------------
+struct stH {
+	char magic[8];            // (generic!) headerfile
+	uint64_t flashlen;        // dyn
+	char version[16];         // $DRIVER_INFO alignment!
+	char platform_name[32];   // (hardware)   headerfile
+	char date[6];             // dyn (format -> JB)
+	char padding1[2];         // padding byte
+	char mdate[6];            // modify date
+	char padding2[2];         // padding byte
+	char platform_revision[4];// (hardware)   headerfile
+	uint32_t padding;
+	uint64_t ui64CRC;         // insert calculated CRC here
+	uint64_t ui64FileEnd;     // = 0xFFFF FFFF FFFF FFFF
+};
 
 #endif		/* CALCULATECRC_H */
 
