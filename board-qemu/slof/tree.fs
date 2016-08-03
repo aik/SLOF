@@ -45,7 +45,9 @@ device-end
 
 \ Fixup timebase frequency from device-tree
 : fixup-tbfreq
-    " /cpus/@0" find-device
+    " /cpus" find-device
+    get-node child dup 0= ABORT" CPU not found"
+    set-node
     " timebase-frequency" get-node get-package-property IF
         2drop
     ELSE
@@ -167,7 +169,14 @@ populate-pci-busses
 
 6c0 cp
 
-s" /cpus/@0" open-dev encode-int s" cpu" set-chosen
+\ Do not assume that cpu0 is available
+: set-chosen-cpu
+    " /cpus" find-device
+    get-node child dup 0= ABORT" CPU not found"
+    node>path open-dev encode-int s" cpu" set-chosen
+;
+set-chosen-cpu
+
 s" /memory@0" open-dev encode-int s" memory" set-chosen
 
 6e0 cp
