@@ -26,10 +26,8 @@ struct stH {
 	uint64_t flashlen;        // dyn
 	char version[16];         // $DRIVER_INFO alignment!
 	char platform_name[32];   // (hardware)   headerfile
-	char date[6];             // dyn (format -> JB)
-	char padding1[2];         // padding byte
-	char mdate[6];            // modify date
-	char padding2[2];         // padding byte
+	char date[8];             // BCD encoded creation date (first two bytes unused)
+	char mdate[8];            // BCD encoded modification date (first two bytes unused)
 	char platform_revision[4];// (hardware)   headerfile
 	uint32_t padding;
 	uint64_t ui64CRC;         // insert calculated CRC here
