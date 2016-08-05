@@ -46,20 +46,22 @@
 /* Local variables */
 static unsigned char packet[BUFFER_LEN];
 static unsigned char  *buffer = NULL;
-static unsigned short block = 0;
+static unsigned short block;
 static unsigned short blocksize;
 static char blocksize_str[6];    /* Blocksize string for read request */
-static int received_len = 0;
-static unsigned int retries = 0;
+static int received_len;
+static unsigned int retries;
 static int huge_load;
 static int len;
-static int tftp_finished = 0;
-static int lost_packets = 0;
-static int tftp_errno = 0;
-static int ip_version = 0;
-static short port_number = -1;
+static int tftp_finished;
+static int lost_packets;
+static int tftp_errno;
+static int ip_version;
+static short port_number;
 static tftp_err_t *tftp_err;
 static filename_ip_t  *fn_ip;
+static int progress_first;
+static int progress_last_bytes;
 
 /**
  * dump_package - Prints a package.
@@ -253,24 +255,22 @@ static void send_error(int fd, int error_code, unsigned short dport)
 static void print_progress(int urgent, int received_bytes)
 {
 	static unsigned int i = 1;
-	static int first = -1;
-	static int last_bytes = 0;
 	char buffer[100];
 	char *ptr;
 
 	// 1MB steps or 0x400 times or urgent
-	if(((received_bytes - last_bytes) >> 20) > 0
+	if(((received_bytes - progress_last_bytes) >> 20) > 0
 	|| (i & 0x3FF) == 0 || urgent) {
-		if(!first) {
-			sprintf(buffer, "%d KBytes", (last_bytes >> 10));
+		if (!progress_first) {
+			sprintf(buffer, "%d KBytes", (progress_last_bytes >> 10));
 			for(ptr = buffer; *ptr != 0; ++ptr)
 				*ptr = '\b';
 			printf(buffer);
 		}
 		printf("%d KBytes", (received_bytes >> 10));
 		i = 1;
-		first = 0;
-		last_bytes = received_bytes;
+		progress_first = 0;
+		progress_last_bytes = received_bytes;
 	}
 	++i;
 }
@@ -513,6 +513,14 @@ int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 	tftp_err    = _tftp_err;
 	tftp_err->bad_tftp_packets = 0;
 	tftp_err->no_packets = 0;
+
+	block = 0;
+	received_len = 0;
+	tftp_finished = 0;
+	lost_packets = 0;
+	port_number = -1;
+	progress_first = -1;
+	progress_last_bytes = 0;
 
 	/* Default blocksize must be 512 for TFTP servers
 	 * which do not support the RRQ blocksize option */
