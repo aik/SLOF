@@ -405,6 +405,19 @@ sloffs_append(const int file, const char *name, const char *dest)
 	close(out);
 }
 
+static void print_header_date(void *dptr)
+{
+	uint8_t *date = dptr;
+
+	if (date[2] || date[3] || date[4] || date[5] || date[6] || date[7]) {
+		printf("%02x%02x-%02x-%02x %02x:%02x", date[2], date[3],
+		       date[4], date[5], date[6], date[7]);
+	} else {
+		printf("N/A");
+	}
+
+}
+
 static void
 sloffs_dump(const int fd)
 {
@@ -413,7 +426,6 @@ sloffs_dump(const int fd)
 	struct sloffs file;
 	int i;
 	uint64_t crc;
-	uint64_t *datetmp;
 	uint64_t header_len;
 
 	header = sloffs_header(fd);
@@ -432,28 +444,10 @@ sloffs_dump(const int fd)
 	/* there is a bug in the date position;
 	 * it should be at header->date, but it is at (header->date + 2) */
 	printf("  Build Date  : ");
-	datetmp = (void *)header->date;
-	if (be64_to_cpu(*datetmp)) {
-	    printf("%04x", be16_to_cpu(*(uint16_t *)(header->date + 2)));
-	    printf("-%02x", *(uint8_t *)(header->date + 4));
-	    printf("-%02x", *(uint8_t *)(header->date + 5));
-	    printf(" %02x:", *(uint8_t *)(header->date + 6));
-	    printf("%02x", *(uint8_t *)(header->date + 7));
-	} else {
-	    printf("N/A");
-	}
+	print_header_date(header->date);
 	printf("\n");
 	printf("  Modify Date : ");
-	datetmp = (void *)header->mdate;
-	if (be64_to_cpu(*datetmp)) {
-	    printf("%04x", be16_to_cpu(*(uint16_t *)(header->mdate + 2)));
-	    printf("-%02x", *(uint8_t *)(header->mdate + 4));
-	    printf("-%02x", *(uint8_t *)(header->mdate + 5));
-	    printf(" %02x:", *(uint8_t *)(header->mdate + 6));
-	    printf("%02x", *(uint8_t *)(header->mdate + 7));
-	} else {
-	    printf("N/A");
-	}
+	print_header_date(header->mdate);
 	printf("\n");
 	printf("  Image Length: %ld", be64_to_cpu(header->flashlen));
 	printf(" (0x%lx) bytes\n", be64_to_cpu(header->flashlen));
