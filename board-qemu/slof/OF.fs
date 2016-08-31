@@ -93,10 +93,6 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 #include <timebase.fs>
 
-270 cp
-
-#include <fcode/evaluator.fs>
-
 2e0 cp
 
 #include <quiesce.fs>

@@ -140,6 +140,13 @@ set-node
 
 #include "ht.fs"
 
+6a0 cp
+get-node device-end
+\ At this point the SAS controller has been detected and we know if it
+\ is a bimini or js21. If it is bimini the fcode evaluator is included
+bimini? ?include evaluator.fs
+set-node
+
 6b0 cp
 
 u4? ?include attu.fs

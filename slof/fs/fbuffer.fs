@@ -205,60 +205,6 @@ CREATE bitmap-buffer 400 4 * allot
 	screen-width screen-depth * to screen-line-bytes
 ;
 
-
-\ Install display related FCODE evaluator tokens
-: fb8-set-tokens  ( -- )
-	['] is-install        0 11C set-token
-	['] is-remove         0 11D set-token
-	['] is-selftest       0 11E set-token
-
-	['] #lines            0 150 set-token
-	['] #columns          0 151 set-token
-	['] line#             0 152 set-token
-	['] column#           0 153 set-token
-	['] inverse?          0 154 set-token
-	['] inverse-screen?   0 155 set-token
-	['] draw-character    0 157 set-token
-	['] reset-screen      0 158 set-token
-	['] toggle-cursor     0 159 set-token
-	['] erase-screen      0 15A set-token
-	['] blink-screen      0 15B set-token
-	['] invert-screen     0 15C set-token
-	['] insert-characters 0 15D set-token
-	['] delete-characters 0 15E set-token
-	['] insert-lines      0 15F set-token
-	['] delete-lines      0 160 set-token
-	['] draw-logo         0 161 set-token
-	['] frame-buffer-adr  0 162 set-token
-	['] screen-height     0 163 set-token
-	['] screen-width      0 164 set-token
-	['] window-top        0 165 set-token
-	['] window-left       0 166 set-token
-	\ ['] foreground-color  0 168 set-token  \ 16-color extension - n/a
-	\ ['] background-color  0 169 set-token  \ 16-color extension - n/a
-	['] default-font      0 16A set-token
-	['] set-font          0 16B set-token
-	['] char-height       0 16C set-token
-	['] char-width        0 16D set-token
-	['] >font             0 16E set-token
-	['] fontbytes         0 16F set-token
-
-	['] fb8-draw-character    0 180 set-token
-	['] fb8-reset-screen      0 181 set-token
-	['] fb8-toggle-cursor     0 182 set-token
-	['] fb8-erase-screen      0 183 set-token
-	['] fb8-blink-screen      0 184 set-token
-	['] fb8-invert-screen     0 185 set-token
-	['] fb8-insert-characters 0 186 set-token
-	['] fb8-delete-characters 0 187 set-token
-	['] fb8-insert-lines      0 188 set-token
-	['] fb8-delete-lines      0 189 set-token
-	['] fb8-draw-logo         0 18A set-token
-	['] fb8-install           0 18B set-token
-;
-fb8-set-tokens
-
-
 \ \\\\\\\\\\\\ Debug Stuff \\\\\\\\\\\\\\\\
 
 : fb8-dump-bitmap cr char-height 0 ?do char-width 0 ?do dup c@ if ." @" else ." ." then 1+ loop cr loop drop ;

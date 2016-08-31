@@ -89,6 +89,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/pci-config-bridge.fs \
 	$(SLOFCMNDIR)/fs/update_flash.fs \
 	$(SLOFCMNDIR)/fs/xmodem.fs \
+	$(SLOFCMNDIR)/fs/fcode/evaluator.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-device_10de_0141.fs \
 	$(SLOFCMNDIR)/fs/devices/pci-class_02.fs \
 	$(SLOFBRDDIR)/default-font.bin

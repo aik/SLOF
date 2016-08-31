@@ -209,10 +209,6 @@ d# 14318378 VALUE tb-frequency   \ default value - needed for "ms" to work
 
 #include <timebase.fs>
 
-270 cp
-
-#include <fcode/evaluator.fs>
-
 280 cp
 
 \ rtas-config is not used
