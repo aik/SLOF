@@ -69,9 +69,14 @@ void *SLOF_alloc_mem(long size)
 
 void *SLOF_alloc_mem_aligned(long size, long align)
 {
-	unsigned long addr = (unsigned long)SLOF_alloc_mem(size + align - 1);
-	addr = addr + align - 1;
-	addr = addr & ~(align - 1);
+	unsigned long addr = (unsigned long)SLOF_alloc_mem(size);
+
+	if (addr % align) {
+		SLOF_free_mem((void *)addr, size);
+		addr = (unsigned long)SLOF_alloc_mem(size + align - 1);
+		addr = addr + align - 1;
+		addr = addr & ~(align - 1);
+	}
 
 	return (void *)addr;
 }
