@@ -1,6 +1,6 @@
 
 : pci-gen-irq-map-one ( prop-addr prop-len slot pin -- prop-addr prop-len )
-        2dup + 4 mod                ( prop-addr prop-len slot pin parentpin )
+        2dup + 1- 3 and 1+          ( prop-addr prop-len slot pin parentpin )
         >r >r                       ( prop-addr prop-len slot R: swizzledpin pin )
 
         \ Child slot#
