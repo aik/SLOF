@@ -24,7 +24,7 @@
 ;
 
 : pci-gen-irq-entry ( prop-addr prop-len config-addr -- prop-addr prop-len )
-        pci-addr2dev 4 mod          ( prop-addr prop-len slot )
+        pci-addr2dev                ( prop-addr prop-len slot )
         -rot                        ( slot prop-addr prop-len )
         5 1 DO
                 2 pick i            ( slot prop-addr prop-len slot pin )
