@@ -42,7 +42,9 @@ DICT = $(SLOFCMNDIR)/prim.in $(SLOFCMNDIR)/engine.in \
 	$(BOARD_SLOF_IN) $(SLOFCMNDIR)/$(TARG).in
 
 # Source code files with automatic dependencies:
-SLOF_BUILD_SRCS = paflof.c helpers.c allocator.c
+SLOF_BUILD_SRCS = paflof.c helpers.c allocator.c sbrk.c
+
+SLOF_BUILD_OBJS = $(SLOF_BUILD_SRCS:%.c=%.o)
 
 # Flags for pre-processing Forth code with CPP:
 FPPFLAGS = -nostdinc -traditional-cpp -undef -P -C $(FLAG)
@@ -81,10 +83,10 @@ board.code:
 	echo > $@
 endif
 
-paflof: $(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o paflof.o $(SLOFCMNDIR)/entry.o \
-	helpers.o allocator.o romfs.o version.o OF.o nvramlog.o $(LLFWBRDDIR)/board_io.o \
+paflof: $(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o $(SLOFCMNDIR)/entry.o romfs.o \
+	$(SLOF_BUILD_OBJS) version.o OF.o nvramlog.o $(LLFWBRDDIR)/board_io.o \
 	$(LLFWBRDDIR)/io_generic_lib.o $(SLOF_LIBS)
-	$(CC) -T$(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o version.o paflof.o helpers.o allocator.o \
+	$(CC) -T$(SLOFCMNDIR)/OF.lds $(SLOFCMNDIR)/ofw.o version.o $(SLOF_BUILD_OBJS) \
 	$(SLOFCMNDIR)/entry.o romfs.o OF.o nvramlog.o $(LLFWBRDDIR)/board_io.o \
 	$(LLFWBRDDIR)/io_generic_lib.o $(LDFLAGS) $(SLOF_LIBS) -o $@
 	#save a copy of paflof before stripping
@@ -99,6 +101,9 @@ helpers.o:
 
 allocator.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(SLOFCMNDIR)/allocator.c
+
+sbrk.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(SLOFCMNDIR)/sbrk.c
 
 $(SLOFCMNDIR)/xvect.bin: $(SLOFCMNDIR)/lowmem.o
 	$(CC) $(LDFLAGS) -Wl,--oformat,binary -Ttext=0x100 -o xvect.bin.tmp $<
