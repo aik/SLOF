@@ -27,9 +27,7 @@ INCLBRDDIR ?= $(TOPBRDDIR)/include
 
 
 CPPFLAGS += -I. -I$(INCLCMNDIR) -I$(INCLBRDDIR) -I$(INCLCMNDIR)/$(CPUARCH)
-CFLAGS  = -DTARG=$(TARG) -static -Wall -W -std=gnu99 \
-	  -O2 -fomit-frame-pointer -msoft-float $(FLAG) $(CPUARCHDEF) \
-	  -fno-stack-protector -fno-strict-aliasing 
+CFLAGS  += -DTARG=$(TARG) -static -std=gnu99 $(FLAG) $(CPUARCHDEF)
 ASFLAGS = -Wa,-mpower4 -Wa,-mregnames $(FLAG) $(CPUARCHDEF)
 
 LDFLAGS += -static -nostdlib -Wl,-q,-n

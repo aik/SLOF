@@ -10,7 +10,10 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <unistd.h>
 #include <cpu.h>
+
+void asm_cout(long Character,long UART,long NVRAM);
 
 /* the exception frame should be page aligned
  * the_exception_frame is used by the handler to store a copy of all
@@ -45,8 +48,7 @@ extern void io_putchar(unsigned char);
 extern unsigned long call_c(cell arg0, cell arg1, cell arg2, cell entry);
 
 
-long
-writeLogByte_wrapper(long x, long y)
+static long writeLogByte_wrapper(long x, long y)
 {
 	unsigned long result;
 
@@ -66,8 +68,7 @@ writeLogByte_wrapper(long x, long y)
  * @param count number of bytes to be written
  * @return      the number of bytes that have been written successfully
  */
-int
-write(int fd, const void *buf, int count)
+ssize_t write(int fd, const void *buf, size_t count)
 {
 	int i;
 	char *ptr = (char *)buf;
