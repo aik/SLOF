@@ -153,3 +153,12 @@ void *SLOF_translate_my_address(void *addr)
 	forth_eval("translate-my-address");
 	return (void *)forth_pop();
 }
+
+int write_mm_log(char *data, unsigned int len, unsigned short type)
+{
+	forth_push((unsigned long)data);
+	forth_push(len);
+	forth_push(type);
+
+	return forth_eval_pop("write-mm-log");
+}
