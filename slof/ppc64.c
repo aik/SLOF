@@ -202,3 +202,29 @@ int send(int fd, const void *buf, int len, int flags)
 
 	return forth_eval_pop("write");
 }
+
+/**
+ * Standard read function for the libc.
+ *
+ * @param fd    file descriptor (should always be 0 or 2)
+ * @param buf   pointer to the array with the output characters
+ * @param len    number of bytes to be read
+ * @return      the number of bytes that have been read successfully
+ */
+ssize_t read(int fd, void *buf, size_t len)
+{
+	char *ptr = (char *)buf;
+	int cnt = 0;
+	char code;
+
+	if (fd == 0 || fd == 2) {
+		while (cnt < len) {
+			code = forth_eval_pop("key? IF key ELSE 0 THEN");
+			if (!code)
+				break;
+			ptr[cnt++] = code;
+		}
+	}
+
+	return cnt;
+}
