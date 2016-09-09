@@ -18,6 +18,7 @@
 #include <cpu.h>
 #include "helpers.h"
 #include "paflof.h"
+#include "../lib/libnet/time.h"   /* TODO: Get rid of old timer code */
 
 /**
  * get msec-timer value
@@ -44,6 +45,23 @@ void SLOF_usleep(uint32_t time)
 {
 	forth_push(time);
 	forth_eval("us");
+}
+
+static unsigned int dest_timer;
+
+void set_timer(int val)
+{
+	dest_timer = SLOF_GetTimer() + val;
+}
+
+int get_timer()
+{
+	return dest_timer - SLOF_GetTimer();
+}
+
+int get_sec_ticks(void)
+{
+	return 1000;	/* number of ticks in 1 second */
 }
 
 void *SLOF_dma_alloc(long size)
