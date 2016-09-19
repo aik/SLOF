@@ -156,7 +156,6 @@ ping(int argc, char *argv[])
 
 	if (!ping_args.client_ip.integer) {
 		/* Get ip address for our mac address */
-		printf("  Requesting IP address via DHCP: ");
 		arp_failed = dhcp(0, &fn_ip, 30, F_IPV4);
 
 		if (arp_failed == -1) {
@@ -178,13 +177,12 @@ ping(int argc, char *argv[])
 		set_ipv4_netmask(ping_args.netmask);
 
 		arp_failed = 1;
-		printf("  Own IP address: ");
 	}
 
 	// reinit network stack
 	set_ipv4_address(fn_ip.own_ip);
 
-	printf("%d.%d.%d.%d\n",
+	printf("  Own IP address: %d.%d.%d.%d\n",
 	       ((fn_ip.own_ip >> 24) & 0xFF), ((fn_ip.own_ip >> 16) & 0xFF),
 	       ((fn_ip.own_ip >> 8) & 0xFF), (fn_ip.own_ip & 0xFF));
 
