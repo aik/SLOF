@@ -328,7 +328,8 @@ parse_args(const char *arg_str, obp_tftp_args_t *obp_tftp_args)
  * @return               ZERO - IP and configuration info obtained;
  *                       NON ZERO - error condition occurs.
  */
-int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flags)
+int dhcp(char *ret_buffer, struct filename_ip *fn_ip, unsigned int retries,
+	 int flags)
 {
 	int i = (int) retries+1;
 	int rc = -1;

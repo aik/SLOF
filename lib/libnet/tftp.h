@@ -22,7 +22,7 @@ struct tftphdr {
 	uint16_t th_data;
 };
 
-typedef struct {
+struct filename_ip {
 	uint32_t own_ip;
 	ip6_addr_t own_ip6;
 	uint32_t server_ip;
@@ -30,7 +30,8 @@ typedef struct {
 	ip6_addr_t dns_ip6;
 	int8_t filename[256];
 	int    fd;
-} __attribute__ ((packed)) filename_ip_t ;
+} __attribute__ ((packed));
+typedef struct filename_ip filename_ip_t;
 
 typedef struct {
 	uint32_t bad_tftp_packets;

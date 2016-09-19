@@ -13,14 +13,15 @@
 #ifndef _NETAPPS_H_
 #define _NETAPPS_H_
 
-#include <tftp.h>
-
 #define F_IPV4	4
 #define F_IPV6	6
 
-int netboot(int argc, char *argv[]);
-int netsave(int argc, char *argv[]);
-int ping(int argc, char *argv[]);
-int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flags);
+struct filename_ip;
+
+extern int netboot(int argc, char *argv[]);
+extern int netsave(int argc, char *argv[]);
+extern int ping(int argc, char *argv[]);
+extern int dhcp(char *ret_buffer, struct filename_ip *fn_ip,
+		unsigned int retries, int flags);
 
 #endif
