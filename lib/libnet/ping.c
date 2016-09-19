@@ -10,6 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <unistd.h>
 #include <ipv4.h>
 #include <dhcp.h>
 #include <ethernet.h>
@@ -160,6 +161,7 @@ ping(int argc, char *argv[])
 
 		if (arp_failed == -1) {
 			printf("\n  DHCP: Could not get ip address\n");
+			close(fn_ip.fd);
 			return -1;
 		}
 
@@ -206,10 +208,12 @@ ping(int argc, char *argv[])
 		receive_ether(fd_device);
 		if(pong_ipv4() == 0) {
 			printf("success\n");
+			close(fn_ip.fd);
 			return 0;
 		}
 	}
 
 	printf("failed\n");
+	close(fn_ip.fd);
 	return -1;
 }

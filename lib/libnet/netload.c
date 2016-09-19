@@ -10,6 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <unistd.h>
 #include <tftp.h>
 #include <ethernet.h>
 #include <dhcp.h>
@@ -566,6 +567,7 @@ netboot(int argc, char *argv[])
 		bootmsg_error(0x3001, &buf[7]);
 
 		write_mm_log(buf, strlen(buf), 0x91);
+		close(fn_ip.fd);
 		return -101;
 	}
 
@@ -590,6 +592,7 @@ netboot(int argc, char *argv[])
 		bootmsg_error(0x3002, &buf[7]);
 
 		write_mm_log(buf, strlen(buf), 0x91);
+		close(fn_ip.fd);
 		return -102;
 	}
 	if (rc == -4 || rc == -3) {
@@ -597,6 +600,7 @@ netboot(int argc, char *argv[])
 		bootmsg_error(0x3008, &buf[7]);
 
 		write_mm_log(buf, strlen(buf), 0x91);
+		close(fn_ip.fd);
 		return -107;
 	}
 
@@ -634,6 +638,8 @@ netboot(int argc, char *argv[])
 
 	if(obp_tftp_args.ip_init == IP_INIT_DHCP)
 		dhcp_send_release(fn_ip.fd);
+
+	close(fn_ip.fd);
 
 	if (rc > 0) {
 		printf("  TFTP: Received %s (%d KBytes)\n", fn_ip.filename,
