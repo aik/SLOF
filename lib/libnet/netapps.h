@@ -20,9 +20,6 @@
 
 int netboot(int argc, char *argv[]);
 int netsave(int argc, char *argv[]);
-int bcmflash(int argc, char *argv[]);
-int mac_sync(int argc, char *argv[]);
-int net_eeprom_version( void );
 int ping(int argc, char *argv[]);
 int dhcp(char *ret_buffer, filename_ip_t * fn_ip, unsigned int retries, int flags);
 
