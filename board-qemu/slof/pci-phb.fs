@@ -297,7 +297,7 @@ setup-puid
         CASE
             0 OF my-space pci-device-setup ENDOF  \ | set up the device
             1 OF my-space pci-bridge-setup ENDOF  \ | set up the bridge
-            dup OF my-space pci-htype@ pci-out ENDOF
+            dup OF my-space [char] ? pci-out ENDOF
         ENDCASE
         peer
     REPEAT drop
