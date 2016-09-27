@@ -304,9 +304,16 @@ setup-puid
     get-parent set-node
 ;
 
-\ Landing routing to probe the popuated device tree
-: phb-pci-probe-bus ( busnr -- )
-    drop phb-pci-walk-bridge
+\ Similar to pci-bridge-probe, but without setting the secondary and
+\ subordinate bus numbers (since this has been done by QEMU already)
+: phb-pci-bridge-probe ( addr -- )
+    dup pci-bridge-set-bases                      \ Set up all Base Registers
+    dup func-pci-bridge-range-props               \ Set up temporary "range"
+    pci-device-vec-len 1+ TO pci-device-vec-len   \ increase the device-slot vector depth
+    pci-enable                                    \ enable mem/IO transactions
+    phb-pci-walk-bridge                           \ and walk the secondary bus
+    pci-device-vec-len 1- TO pci-device-vec-len   \ decrease the device-slot vector depth
+    pci-bridge-set-limits                         \ Set up all Limit Registers
 ;
 
 \ Stub routine, as qemu has enumerated, we already have the device
@@ -328,7 +335,7 @@ setup-puid
        1 0 (probe-pci-host-bridge)
    ELSE
        2drop
-       ['] phb-pci-probe-bus TO func-pci-probe-bus
+       ['] phb-pci-bridge-probe TO func-pci-bridge-probe
        ['] phb-pci-device-props TO func-pci-device-props
        phb-pci-walk-bridge          \ PHB device tree is already populated.
    THEN

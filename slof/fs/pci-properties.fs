@@ -643,7 +643,7 @@
         pci-device-slots >r             \ save the slot array on return stack
         dup pci-common-props            \ set the common properties before scanning the bus
         s" pci" device-type             \ the type is allways "pci"
-        dup pci-bridge-probe            \ find all device connected to it
+        dup func-pci-bridge-probe       \ find all device connected to it
         dup assign-all-bridge-bars      \ set up all memory access BARs
         dup pci-set-irq-line            \ set the interrupt pin
         dup pci-set-capabilities        \ set up the capabilities

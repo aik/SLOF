@@ -221,6 +221,8 @@ DEFER func-pci-bridge-range-props
         dup pci-bridge-set-limits                       \ SetUp all Limit Registers
         drop                                            \ forget the config-addr
 ;
+DEFER func-pci-bridge-probe
+' pci-bridge-probe TO func-pci-bridge-probe
 
 \ set up the pci-device
 : pci-device-setup ( addr -- )
