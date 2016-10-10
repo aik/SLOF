@@ -159,24 +159,30 @@ check-for-nvramrc
 CREATE version-str 10 ALLOT
 0 value temp-ptr
 
+: dump-display-write
+    s" screen" find-alias  IF
+        drop terminal-write drop
+    THEN
+;
+
 : dump-display-buffer
     disp-ptr to temp-ptr
-    " SLOF **********************************************************************" terminal-write drop
+    " SLOF **********************************************************************" dump-display-write
     cr
     version-str get-print-version
     version-str @                   \ start
     version-str 8 + @               \ end
-    over - terminal-write drop
-    " Press 's' to enter Open Firmware." terminal-write drop
+    over - dump-display-write
+    " Press 's' to enter Open Firmware." dump-display-write
     cr cr
     temp-ptr disp-size > IF
         temp-ptr disp-size MOD
         dup
-        prevga-disp-buf + swap disp-size swap - terminal-write drop
+        prevga-disp-buf + swap disp-size swap - dump-display-write
         temp-ptr disp-size MOD
-        prevga-disp-buf swap 1 - terminal-write drop
+        prevga-disp-buf swap 1 - dump-display-write
     ELSE
-        prevga-disp-buf temp-ptr terminal-write drop
+        prevga-disp-buf temp-ptr dump-display-write
     THEN
 ;
 
