@@ -15,6 +15,7 @@
 #include <virtio-9p.h>
 #include <virtio-scsi.h>
 #include <virtio-net.h>
+#include <virtio-serial.h>
 
 /******** core virtio ********/
 
@@ -164,4 +165,36 @@ PRIM(virtio_X2d_net_X2d_write)
 	int len = TOS.u; POP;
 	TOS.n = virtionet_write(TOS.a, len);
 }
+MIRP
+
+/*********** virtio-serial ***********/
+// : virtio-serial-init ( dev -- false | true)
+PRIM(virtio_X2d_serial_X2d_init)
+	void *dev = TOS.a;
+	TOS.u = virtio_serial_init(dev);
+MIRP
+
+// : virtio-serial-shutdown ( dev -- )
+PRIM(virtio_X2d_serial_X2d_shutdown)
+	void *dev = TOS.a; POP;
+	virtio_serial_shutdown(dev);
+MIRP
+
+// : virtio-serial-putchar ( dev char -- )
+PRIM(virtio_X2d_serial_X2d_putchar)
+	unsigned long c = TOS.n; POP;
+	void *dev = TOS.a; POP;
+	virtio_serial_putchar(dev, c);
+MIRP
+
+// : virtio-serial-getchar ( dev -- char)
+PRIM(virtio_X2d_serial_X2d_getchar)
+	void *dev = TOS.a;
+	TOS.n = virtio_serial_getchar(dev);
+MIRP
+
+// : virtio-serial-haschar ( dev -- true | false)
+PRIM(virtio_X2d_serial_X2d_haschar)
+	void *dev = TOS.a;
+	TOS.n = virtio_serial_haschar(dev);
 MIRP

@@ -162,6 +162,10 @@ CREATE version-str 10 ALLOT
 : dump-display-write
     s" screen" find-alias  IF
         drop terminal-write drop
+    ELSE
+        s" vsterm" find-alias  IF
+            drop type
+        THEN
     THEN
 ;
 
@@ -236,12 +240,20 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
                 ." using hvterm" cr
                 " hvterm" io
             ELSE
-                " /openprom" find-node ?dup IF
-                    set-node
-                    ." and no default found, creating dev-null" cr
-                    " dev-null.fs" included
-                    " devnull-console" io
-                    0 set-node
+                " vsterm" find-alias IF
+                    drop
+                    ." using vsterm" cr
+                    " vsterm" io
+                    false to store-prevga?
+                    dump-display-buffer
+                ELSE
+                    " /openprom" find-node ?dup IF
+                        set-node
+                        ." and no default found, creating dev-null" cr
+                        " dev-null.fs" included
+                        " devnull-console" io
+                        0 set-node
+                    THEN
                 THEN
             THEN
         THEN

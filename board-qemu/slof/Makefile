@@ -69,6 +69,8 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/pci-device_1af4_1041.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1001.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1042.fs \
+	$(SLOFBRDDIR)/pci-device_1af4_1003.fs \
+	$(SLOFBRDDIR)/pci-device_1af4_1043.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1004.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1048.fs \
 	$(SLOFBRDDIR)/pci-device_1af4_1009.fs \
@@ -79,6 +81,7 @@ VIO_FFS_FILES = \
 	$(SLOFBRDDIR)/vio-veth.fs \
 	$(SLOFBRDDIR)/rtas-nvram.fs \
 	$(SLOFBRDDIR)/virtio-net.fs \
+	$(SLOFBRDDIR)/virtio-serial.fs \
 	$(SLOFBRDDIR)/virtio-block.fs \
 	$(SLOFBRDDIR)/virtio-fs.fs \
 	$(SLOFBRDDIR)/dev-null.fs \
