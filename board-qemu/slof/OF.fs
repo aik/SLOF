@@ -116,12 +116,12 @@ d# 512000000 VALUE tb-frequency   \ default value - needed for "ms" to work
 370 cp
 
 : check-boot-menu
-   s" qemu,boot-menu" get-chosen IF
-      decode-int 1 = IF
-         ." Press F12 for boot menu." cr cr
-      THEN
-      2drop
-   THEN
+    s" qemu,boot-menu" get-chosen IF
+        decode-int 1 = IF
+            ." Press F12 for boot menu." cr cr
+        THEN
+        2drop
+    THEN
 ;
 check-boot-menu
 
@@ -170,30 +170,30 @@ CREATE version-str 10 ALLOT
     " Press 's' to enter Open Firmware." terminal-write drop
     cr cr
     temp-ptr disp-size > IF
-	temp-ptr disp-size MOD
-	dup
-	prevga-disp-buf + swap disp-size swap - terminal-write drop
-	temp-ptr disp-size MOD
-	prevga-disp-buf swap 1 - terminal-write drop
+        temp-ptr disp-size MOD
+        dup
+        prevga-disp-buf + swap disp-size swap - terminal-write drop
+        temp-ptr disp-size MOD
+        prevga-disp-buf swap 1 - terminal-write drop
     ELSE
-	prevga-disp-buf temp-ptr terminal-write drop
+        prevga-disp-buf temp-ptr terminal-write drop
     THEN
 ;
 
 : enable-framebuffer-output  ( -- )
-\ enable output on framebuffer
-   s" screen" find-alias ?dup  IF
-      \ we need to open/close the screen device once
-      \ before "ticking" display-emit to emit
-      open-dev close-node
-      false to store-prevga?
-      s" display-emit" $find  IF 
-         to emit 
-	 dump-display-buffer
-      ELSE
-         2drop
-      THEN
-   THEN
+    \ enable output on framebuffer
+    s" screen" find-alias ?dup  IF
+        \ we need to open/close the screen device once
+        \ before "ticking" display-emit to emit
+        open-dev close-node
+        false to store-prevga?
+        s" display-emit" $find  IF
+            to emit
+            dump-display-buffer
+        ELSE
+            2drop
+        THEN
+    THEN
 ;
 
 enable-framebuffer-output
@@ -220,24 +220,24 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
         ." No console specified "
         " screen" find-alias dup IF nip THEN
         " keyboard" find-alias dup IF nip THEN
-	AND IF
-	  ." using screen & keyboard" cr
-	  " screen" output
-	  " keyboard" input
+        AND IF
+            ." using screen & keyboard" cr
+            " screen" output
+            " keyboard" input
         ELSE
-          " hvterm" find-alias IF
-	    drop
-	    ." using hvterm" cr
-            " hvterm" io
-	  ELSE
-	    " /openprom" find-node ?dup IF
-		set-node
-		." and no default found, creating dev-null" cr
-		" dev-null.fs" included
-		" devnull-console" io
-		0 set-node
-	    THEN
-	  THEN
+            " hvterm" find-alias IF
+                drop
+                ." using hvterm" cr
+                " hvterm" io
+            ELSE
+                " /openprom" find-node ?dup IF
+                    set-node
+                    ." and no default found, creating dev-null" cr
+                    " dev-null.fs" included
+                    " devnull-console" io
+                    0 set-node
+                THEN
+            THEN
         THEN
     THEN
 ;
@@ -254,10 +254,10 @@ set-default-console
 : (boot-ram)
     direct-ram-boot-size 0<> IF
         ." Booting from memory..." cr
-	s" go-args 2@ " evaluate
-	direct-ram-boot-base 0
-	s" true state-valid ! " evaluate
-	s" disable-watchdog go-64" evaluate
+        s" go-args 2@ " evaluate
+        direct-ram-boot-base 0
+        s" true state-valid ! " evaluate
+        s" disable-watchdog go-64" evaluate
     THEN
 ;
 
@@ -266,15 +266,15 @@ set-default-console
 : check-boot-from-ram
     s" qemu,boot-kernel" get-chosen IF
         decode-int -rot decode-int -rot ( n1 n2 p s )
-	decode-int -rot decode-int -rot ( n1 n2 n3 n4 p s )
-	2drop
-	swap 20 << or to direct-ram-boot-size
-	swap 20 << or to direct-ram-boot-base
-	." Detected RAM kernel at " direct-ram-boot-base .
-	." (" direct-ram-boot-size . ." bytes) "
-	\ Override the boot-command word without touching the
-	\ nvram environment
-	s" boot-command" $create " (boot-ram)" env-string
+        decode-int -rot decode-int -rot ( n1 n2 n3 n4 p s )
+        2drop
+        swap 20 << or to direct-ram-boot-size
+        swap 20 << or to direct-ram-boot-base
+        ." Detected RAM kernel at " direct-ram-boot-base .
+        ." (" direct-ram-boot-size . ." bytes) "
+        \ Override the boot-command word without touching the
+        \ nvram environment
+        s" boot-command" $create " (boot-ram)" env-string
     THEN
 ;
 check-boot-from-ram
