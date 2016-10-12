@@ -16,8 +16,7 @@ ifndef TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS += -I. -I.. -I../libc/include
-CFLAGS += -I../../clients/net-snk/app/netapps -I../../clients/net-snk/include
+CFLAGS += -I. -I.. -I../libc/include -I$(TOP)/include
 
 SRCS =	ethernet.c ipv4.c udp.c tcp.c dns.c bootp.c dhcp.c tftp.c \
 	ipv6.c dhcpv6.c icmpv6.c ndp.c netload.c ping.c args.c

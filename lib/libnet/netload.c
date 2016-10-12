@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <libbootmsg/libbootmsg.h>
-#include <of.h>
+#include <helpers.h>
 #include "args.h"
 #include "netapps.h"
 

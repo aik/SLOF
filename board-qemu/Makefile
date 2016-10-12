@@ -10,7 +10,7 @@
 # *     IBM Corporation - initial implementation
 # ****************************************************************************/
 
-BOARD_TARGETS = tools_build romfs_build clients_build stage1 subdirs
+BOARD_TARGETS = tools_build romfs_build stage1 subdirs
 
 SUBDIRS = slof
 

@@ -16,7 +16,7 @@ export TOP
 endif
 include $(TOP)/make.rules
 
-CFLAGS +=$(ADDCFLAGS) -I$(LIBCMNDIR)/libnet
+CFLAGS +=$(ADDCFLAGS)
 
 OBJS = main.o
 
