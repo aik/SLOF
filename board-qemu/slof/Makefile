@@ -21,7 +21,7 @@ all: version.o Makefile.dep OF.ffs paflof $(SLOFCMNDIR)/xvect.bin
 CPPFLAGS = -I$(LIBCMNDIR)/libbootmsg -I$(LIBCMNDIR)/libhvcall \
 	   -I$(LIBCMNDIR)/libvirtio -I$(LIBCMNDIR)/libnvram \
 	   -I$(LIBCMNDIR)/libusb -I$(LIBCMNDIR)/libveth \
-	   -I$(LIBCMNDIR)/libe1k
+	   -I$(LIBCMNDIR)/libe1k -I$(LIBCMNDIR)/libnet
 SLOF_LIBS = \
 	$(LIBCMNDIR)/libbootmsg.a \
 	$(LIBCMNDIR)/libelf.a \
@@ -30,7 +30,8 @@ SLOF_LIBS = \
 	$(LIBCMNDIR)/libusb.a \
 	$(LIBCMNDIR)/libnvram.a \
 	$(LIBCMNDIR)/libveth.a \
-	$(LIBCMNDIR)/libe1k.a
+	$(LIBCMNDIR)/libe1k.a \
+	$(LIBCMNDIR)/libnet.a
 BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libhvcall/hvcall.in \
 	$(LIBCMNDIR)/libvirtio/virtio.in \
@@ -40,7 +41,8 @@ BOARD_SLOF_IN = \
 	$(LIBCMNDIR)/libnvram/libnvram.in \
 	$(LIBCMNDIR)/libbases/libbases.in \
 	$(LIBCMNDIR)/libveth/veth.in \
-	$(LIBCMNDIR)/libe1k/e1k.in
+	$(LIBCMNDIR)/libe1k/e1k.in \
+	$(LIBCMNDIR)/libnet/libnet.in
 BOARD_SLOF_CODE = $(BOARD_SLOF_IN:%.in=%.code)
 
 include $(SLOFCMNDIR)/Makefile.inc

@@ -38,15 +38,16 @@ INSTANCE VARIABLE ciregs-buffer
     (u.) s" netboot " 2swap $cat s"  60000000 " $cat
 
     \ Allocate 1720 bytes to store the BOOTP-REPLY packet
-    6B8 alloc-mem dup >r (u.) $cat s"  " $cat
+    6B8 alloc-mem dup >r (u.) $cat
     huge-tftp-load @ IF s"  1 " ELSE s"  0 " THEN $cat
     \ Add desired TFTP-Blocksize as additional argument
     s" 1432 " $cat
     \ Add OBP-TFTP Bootstring argument, e.g. "10.128.0.1,bootrom.bin,10.128.40.1"
     my-args $cat
+    \ Zero-terminate string
+    s"  " $cat 2dup + 1 - 0 swap c!
 
-    \ Call SNK netboot loadr
-    (client-exec) dup 0< IF drop 0 THEN
+    net-load dup 0< IF drop 0 THEN
 
     \ Restore to old client interface register 
     ciregs-buffer @ ciregs ciregs-size move
