@@ -82,7 +82,12 @@ CREATE cdb 10 allot
     >r rot r> 			                ( block# #blocks addr len )
     2swap                                       ( addr len block# #blocks )
     dup >r
-    cdb scsi-build-read-10                      ( addr len )
+    cdb                                         ( addr len block# #blocks cdb )
+    max-block-num FFFFFFFF > IF
+        scsi-build-read-16                      ( addr len )
+    ELSE
+        scsi-build-read-10                      ( addr len )
+    THEN
     r> -rot                                     ( #blocks addr len )
     scsi-dir-read cdb scsi-param-size 10
     retry-scsi-command

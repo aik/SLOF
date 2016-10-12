@@ -525,6 +525,35 @@ CONSTANT scsi-length-read-12
 ;
 
 \ ***************************************************************************
+\ SCSI-Command: READ (16)
+\         Type: Block Command
+\ ***************************************************************************
+\ Forth Word:   scsi-build-read-16  ( block# #blocks cdb -- )
+\ ***************************************************************************
+\ command code
+88 CONSTANT scsi-cmd-read-16
+
+\ CDB structure
+STRUCT
+   /c FIELD read-16>operation-code     \ code: 88
+   /c FIELD read-16>protect            \ RDPROTECT, DPO, FUA, FUA_NV
+   /x FIELD read-16>block-address      \ lba
+   /l FIELD read-16>length             \ transfer length (32bits)
+   /c FIELD read-16>group              \ group number
+   /c FIELD read-16>control
+CONSTANT scsi-length-read-16
+
+: scsi-build-read-16                         ( block# #blocks cdb -- )
+   >r                                        ( block# #blocks )  ( R: -- cdb )
+   r@ scsi-length-read-16 erase              \ 16 bytes CDB
+   scsi-cmd-read-16 r@ read-16>operation-code c! ( block# #blocks )
+   r@ read-16>length l!                      ( block# )
+   r@ read-16>block-address x!               (  )
+   scsi-param-control r> read-16>control c!  ( R: cdb -- )
+   scsi-length-read-16 to scsi-param-size    \ update CDB length
+;
+
+\ ***************************************************************************
 \ SCSI-Command: READ with autodetection of required command
 \               read(10) or read(12) depending on parameter size
 \               (read(6) removed because obsolete in some cases (USB))
