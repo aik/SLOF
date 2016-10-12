@@ -14,18 +14,11 @@ s" obp-tftp" device-name
 
 VARIABLE huge-tftp-load 1 huge-tftp-load !
 
-INSTANCE VARIABLE ciregs-buffer
-
 : open ( -- okay? ) 
-    ciregs-size alloc-mem ciregs-buffer ! 
     true
 ;
 
 : load ( addr -- size )
-
-    \ Save old client interface register 
-    ciregs ciregs-buffer @ ciregs-size move
-
     s" bootargs" get-chosen 0= IF 0 0 THEN >r >r
     s" bootpath" get-chosen 0= IF 0 0 THEN >r >r
 
@@ -42,9 +35,6 @@ INSTANCE VARIABLE ciregs-buffer
     my-args
     net-load dup 0< IF drop 0 THEN
 
-    \ Restore to old client interface register 
-    ciregs-buffer @ ciregs ciregs-size move
-
     \ Recover buffer address of BOOTP-REPLY packet
     r>
 
@@ -59,7 +49,6 @@ INSTANCE VARIABLE ciregs-buffer
 ;
 
 : close ( -- )
-   ciregs-buffer @ ciregs-size free-mem 
 ;
 
 : ping  ( -- )
