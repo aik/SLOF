@@ -2,20 +2,15 @@
 #include <netapps.h>
 
 PRIM(NET_X2d_LOAD)
-	int slen = TOS.n; POP;
-	char *arg = TOS.a;
-	char *argvs[8];
-	int i, p;
-	argvs[0] = arg;
-	i = 1;
-	for (p = 0; p < slen; p++) {
-		if (arg[p] == ' ') {
-			arg[p] = 0;
-			argvs[i] = &arg[p + 1];
-			i++;
-		}
-	}
-	TOS.n = netboot(i, argvs);
+	int alen = TOS.n; POP;
+	char *arg = TOS.a; POP;
+	int blocksize = TOS.n; POP;
+	int hugeload = TOS.n; POP;
+	void *replybuf = TOS.a; POP;
+	long maxlen = TOS.n; POP;
+	void *loadaddr = TOS.a;
+	TOS.n = netload(loadaddr, maxlen, replybuf, hugeload, blocksize,
+			arg, alen);
 MIRP
 
 PRIM(NET_X2d_PING)
