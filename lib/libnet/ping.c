@@ -106,8 +106,7 @@ parse_args(const char *args, struct ping_args *ping_args)
 	return 0;
 }
 
-int
-ping(int argc, char *argv[])
+int ping(char *args_fs, int alen)
 {
 	short arp_failed = 0;
 	filename_ip_t fn_ip;
@@ -115,15 +114,20 @@ ping(int argc, char *argv[])
 	struct ping_args ping_args;
 	uint8_t own_mac[6];
 	uint32_t netmask;
+	char args[256];
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
-	if (argc == 2) {
-		if (parse_args(argv[1], &ping_args)) {
-			usage();
-			return -1;
-		}
-	} else {
+	if (alen <= 0 && alen >= sizeof(args) - 1) {
+		usage();
+		return -1;
+	}
+
+	/* Convert forth string into NUL-terminated C-string */
+	memcpy(args, args_fs, alen);
+	args[alen] = 0;
+
+	if (parse_args(args, &ping_args)) {
 		usage();
 		return -1;
 	}

@@ -19,18 +19,7 @@ PRIM(NET_X2d_LOAD)
 MIRP
 
 PRIM(NET_X2d_PING)
-	int slen = TOS.n; POP;
+	int alen = TOS.n; POP;
 	char *arg = TOS.a;
-	char *argvs[8];
-	int i, p;
-	argvs[0] = arg;
-	i = 1;
-	for (p = 0; p < slen; p++) {
-		if (arg[p] == ' ') {
-			arg[p] = 0;
-			argvs[i] = &arg[p + 1];
-			i++;
-		}
-	}
-	TOS.n = ping(i, argvs);
+	TOS.n = ping(arg, alen);
 MIRP

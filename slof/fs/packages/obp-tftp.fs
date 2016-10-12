@@ -70,8 +70,5 @@ INSTANCE VARIABLE ciregs-buffer
 ;
 
 : ping  ( -- )
-    s" ping " my-args $cat
-    \ Zero-terminate string:
-    s"  " $cat 2dup + 1 - 0 swap c!
-    net-ping
+    my-args net-ping
 ;
