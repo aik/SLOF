@@ -94,13 +94,26 @@ asm_cout(long Character, long UART, long NVRAM __attribute__((unused)))
 		io_putchar(Character);
 }
 
+static type_u find_method(type_u phandle, const char *name)
+{
+	forth_push((type_u)name);
+	forth_push(strlen(name));
+	forth_push(phandle);
+	forth_eval("find-method");
+	if (forth_pop())
+		return forth_pop();
+
+	return 0;
+}
+
 #define FILEIO_TYPE_EMPTY   0
 #define FILEIO_TYPE_FILE    1
 #define FILEIO_TYPE_SOCKET  2
 
 struct fileio_type {
 	int type;
-	int ih;		/* ihandle */
+	type_u read_xt;
+	type_u write_xt;
 };
 
 #define FILEIO_MAX 32
@@ -109,6 +122,7 @@ static struct fileio_type fd_array[FILEIO_MAX];
 int socket(int domain, int type, int proto, char *mac_addr)
 {
 	const char mac_prop_name[] = "local-mac-address";
+	type_u phandle;
 	uint8_t *prop_addr;
 	int prop_len;
 	int fd;
@@ -124,18 +138,30 @@ int socket(int domain, int type, int proto, char *mac_addr)
 		return -2;
 	}
 
-	forth_eval("my-parent");
-	fd_array[fd].ih = forth_pop();
-	if (fd_array[fd].ih == 0) {
+	/* Assume that obp-tftp package is the current one, so
+	 * my-parent is the NIC node that we are interested in */
+	forth_eval("my-parent ?dup IF ihandle>phandle THEN");
+	phandle = forth_pop();
+	if (phandle == 0) {
 		puts("Can not open socket, no parent instance");
+		return -1;
+	}
+	fd_array[fd].read_xt = find_method(phandle, "read");
+	if (!fd_array[fd].read_xt) {
+		puts("Can not open socket, no 'read' method");
+		return -1;
+	}
+	fd_array[fd].write_xt = find_method(phandle, "write");
+	if (!fd_array[fd].write_xt) {
+		puts("Can not open socket, no 'write' method");
 		return -1;
 	}
 
 	/* Read MAC address from device */
 	forth_push((unsigned long)mac_prop_name);
 	forth_push(strlen(mac_prop_name));
-	forth_push(fd_array[fd].ih);
-	forth_eval("ihandle>phandle get-property");
+	forth_push(phandle);
+	forth_eval("get-property");
 	if (forth_pop())
 		return -1;
 	prop_len = forth_pop();
@@ -179,8 +205,8 @@ int recv(int fd, void *buf, int len, int flags)
 
 	forth_push((unsigned long)buf);
 	forth_push(len);
-
-	return forth_eval_pop("read");
+	forth_push(fd_array[fd].read_xt);
+	return forth_eval_pop("EXECUTE");
 }
 
 /**
@@ -199,8 +225,9 @@ int send(int fd, const void *buf, int len, int flags)
 
 	forth_push((unsigned long)buf);
 	forth_push(len);
+	forth_push(fd_array[fd].write_xt);
+	return forth_eval_pop("EXECUTE");
 
-	return forth_eval_pop("write");
 }
 
 /**
