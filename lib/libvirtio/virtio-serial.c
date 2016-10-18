@@ -38,6 +38,7 @@ int virtio_serial_init(struct virtio_device *dev)
 {
 	struct vring_avail *vq_avail;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
+	int i;
 
 	/* Reset device */
 	virtio_reset_device(dev);
@@ -68,7 +69,7 @@ int virtio_serial_init(struct virtio_device *dev)
 	}
 
 	/* Prepare receive buffer queue */
-	for (int i = 0; i < RX_NUM_ELEMS; i++) {
+	for (i = 0; i < RX_NUM_ELEMS; i++) {
 		uint64_t addr = (uint64_t)vq_rx.buf_mem + i * RX_ELEM_SIZE;
 
 		/* Descriptor for data: */
