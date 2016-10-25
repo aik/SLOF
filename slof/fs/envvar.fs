@@ -262,7 +262,7 @@ VARIABLE nvoff \ offset in envvar partition
       ." No NVRAM common partition, re-initializing..." cr
       internal-reset-nvram
       (nvupdate)
-      nvram-partition-type-common get-nvram-partition IF ." NVRAM seems to be broken." cr EXIT THEN
+      EXIT
    THEN
    \ partition header found: read data from nvram
    drop ( addr )           \ throw away offset
