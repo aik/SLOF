@@ -64,7 +64,7 @@ PRIM(virtio_X2d_blk_X2d_shutdown)
 	virtioblk_shutdown(dev);
 MIRP
 
-// : virtio-blk-read ( dev blkno cnt reg -- #read )
+// : virtio-blk-read ( buf blkno cnt dev -- #read )
 PRIM(virtio_X2d_blk_X2d_read)
 	void *dev = TOS.a; POP;
 	long cnt = TOS.n; POP;
