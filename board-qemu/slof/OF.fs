@@ -231,9 +231,16 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
         " screen" find-alias dup IF nip THEN
         " keyboard" find-alias dup IF nip THEN
         AND IF
-            ." using screen & keyboard" cr
-            " screen" output
-            " keyboard" input
+            ." using screen "
+            s" direct-serial?" evaluate IF
+                ." & hvterm"
+                s" hvterm" input
+            ELSE
+                ." & keyboard"
+                s" keyboard" input
+            THEN
+            cr
+            s" screen" output
         ELSE
             " hvterm" find-alias IF
                 drop
