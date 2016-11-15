@@ -112,15 +112,17 @@ static void fill_blk_hdr(struct virtio_blk_req *blkhdr, bool is_modern,
 }
 
 /**
- * Read blocks
+ * Read / write blocks
  * @param  reg  pointer to "reg" property
  * @param  buf  pointer to destination buffer
- * @param  blocknum  block number of the first block that should be read
- * @param  cnt  amount of blocks that should be read
- * @return number of blocks that have been read successfully
+ * @param  blocknum  block number of the first block that should be transfered
+ * @param  cnt  amount of blocks that should be transfered
+ * @param  type  VIRTIO_BLK_T_OUT for write, VIRTIO_BLK_T_IN for read transfers
+ * @return number of blocks that have been transfered successfully
  */
 int
-virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt)
+virtioblk_transfer(struct virtio_device *dev, char *buf, uint64_t blocknum,
+                   long cnt, unsigned int type)
 {
 	struct vring_desc *desc;
 	int id;
@@ -136,15 +138,15 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	uint16_t last_used_idx, avail_idx;
 	int blk_size = DEFAULT_SECTOR_SIZE;
 
-	//printf("virtioblk_read: dev=%p buf=%p blocknum=%li count=%li\n",
-	//	dev, buf, blocknum, cnt);
+	//printf("virtioblk_transfer: dev=%p buf=%p blocknum=%lli cnt=%li type=%i\n",
+	//	dev, buf, blocknum, cnt, type);
 
 	/* Check whether request is within disk capacity */
 	capacity = virtio_get_config(dev,
 			offset_of(struct virtio_blk_cfg, capacity),
 			sizeof(capacity));
 	if (blocknum + cnt - 1 > capacity) {
-		puts("virtioblk_read: Access beyond end of device!");
+		puts("virtioblk_transfer: Access beyond end of device!");
 		return 0;
 	}
 
@@ -152,7 +154,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 			offset_of(struct virtio_blk_cfg, blk_size),
 			sizeof(blk_size));
 	if (blk_size % DEFAULT_SECTOR_SIZE) {
-		fprintf(stderr, "virtio-blk: Unaligned sector read %d\n", blk_size);
+		fprintf(stderr, "virtio-blk: Unaligned sector size %d\n", blk_size);
 		return 0;
 	}
 
@@ -167,7 +169,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	current_used_idx = &vq_used->idx;
 
 	/* Set up header */
-	fill_blk_hdr(&blkhdr, dev->is_modern, VIRTIO_BLK_T_IN | VIRTIO_BLK_T_BARRIER,
+	fill_blk_hdr(&blkhdr, dev->is_modern, type | VIRTIO_BLK_T_BARRIER,
 		     1, blocknum * blk_size / DEFAULT_SECTOR_SIZE);
 
 	/* Determine descriptor index */
@@ -182,7 +184,7 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	/* Set up virtqueue descriptor for data */
 	desc = &vq_desc[(id + 1) % vq_size];
 	virtio_fill_desc(desc, dev->is_modern, (uint64_t)buf, cnt * blk_size,
-			 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE,
+			 VRING_DESC_F_NEXT | ((type & 1) ? 0 : VRING_DESC_F_WRITE),
 			 (id + 2) % vq_size);
 
 	/* Set up virtqueue descriptor for status */
@@ -209,7 +211,8 @@ virtioblk_read(struct virtio_device *dev, char *buf, uint64_t blocknum, long cnt
 	if (status == 0)
 		return cnt;
 
-	printf("virtioblk_read failed! status = %i\n", status);
+	printf("virtioblk_transfer failed! type=%i, status = %i\n",
+	       type, status);
 
 	return 0;
 }

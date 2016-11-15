@@ -49,6 +49,15 @@ virtio-setup-vd VALUE virtiodev
    virtiodev virtio-blk-read
 ;
 
+: write-blocks  ( addr block# #blocks -- #written )
+    \ Do not allow writes to the partition table (GPT is in first 34 sectors)
+    over 22 < IF
+        ." virtio-blk ERROR: Write access to partition table is not allowed." cr
+        3drop 0 EXIT
+    THEN
+    virtiodev virtio-blk-write
+;
+
 \ Standard node "open" function
 : open  ( -- okay? )
    open 0= IF false EXIT THEN
@@ -77,6 +86,10 @@ virtio-setup-vd VALUE virtiodev
 \ Standard node "read" function
 : read  ( addr len -- actual )
    s" read" deblocker @ $call-method
+;
+
+: write ( addr len -- actual )
+    s" write" deblocker @ $call-method
 ;
 
 \ Set disk alias if none is set yet

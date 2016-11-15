@@ -70,7 +70,16 @@ PRIM(virtio_X2d_blk_X2d_read)
 	long cnt = TOS.n; POP;
 	long blkno = TOS.n; POP;
 	void *buf = TOS.a;
-	TOS.n = virtioblk_read(dev, buf, blkno, cnt);
+	TOS.n = virtioblk_transfer(dev, buf, blkno, cnt, VIRTIO_BLK_T_IN);
+MIRP
+
+// : virtio-blk-write ( buf blkno cnt dev -- #written )
+PRIM(virtio_X2d_blk_X2d_write)
+	void *dev = TOS.a; POP;
+	long cnt = TOS.n; POP;
+	long blkno = TOS.n; POP;
+	void *buf = TOS.a;
+	TOS.n = virtioblk_transfer(dev, buf, blkno, cnt, VIRTIO_BLK_T_OUT);
 MIRP
 
 /******** virtio-fs ********/

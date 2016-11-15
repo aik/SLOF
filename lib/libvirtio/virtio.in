@@ -20,6 +20,7 @@ cod(virtio-set-qaddr)
 cod(virtio-blk-init)
 cod(virtio-blk-shutdown)
 cod(virtio-blk-read)
+cod(virtio-blk-write)
 
 cod(virtio-scsi-init)
 cod(virtio-scsi-shutdown)
