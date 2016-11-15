@@ -95,6 +95,40 @@ CREATE cdb 10 allot
     dup 0<> IF " read-blocks" dump-scsi-error -65 throw ELSE drop THEN
 ;
 
+: write-blocks ( addr block# #blocks -- #written )
+    scsi-disk-debug? IF
+        ." SCSI-DISK: write-blocks " .s cr
+    THEN
+
+    \ Do not allow writes to the partition table (GPT is in first 34 sectors)
+    over 22 < IF
+        ." SCSI-DISK ERROR: Write access to partition table is not allowed." cr
+        3drop 0 EXIT
+    THEN
+
+    \ Bound check
+    2dup + max-block-num > IF
+        ." SCSI-DISK: Access beyond end of device ! " cr
+        3drop 0 EXIT
+    THEN
+
+    dup block-size *                            ( addr block# #blocks len )
+    >r rot r>                                   ( block# #blocks addr len )
+    2swap                                       ( addr len block# #blocks )
+    dup >r
+    cdb                                         ( addr len block# #blocks cdb )
+    max-block-num FFFFFFFF > IF
+        scsi-build-write-16
+    ELSE
+        scsi-build-write-10
+    THEN
+    r> -rot                                     ( #blocks addr len )
+    scsi-dir-write cdb scsi-param-size 10
+    retry-scsi-command
+                                                ( #blocks [ sense-buf sense-len ] stat )
+    dup 0<> IF s" write-blocks" dump-scsi-error -65 throw ELSE drop THEN
+;
+
 : (inquiry) ( size -- buffer | NULL )
     dup cdb scsi-build-inquiry
     \ 16 retries for inquiry to flush out any UAs
@@ -341,6 +375,10 @@ CREATE cdb 10 allot
 
 : read ( addr len -- actual )
     s" read" deblocker @ $call-method ;
+
+: write ( addr len -- actual )
+    s" write" deblocker @ $call-method
+;
 
 \ Get rid of SCSI bits
 scsi-close

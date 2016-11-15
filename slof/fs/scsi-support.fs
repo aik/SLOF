@@ -531,6 +531,64 @@ CONSTANT scsi-length-read-16
 ;
 
 \ ***************************************************************************
+\ SCSI-Command: WRITE (10)
+\         Type: Block Command
+\ ***************************************************************************
+\ Forth Word:   scsi-build-write-10  ( block# #blocks cdb -- )
+\ ***************************************************************************
+\ command code
+2A CONSTANT scsi-cmd-write-10
+
+\ CDB structure
+STRUCT
+   /c FIELD write-10>operation-code
+   /c FIELD write-10>protect
+   /l FIELD write-10>block-address            \ logical block address (32bits)
+   /c FIELD write-10>group
+   /w FIELD write-10>length                   \ transfer length (16-bits)
+   /c FIELD write-10>control
+CONSTANT scsi-length-write-10
+
+: scsi-build-write-10                         ( block# #blocks cdb -- )
+   >r                                         ( block# #blocks )  ( R: -- cdb )
+   r@ scsi-length-write-10 erase              \ 10 bytes CDB
+   scsi-cmd-write-10 r@ write-10>operation-code c! ( block# #blocks )
+   r@ write-10>length w!                      ( block# )
+   r@ write-10>block-address l!               (  )
+   scsi-param-control r> write-10>control c!  ( R: cdb -- )
+   scsi-length-write-10 to scsi-param-size    \ update CDB length
+;
+
+\ ***************************************************************************
+\ SCSI-Command: WRITE (16)
+\         Type: Block Command
+\ ***************************************************************************
+\ Forth Word:   scsi-build-write-16  ( block# #blocks cdb -- )
+\ ***************************************************************************
+\ command code
+8A CONSTANT scsi-cmd-write-16
+
+\ CDB structure
+STRUCT
+   /c FIELD write-16>operation-code
+   /c FIELD write-16>protect                  \ RDPROTECT, DPO, FUA, FUA_NV
+   /x FIELD write-16>block-address            \ LBA
+   /l FIELD write-16>length                   \ Transfer length (32-bits)
+   /c FIELD write-16>group                    \ Group number
+   /c FIELD write-16>control
+CONSTANT scsi-length-write-16
+
+: scsi-build-write-16                         ( block# #blocks cdb -- )
+   >r                                         ( block# #blocks )  ( R: -- cdb )
+   r@ scsi-length-write-16 erase              \ 16 bytes CDB
+   scsi-cmd-write-16 r@ write-16>operation-code c! ( block# #blocks )
+   r@ write-16>length l!                      ( block# )
+   r@ write-16>block-address x!               (  )
+   scsi-param-control r> write-16>control c!  ( R: cdb -- )
+   scsi-length-write-16 to scsi-param-size    \ update CDB length
+;
+
+\ ***************************************************************************
 \ SCSI-Command: START STOP UNIT
 \         Type: Block Command (SBC-3 clause 5.19)
 \ ***************************************************************************
