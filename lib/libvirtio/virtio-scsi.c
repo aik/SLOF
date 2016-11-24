@@ -49,18 +49,27 @@ int virtioscsi_send(struct virtio_device *dev,
 	virtio_fill_desc(&vq_desc[id], dev->is_modern, (uint64_t)req, sizeof(*req), VRING_DESC_F_NEXT,
 			 (id + 1) % vq_size);
 
-	/* Set up virtqueue descriptor for data */
-	if (buf && buf_len) {
+	if (buf == NULL || buf_len == 0) {
+		/* Set up descriptor for response information */
+		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], dev->is_modern,
+				 (uint64_t)resp, sizeof(*resp),
+				 VRING_DESC_F_WRITE, 0);
+	} else if (is_read) {
+		/* Set up descriptor for response information */
 		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], dev->is_modern,
 				 (uint64_t)resp, sizeof(*resp),
 				 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE,
 				 (id + 2) % vq_size);
-		/* Set up virtqueue descriptor for status */
+		/* Set up virtqueue descriptor for data from device */
 		virtio_fill_desc(&vq_desc[(id + 2) % vq_size], dev->is_modern,
-				 (uint64_t)buf, buf_len,
-				 (is_read ? VRING_DESC_F_WRITE : 0), 0);
+				 (uint64_t)buf, buf_len, VRING_DESC_F_WRITE, 0);
 	} else {
+		/* Set up virtqueue descriptor for data to device */
 		virtio_fill_desc(&vq_desc[(id + 1) % vq_size], dev->is_modern,
+				 (uint64_t)buf, buf_len, VRING_DESC_F_NEXT,
+				 (id + 2) % vq_size);
+		/* Set up descriptor for response information */
+		virtio_fill_desc(&vq_desc[(id + 2) % vq_size], dev->is_modern,
 				 (uint64_t)resp, sizeof(*resp),
 				 VRING_DESC_F_WRITE, 0);
 	}
