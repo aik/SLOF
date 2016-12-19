@@ -98,8 +98,6 @@ include fbuffer.fs
 \ Now do it
 populate-vios
 
-580 cp
-
 5a0 cp
 
 #include "pci-scan.fs"
@@ -155,18 +153,6 @@ populate-pci-busses
 \ Add rtas cleanup last
 ' rtas-quiesce add-quiesce-xt
 
-640 cp
-
-690 cp
-
-6a0 cp
-
-6a8 cp
-
-6b0 cp
-
-6b8 cp
-
 6c0 cp
 
 \ Do not assume that cpu0 is available
@@ -178,8 +164,6 @@ populate-pci-busses
 set-chosen-cpu
 
 s" /memory@0" open-dev encode-int s" memory" set-chosen
-
-6e0 cp
 
 700 cp
 
