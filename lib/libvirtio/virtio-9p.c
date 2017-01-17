@@ -20,8 +20,6 @@
 #include "p9.h"
 #include "virtio-internal.h"
 
-static struct vqs vq;
-
 /**
  * Notes for 9P Server config:
  *
@@ -163,7 +161,7 @@ static int virtio_9p_transact(void *opaque, uint8_t *tx, int tx_size, uint8_t *r
 int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 		   int buf_size)
 {
-	struct vring_avail *vq_avail;
+	struct vqs vq;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
 
 	/* Check for double open */
@@ -195,9 +193,8 @@ int virtio_9p_init(struct virtio_device *dev, void *tx_buf, void *rx_buf,
 	if (virtio_queue_init_vq(dev, &vq, 0))
 		goto dev_error;
 
-	vq_avail = virtio_get_vring_avail(dev, 0);
-	vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_avail->idx = 0;
+	vq.avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
+	vq.avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;

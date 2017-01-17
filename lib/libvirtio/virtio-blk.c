@@ -21,8 +21,6 @@
 #define DEFAULT_SECTOR_SIZE 512
 #define DRIVER_FEATURE_SUPPORT  (VIRTIO_BLK_F_BLK_SIZE | VIRTIO_F_VERSION_1)
 
-static struct vqs vq;
-
 /**
  * Initialize virtio-block device.
  * @param  dev  pointer to virtio device information
@@ -30,7 +28,7 @@ static struct vqs vq;
 int
 virtioblk_init(struct virtio_device *dev)
 {
-	struct vring_avail *vq_avail;
+	struct vqs vq;
 	int blk_size = DEFAULT_SECTOR_SIZE;
 	uint64_t features;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
@@ -59,9 +57,8 @@ virtioblk_init(struct virtio_device *dev)
 	if (virtio_queue_init_vq(dev, &vq, 0))
 		goto dev_error;
 
-	vq_avail = virtio_get_vring_avail(dev, 0);
-	vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_avail->idx = 0;
+	vq.avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
+	vq.avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;
