@@ -165,26 +165,6 @@ scsi-open
 
 scsi-close        \ no further scsi words required
 
-0 VALUE queue-control-addr
-0 VALUE queue-event-addr
-0 VALUE queue-cmd-addr
-
-: setup-virt-queues
-    \ add 3 queues 0-controlq, 1-eventq, 2-cmdq
-    \ fixme: do we need to find more than the above 3 queues if exists
-    virtiodev 0 virtio-get-qsize virtio-vring-size
-    alloc-mem to queue-control-addr
-    virtiodev 0 queue-control-addr virtio-set-qaddr
-
-    virtiodev 1 virtio-get-qsize virtio-vring-size
-    alloc-mem to queue-event-addr
-    virtiodev 1 queue-event-addr virtio-set-qaddr
-
-    virtiodev 2 virtio-get-qsize virtio-vring-size
-    alloc-mem to queue-cmd-addr
-    virtiodev 2 queue-cmd-addr virtio-set-qaddr
-;
-
 \ Set scsi alias if none is set yet
 : setup-alias
     s" scsi" find-alias 0= IF
@@ -212,7 +192,6 @@ scsi-close        \ no further scsi words required
     \ Scan the VSCSI bus:
     virtiodev virtio-scsi-init
     0= IF
-	setup-virt-queues
 	scsi-find-disks
 	setup-alias
 	TRUE to initialized?

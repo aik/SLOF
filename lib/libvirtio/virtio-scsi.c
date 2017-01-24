@@ -99,10 +99,9 @@ int virtioscsi_send(struct virtio_device *dev,
  */
 int virtioscsi_init(struct virtio_device *dev)
 {
-	struct vring_avail *vq_avail;
-	unsigned int idx = 0;
-	int qsize = 0;
+	struct vqs vq_ctrl, vq_event, vq_request;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
+	uint16_t flags;
 
 	/* Reset device */
 	// XXX That will clear the virtq base. We need to move
@@ -126,17 +125,20 @@ int virtioscsi_init(struct virtio_device *dev)
 		virtio_set_guest_features(dev, 0);
 	}
 
-	while(1) {
-		qsize = virtio_get_qsize(dev, idx);
-		if (!qsize)
-			break;
-		virtio_vring_size(qsize);
+	if (virtio_queue_init_vq(dev, &vq_ctrl, VIRTIO_SCSI_CONTROL_VQ) ||
+	    virtio_queue_init_vq(dev, &vq_event, VIRTIO_SCSI_EVENT_VQ) ||
+	    virtio_queue_init_vq(dev, &vq_request, VIRTIO_SCSI_REQUEST_VQ))
+		goto dev_error;
 
-		vq_avail = virtio_get_vring_avail(dev, idx);
-		vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
-		vq_avail->idx = 0;
-		idx++;
-	}
+	flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
+	vq_ctrl.avail->flags = flags;
+	vq_ctrl.avail->idx = 0;
+
+	vq_event.avail->flags = flags;
+	vq_event.avail->idx = 0;
+
+	vq_request.avail->flags = flags;
+	vq_request.avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;
