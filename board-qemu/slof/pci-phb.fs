@@ -331,6 +331,12 @@ setup-puid
    my-puid TO puid                  \ Set current puid
    phb-parse-ranges
    1 TO pci-hotplug-enabled
+   s" qemu,mem-bar-min-align" get-node get-property 0= IF
+       decode-int TO pci-mem-bar-min-align
+       2drop
+   ELSE
+       10000 TO pci-mem-bar-min-align
+   THEN
    s" qemu,phb-enumerated" get-node get-property 0<> IF
        1 0 (probe-pci-host-bridge)
    ELSE

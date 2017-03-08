@@ -24,6 +24,9 @@ VARIABLE pci-max-io
 VARIABLE pci-next-mem64           \ prefetchable 64-bit memory mapped
 VARIABLE pci-max-mem64
 
+\ 0 to default to natural alignment
+0 VALUE pci-mem-bar-min-align
+
 \ Counter of busses found
 0 VALUE pci-bus-number
 \ Counter of devices found
