@@ -323,8 +323,12 @@ CREATE cdb 10 allot
 
     \ Skip devices with PQ != 0
     dup inquiry-data>peripheral c@ e0 and 0 <> IF
-        ." SCSI-DISK: Unsupported PQ != 0" cr
-	false EXIT
+        \ Ignore 7f, since this simply means that the target
+        \ is not supporting a peripheral device at this LUN.
+        inquiry-data>peripheral c@ 7f <> IF
+            ." SCSI-DISK: Unsupported PQ != 0" cr
+        THEN
+        false EXIT
     THEN
 
     inquiry-data>peripheral c@ CASE
