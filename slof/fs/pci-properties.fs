@@ -166,11 +166,7 @@
 \ Setup a non-prefetchable 64bit BAR and return its size
 : assign-mmio64-bar ( bar-addr -- 8 )
         dup pci-bar-size-mem64          \ fetch size
-        pci-next-mem64 @ 0 = IF          \ Check if we have 64-bit memory range
-	    pci-next-mmio
-	ELSE
-	    pci-next-mem64              \ for board-qemu we will use same range
-	THEN
+        pci-next-mmio
         assign-bar-value64              \ and set it all
 ;
 
