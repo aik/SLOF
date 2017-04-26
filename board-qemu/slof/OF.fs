@@ -288,7 +288,7 @@ set-default-console
         swap 20 << or to direct-ram-boot-size
         swap 20 << or to direct-ram-boot-base
         ." Detected RAM kernel at " direct-ram-boot-base .
-        ." (" direct-ram-boot-size . ." bytes) "
+        ." (" direct-ram-boot-size . ." bytes) " cr
         \ Override the boot-command word without touching the
         \ nvram environment
         s" boot-command" $create " (boot-ram)" env-string
