@@ -173,10 +173,7 @@ THEN
 
 200 cp
 
-#include <slof-logo.fs>
 #include <banner.fs>
-
-: .banner .slof-logo .banner ;
 
 \ Get the secondary CPUs into our own spinloop.
 f8000050 rl@ CONSTANT master-cpu

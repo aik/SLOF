@@ -70,15 +70,7 @@ cistack ciregs >r1 ! \ kernel wants a stack :-)
 
 200 cp
 
-#include <slof-logo.fs>
-
-201 cp
-
 #include <banner.fs>
-
-: .banner .slof-logo .banner ;
-
-220 cp
 
 DEFER find-boot-sector ( -- )
 

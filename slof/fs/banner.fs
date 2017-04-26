@@ -11,8 +11,8 @@
 \ ****************************************************************************/
 
 : banner
-   cr ."   Type 'boot'  and press return  to  continue  booting  the system."
-   cr ."   Type 'reset-all'  and  press  return  to   reboot   the   system."
+   cr ."   Type 'boot' and press return to continue booting the system."
+   cr ."   Type 'reset-all' and press return to reboot the system."
    cr cr
 ;
 
