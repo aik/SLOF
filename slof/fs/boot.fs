@@ -268,9 +268,6 @@ read-bootlist
    BEGIN load-next WHILE
       disable-watchdog (go-and-catch)
    REPEAT
-
-   \ When we return from boot print the banner again.
-   .banner
 ;
 
 : load load 0= IF -65 boot-exception-handler THEN ;

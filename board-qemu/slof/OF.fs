@@ -312,4 +312,10 @@ cr cr
 \ this CATCH is to ensure the code bellow always executes:  boot may ABORT!
 ' start-it CATCH drop
 
+: boot
+    boot
+    \ When we return from boot print the banner again.
+    .banner
+;
+
 cr ." Ready!"
