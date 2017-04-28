@@ -261,9 +261,9 @@ setup-puid
             r> + pci-max-mmio !                 \ calc max MMIO address
          ENDOF
          3000000 OF                             \ 64-bit memory space?
-	    decode-64 pci-next-mem64 !
-	    decode-64 drop                      \ Forget the parent address
-	    decode-64 pci-max-mem64 !
+            decode-64 dup >r pci-next-mem64 !
+            decode-64 drop                      \ Forget the parent address
+            decode-64 r> + pci-max-mem64 !
          ENDOF
       ENDCASE
    REPEAT
