@@ -250,14 +250,16 @@
 \ ***************************************************************************************
 \ Generating the assigned-addresses property
 \ ***************************************************************************************
-\ generate assigned-addresses property for 64Bit MEM-BAR and return BAR-reg-size
+\ generate assigned-addresses property for non-prefetchable 64Bit MEM-BAR and
+\ return BAR-reg-size. Note: We use "32-bit" as space code here, since these
+\ BARs are allocated from the 32-bit MMIO window (see assign-mmio64-bar)
 : gen-mem64-bar-prop ( prop-addr prop-len bar-addr -- prop-addr prop-len 8 )
         dup pci-bar-size-mem64                  \ fetch BAR Size        ( paddr plen baddr bsize )
         dup IF                                  \ IF Size > 0
                 >r dup rtas-config-l@           \ | save size and fetch lower 32 bits ( paddr plen baddr val.lo R: size)
                 over 4 + rtas-config-l@         \ | fetch upper 32 bits               ( paddr plen baddr val.lo val.hi R: size)
                 20 lshift + -10 and >r          \ | calc 64 bit value and save it     ( paddr plen baddr R: size val )
-                83000000 or encode-int+         \ | Encode config addr                ( paddr plen R: size val )
+                82000000 or encode-int+         \ | Encode config addr                ( paddr plen R: size val )
                 r> encode-64+                   \ | Encode assigned addr              ( paddr plen R: size )
                 r> encode-64+                   \ | Encode size                       ( paddr plen )
         ELSE                                    \ ELSE
