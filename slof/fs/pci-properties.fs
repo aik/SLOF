@@ -413,8 +413,9 @@
         4 pick 28 + rtas-config-l@      \ fetch upper Basebits  ( addr paddr plen limit.31:0 base.31:0 base.63:32 )
         20 lshift or swap               \ and calc Base         ( addr paddr plen base.63:0 limit.31:0 )
         4 pick 2C + rtas-config-l@      \ fetch upper Limitbits ( addr paddr plen base.63:0 limit.31:0 limit.63:32 )
-        20 lshift or                    \ and calc Limit        ( addr paddr plen base.63:0 limit.63:0 )
-        42000000 pci-bridge-gen-range   \ and generate it       ( addr paddr plen )
+        dup -rot 20 lshift or swap      \ and calc Limit        ( addr paddr plen base.63:0 limit.63:0 limit.63:32 )
+        IF 43000000 ELSE 42000000 THEN  \ 64-bit or 32-bit?     ( addr paddr plen base.63:0 limit.63:0 type )
+        pci-bridge-gen-range            \ and generate it       ( addr paddr plen )
 ;
 
 \ generate an io space to the ranges property
