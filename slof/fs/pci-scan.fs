@@ -44,13 +44,6 @@ here 100 allot CONSTANT pci-device-vec
 \ enable/disable creation of hotplug-specific properties
 0 VALUE pci-hotplug-enabled
 
-
-\ Fixme Glue to the pci-devices ... remove this later
-: next-pci-mem ( addr -- addr ) pci-next-mem ;
-: next-pci-mmio ( addr -- addr ) pci-next-mmio ;
-: next-pci-io ( addr -- addr ) pci-next-io ;
-
-
 #include "pci-helper.fs"
 
 \ Dump out the pci device-slot vector
