@@ -42,6 +42,8 @@ unsigned long epapr_magic;
 unsigned long epapr_ima_size;		// ePAPR initially mapped area size
 unsigned char hash_table[HASHSIZE*CELLSIZE];
 
+static int init_engine;
+
 #include ISTR(TARG,c)
 
 static int did_stackwarning;
@@ -73,7 +75,6 @@ long engine(int mode, long param_1, long param_2)
 	#include "prep.h"
 	#include "dict.xt"
 
-	static int init_engine = 0;
 	if (init_engine == 0) {
 		// one-time initialisation
 		init_engine = 1;

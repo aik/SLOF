@@ -71,19 +71,36 @@ static long writeLogByte_wrapper(long x, long y)
  */
 ssize_t write(int fd, const void *buf, size_t count)
 {
-	int i;
 	char *ptr = (char *)buf;
+	int len;
 
 	if (fd != 1 && fd != 2)
 		return 0;
 
-	for (i = 0; i < count; i++) {
-		if (*ptr == '\n')
-			io_putchar('\r');
-		io_putchar(*ptr++);
+	if (!init_engine || fd == 2) {
+		len = count;
+		while (len-- > 0) {
+			if (*ptr == '\n')
+				io_putchar('\r');
+			io_putchar(*ptr++);
+		}
+		return count;
 	}
 
-	return i;
+	while ((ptr = strchr(buf, '\n')) != NULL) {
+		forth_push((long)buf);
+		forth_push((long)ptr - (long)buf);
+		forth_eval("type cr");
+		buf = ptr + 1;
+	}
+	len = strlen(buf);
+	if (len) {
+		forth_push((long)buf);
+		forth_push(len);
+		forth_eval("type");
+	}
+
+	return count;
 }
 
 /* This should probably be temporary until a better solution is found */
