@@ -13,7 +13,6 @@
 defer set-boot-device
 defer add-boot-device
 
-8 CONSTANT MAX-ALIAS
 : add-boot-aliases ( str -- )
     2dup add-boot-device               ( $str )
     MAX-ALIAS 1 DO

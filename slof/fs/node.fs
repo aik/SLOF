@@ -324,7 +324,7 @@ defer find-node
 
 \ return next available name for aliasing or
 \ false if more than MAX-ALIAS aliases found
-8 CONSTANT MAX-ALIAS
+d# 10 CONSTANT MAX-ALIAS
 1 VALUE alias-ind
 : get-next-alias ( $alias-name -- $next-alias-name|FALSE )
     2dup find-alias IF
