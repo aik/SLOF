@@ -90,7 +90,7 @@ long engine(int mode, long param_1, long param_2)
 	}
 
 	if ((char *)&ip < the_system_stack && !did_stackwarning) {
-		puts("ERROR: stack overflow in engine()!");
+		fprintf(stderr, "\nERROR: stack overflow in engine()!\n");
 		did_stackwarning = 1;
 	}
 
