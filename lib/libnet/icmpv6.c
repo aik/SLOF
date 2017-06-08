@@ -31,8 +31,14 @@ void
 send_router_solicitation (int fd)
 {
 	ip6_addr_t dest_addr;
-	uint8_t ether_packet[ETH_MTU_SIZE];
+	uint8_t *ether_packet;
 	struct packeth headers;
+
+	ether_packet = malloc(ETH_MTU_SIZE);
+	if (!ether_packet) {
+		fprintf(stderr, "send_router_solicitation: Out of memory\n");
+		return;
+	}
 
 	headers.ip6h   = (struct ip6hdr *) (ether_packet + sizeof(struct ethhdr));
 	headers.icmp6h = (struct icmp6hdr *) (ether_packet +
@@ -59,6 +65,8 @@ send_router_solicitation (int fd)
 
 	send_ip (fd, headers.ip6h, sizeof(struct ip6hdr) +
 		   ICMPv6_HEADER_SIZE + sizeof(struct router_solicitation));
+
+	free(ether_packet);
 }
 
 /**
@@ -200,9 +208,14 @@ void
 send_neighbour_solicitation (int fd, ip6_addr_t *dest_ip6)
 {
 	ip6_addr_t snma;
-
-	uint8_t ether_packet[ETH_MTU_SIZE];
+	uint8_t *ether_packet;
 	struct  packeth headers;
+
+	ether_packet = malloc(ETH_MTU_SIZE);
+	if (!ether_packet) {
+		fprintf(stderr, "send_neighbour_solicitation: Out of memory\n");
+		return;
+	}
 
 	memset(ether_packet, 0, ETH_MTU_SIZE);
 	headers.ethh   = (struct ethhdr *) ether_packet;
@@ -236,6 +249,8 @@ send_neighbour_solicitation (int fd, ip6_addr_t *dest_ip6)
 	send_ip (fd, ether_packet + sizeof(struct ethhdr),
 		   sizeof(struct ip6hdr) + ICMPv6_HEADER_SIZE +
 		   sizeof(struct neighbour_solicitation));
+
+	free(ether_packet);
 }
 
 /**
@@ -250,9 +265,14 @@ static void
 send_neighbour_advertisement (int fd, struct neighbor *target)
 {
 	struct na_flags na_adv_flags;
-	uint8_t ether_packet[ETH_MTU_SIZE];
+	uint8_t *ether_packet;
 	struct  packeth headers;
 
+	ether_packet = malloc(ETH_MTU_SIZE);
+	if (!ether_packet) {
+		fprintf(stderr, "send_neighbour_advertisement: Out of memory\n");
+		return;
+	}
 
 	headers.ip6h   = (struct ip6hdr *) (ether_packet + sizeof(struct ethhdr));
 	headers.icmp6h = (struct icmp6hdr *) (ether_packet +
@@ -301,6 +321,8 @@ send_neighbour_advertisement (int fd, struct neighbor *target)
 	send_ip (fd, ether_packet + sizeof(struct ethhdr),
 		   sizeof(struct ip6hdr) + ICMPv6_HEADER_SIZE +
 		   sizeof(struct neighbour_advertisement));
+
+	free(ether_packet);
 }
 
 /**
