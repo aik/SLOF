@@ -309,6 +309,7 @@ setup-puid
 : phb-pci-bridge-probe ( addr -- )
     dup pci-bridge-set-bases                      \ Set up all Base Registers
     dup func-pci-bridge-range-props               \ Set up temporary "range"
+    my-space pci-bus-scnd@ TO pci-bus-number      \ Set correct current bus number
     pci-device-vec-len 1+ TO pci-device-vec-len   \ increase the device-slot vector depth
     pci-enable                                    \ enable mem/IO transactions
     phb-pci-walk-bridge                           \ and walk the secondary bus
