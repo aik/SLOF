@@ -230,11 +230,10 @@ send_neighbour_solicitation (int fd, ip6_addr_t *dest_ip6)
 	snma.addr[13]          = dest_ip6->addr[13];
 	snma.addr[14]          = dest_ip6->addr[14];
 	snma.addr[15]          = dest_ip6->addr[15];
-        fill_ip6hdr((uint8_t *) headers.ip6h,
-                   ICMPv6_HEADER_SIZE +
-		   sizeof(struct neighbour_solicitation),
-		   0x3a, //ICMPv6
-                   get_ipv6_address(), &snma);
+	fill_ip6hdr((uint8_t *) headers.ip6h,
+		    ICMPv6_HEADER_SIZE + sizeof(struct neighbour_solicitation),
+		    0x3a, //ICMPv6
+		    get_ipv6_address(), &snma);
 
 	/* Fill ICMPv6 message */
 	headers.icmp6h->type = ICMPV6_NEIGHBOUR_SOLICITATION;
@@ -280,11 +279,10 @@ send_neighbour_advertisement (int fd, struct neighbor *target)
 			  sizeof(struct ip6hdr));
 
 	/* Fill IPv6 header */
-        fill_ip6hdr(ether_packet + sizeof(struct ethhdr),
-                   ICMPv6_HEADER_SIZE +
-		   sizeof(struct neighbour_advertisement),
-		   0x3a, //ICMPv6
-                   get_ipv6_address(), (ip6_addr_t *) &(target->ip.addr));
+	fill_ip6hdr(ether_packet + sizeof(struct ethhdr),
+		    ICMPv6_HEADER_SIZE + sizeof(struct neighbour_advertisement),
+		    0x3a, //ICMPv6
+		    get_ipv6_address(), (ip6_addr_t *) &(target->ip.addr));
 
 	/* Fill ICMPv6 message */
 	memcpy( &(headers.icmp6h->icmp6body.nghb_adv.target),

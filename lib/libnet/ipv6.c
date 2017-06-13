@@ -32,7 +32,6 @@
 #endif
 
 /****************************** PROTOTYPES *******************************/
-int8_t ip6addr_add (struct ip6addr_list_entry *new_address);
 static void ipv6_init(int fd);
 static int ip6_is_multicast (ip6_addr_t * ip);
 
@@ -252,7 +251,7 @@ int8_t unknown_prefix(ip6_addr_t *ip)
  * @return NULL - malloc failed
  *	   ! NULL - pointer to new prefix_info
  */
-struct prefix_info *ip6_create_prefix_info()
+struct prefix_info *ip6_create_prefix_info(void)
 {
 	struct prefix_info *prfx_info;
 
