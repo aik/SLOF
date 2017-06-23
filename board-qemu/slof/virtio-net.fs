@@ -35,7 +35,8 @@ virtio-setup-vd VALUE virtiodev
    open-count 0= IF
       open IF
          \ my-unit 1 rtas-set-tce-bypass
-         virtiodev virtio-net-open not IF ." virtio-net-open failed" false EXIT THEN
+         virtiodev virtio-net-open
+         not IF ." virtio-net-open failed" cr false EXIT THEN
          TO virtio-net-priv
          setup-mac true
       ELSE
@@ -94,7 +95,7 @@ setup-alias
 
 \ Create instance, this will populate the mac address
 : virtio-net-init ( -- )
-    0 0 get-node open-node ?dup 0= IF ." exiting " cr EXIT THEN
-    close-node
+    0 0 get-node open-node
+    ?dup IF close-node THEN
 ;
 virtio-net-init
