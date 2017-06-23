@@ -403,6 +403,95 @@ static void seed_rng(uint8_t mac[])
 	srand(seed);
 }
 
+static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
+		     unsigned int retries, tftp_err_t *tftp_err, int32_t mode,
+		     int32_t blksize, int ip_vers)
+{
+	int rc;
+
+	rc = tftp(fnip, buffer, len, retries, tftp_err, mode, blksize, ip_vers);
+
+	if (rc > 0) {
+		printf("  TFTP: Received %s (%d KBytes)\n", fnip->filename,
+		       rc / 1024);
+	} else if (rc == -1) {
+		netload_error(0x3003, "unknown TFTP error");
+		return -103;
+	} else if (rc == -2) {
+		netload_error(0x3004, "TFTP buffer of %d bytes "
+			"is too small for %s",
+			len, fnip->filename);
+		return -104;
+	} else if (rc == -3) {
+		netload_error(0x3009, "file not found: %s",
+			fnip->filename);
+		return -108;
+	} else if (rc == -4) {
+		netload_error(0x3010, "TFTP access violation");
+		return -109;
+	} else if (rc == -5) {
+		netload_error(0x3011, "illegal TFTP operation");
+		return -110;
+	} else if (rc == -6) {
+		netload_error(0x3012, "unknown TFTP transfer ID");
+		return -111;
+	} else if (rc == -7) {
+		netload_error(0x3013, "no such TFTP user");
+		return -112;
+	} else if (rc == -8) {
+		netload_error(0x3017, "TFTP blocksize negotiation failed");
+		return -116;
+	} else if (rc == -9) {
+		netload_error(0x3018, "file exceeds maximum TFTP transfer size");
+		return -117;
+	} else if (rc <= -10 && rc >= -15) {
+		char *icmp_err_str;
+		switch (rc) {
+		case -ICMP_NET_UNREACHABLE - 10:
+			icmp_err_str = "net unreachable";
+			break;
+		case -ICMP_HOST_UNREACHABLE - 10:
+			icmp_err_str = "host unreachable";
+			break;
+		case -ICMP_PROTOCOL_UNREACHABLE - 10:
+			icmp_err_str = "protocol unreachable";
+			break;
+		case -ICMP_PORT_UNREACHABLE - 10:
+			icmp_err_str = "port unreachable";
+			break;
+		case -ICMP_FRAGMENTATION_NEEDED - 10:
+			icmp_err_str = "fragmentation needed and DF set";
+			break;
+		case -ICMP_SOURCE_ROUTE_FAILED - 10:
+			icmp_err_str = "source route failed";
+			break;
+		default:
+			icmp_err_str = " UNKNOWN";
+			break;
+		}
+		netload_error(0x3005, "ICMP ERROR \"%s\"", icmp_err_str);
+		return -105;
+	} else if (rc == -40) {
+		netload_error(0x3014, "TFTP error occurred after "
+			"%d bad packets received",
+			tftp_err->bad_tftp_packets);
+		return -113;
+	} else if (rc == -41) {
+		netload_error(0x3015, "TFTP error occurred after "
+			"missing %d responses",
+			tftp_err->no_packets);
+		return -114;
+	} else if (rc == -42) {
+		netload_error(0x3016, "TFTP error missing block %d, "
+			"expected block was %d",
+			tftp_err->blocks_missed,
+			tftp_err->blocks_received);
+		return -115;
+	}
+
+	return rc;
+}
+
 int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 	    int block_size, char *args_fs, int alen)
 {
@@ -633,94 +722,16 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 		printf("%s\n", ip6_str);
 	}
 
-	// accept at most 20 bad packets
-	// wait at most for 40 packets
-	rc = tftp(&fn_ip, (unsigned char *) buffer,
-	          len, obp_tftp_args.tftp_retries,
-	          &tftp_err, huge_load, block_size, ip_version);
+	/* Do the TFTP load and print error message if necessary */
+	rc = tftp_load(&fn_ip, (unsigned char *)buffer, len,
+		       obp_tftp_args.tftp_retries, &tftp_err, huge_load,
+		       block_size, ip_version);
 
-	if(obp_tftp_args.ip_init == IP_INIT_DHCP)
+	if (obp_tftp_args.ip_init == IP_INIT_DHCP)
 		dhcp_send_release(fn_ip.fd);
 
 	close(fn_ip.fd);
 
-	if (rc > 0) {
-		printf("  TFTP: Received %s (%d KBytes)\n", fn_ip.filename,
-		       rc / 1024);
-	} else if (rc == -1) {
-		netload_error(0x3003, "unknown TFTP error");
-		return -103;
-	} else if (rc == -2) {
-		netload_error(0x3004, "TFTP buffer of %d bytes "
-			"is too small for %s",
-			len, fn_ip.filename);
-		return -104;
-	} else if (rc == -3) {
-		netload_error(0x3009, "file not found: %s",
-			fn_ip.filename);
-		return -108;
-	} else if (rc == -4) {
-		netload_error(0x3010, "TFTP access violation");
-		return -109;
-	} else if (rc == -5) {
-		netload_error(0x3011, "illegal TFTP operation");
-		return -110;
-	} else if (rc == -6) {
-		netload_error(0x3012, "unknown TFTP transfer ID");
-		return -111;
-	} else if (rc == -7) {
-		netload_error(0x3013, "no such TFTP user");
-		return -112;
-	} else if (rc == -8) {
-		netload_error(0x3017, "TFTP blocksize negotiation failed");
-		return -116;
-	} else if (rc == -9) {
-		netload_error(0x3018, "file exceeds maximum TFTP transfer size");
-		return -117;
-	} else if (rc <= -10 && rc >= -15) {
-		char *icmp_err_str;
-		switch (rc) {
-		case -ICMP_NET_UNREACHABLE - 10:
-			icmp_err_str = "net unreachable";
-			break;
-		case -ICMP_HOST_UNREACHABLE - 10:
-			icmp_err_str = "host unreachable";
-			break;
-		case -ICMP_PROTOCOL_UNREACHABLE - 10:
-			icmp_err_str = "protocol unreachable";
-			break;
-		case -ICMP_PORT_UNREACHABLE - 10:
-			icmp_err_str = "port unreachable";
-			break;
-		case -ICMP_FRAGMENTATION_NEEDED - 10:
-			icmp_err_str = "fragmentation needed and DF set";
-			break;
-		case -ICMP_SOURCE_ROUTE_FAILED - 10:
-			icmp_err_str = "source route failed";
-			break;
-		default:
-			icmp_err_str = " UNKNOWN";
-			break;
-		}
-		netload_error(0x3005, "ICMP ERROR \"%s\"", icmp_err_str);
-		return -105;
-	} else if (rc == -40) {
-		netload_error(0x3014, "TFTP error occurred after "
-			"%d bad packets received",
-			tftp_err.bad_tftp_packets);
-		return -113;
-	} else if (rc == -41) {
-		netload_error(0x3015, "TFTP error occurred after "
-			"missing %d responses",
-			tftp_err.no_packets);
-		return -114;
-	} else if (rc == -42) {
-		netload_error(0x3016, "TFTP error missing block %d, "
-			"expected block was %d",
-			tftp_err.blocks_missed,
-			tftp_err.blocks_received);
-		return -115;
-	}
 	return rc;
 }
 
