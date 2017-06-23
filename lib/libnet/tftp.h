@@ -42,8 +42,6 @@ typedef struct {
 
 int tftp(filename_ip_t *, unsigned char  *, int, unsigned int,
          tftp_err_t *, int32_t mode, int32_t blocksize, int ip_version);
-int tftp_netsave(filename_ip_t *, uint8_t * buffer, int len,
-		 int use_ci, unsigned int retries, tftp_err_t * tftp_err);
 
 int32_t handle_tftp(int fd, uint8_t *, int32_t);
 void handle_tftp_dun(uint8_t err_code);

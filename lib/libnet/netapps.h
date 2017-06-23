@@ -20,7 +20,6 @@ struct filename_ip;
 
 extern int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 		   int block_size, char *args_fs, int alen);
-extern int netsave(int argc, char *argv[]);
 extern int ping(char *args_fs, int alen);
 extern int dhcp(char *ret_buffer, struct filename_ip *fn_ip,
 		unsigned int retries, int flags);

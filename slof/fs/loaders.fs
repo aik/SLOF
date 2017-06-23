@@ -60,16 +60,6 @@ CREATE load-list 2 cells allot load-list 2 cells erase
 : .client-exec ( arg len -- rc ) set-bootargs (client-exec) ;
 ' .client-exec to client-exec
 
-: netsave  ( "addr len {filename}[,params]" -- rc )
-   (parse-line) dup 0> IF
-      s" netsave " 2swap $cat set-netbootpath client-exec
-   ELSE
-      cr
-      ." Usage: netsave addr len [bootp|dhcp,]filename[,siaddr][,ciaddr][,giaddr][,bootp-retries][,tftp-retries][,use_ci]"
-      cr 2drop
-   THEN
-;
-
 : ping  ( "{device-path:[device-args,]server-ip,[client-ip[\nn]],[gateway-ip][,timeout]}" -- )
    my-self >r current-node @ >r  \ Save my-self
    (parse-line) open-dev dup  IF
