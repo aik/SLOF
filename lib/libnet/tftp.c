@@ -26,6 +26,7 @@
 
 #define MAX_BLOCKSIZE 1428
 #define BUFFER_LEN 256
+#define INVALID_BUFFER ((void *)-1L)
 
 #define ENOTFOUND 1
 #define EACCESS   2
@@ -45,7 +46,7 @@
 
 /* Local variables */
 static unsigned char packet[BUFFER_LEN];
-static unsigned char  *buffer = NULL;
+static unsigned char  *buffer = INVALID_BUFFER;
 static unsigned short block;
 static unsigned short blocksize;
 static char blocksize_str[6];    /* Blocksize string for read request */
@@ -337,7 +338,7 @@ int32_t handle_tftp(int fd, uint8_t *pkt, int32_t packetsize)
 	struct tftphdr *tftp;
 
 	/* buffer is only set if we are handling TFTP */
-	if (buffer == NULL )
+	if (buffer == INVALID_BUFFER)
 		return 0;
 
 #ifndef __DEBUG__
@@ -536,7 +537,7 @@ int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 	printf("  Receiving data:  ");
 	print_progress(-1, 0);
 
-	// Setting buffer to a non-zero address enabled handling of received TFTP packets.
+	/* Set buffer to a valid address, enables handling of received packets */
 	buffer = _buffer;
 
 	set_timer(TICKS_SEC);
@@ -579,8 +580,8 @@ int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 		}
 	}
 
-	// Setting buffer to NULL disables handling of received TFTP packets.
-	buffer = NULL;
+	/* Setting buffer invalid to disable handling of received packets */
+	buffer = INVALID_BUFFER;
 
 	if (tftp_errno)
 		return tftp_errno;
