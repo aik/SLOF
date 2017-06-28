@@ -59,14 +59,15 @@ static void netload_error(int errcode, const char *format, ...)
 {
 	va_list vargs;
 	char buf[256];
+	int elen;
 
-	sprintf(buf, "E%04X: (net) ", errcode);
+	elen = sprintf(buf, "E%04X: (net) ", errcode);
 
 	va_start(vargs, format);
-	vsnprintf(&buf[13], sizeof(buf) - 13, format, vargs);
+	vsnprintf(&buf[elen], sizeof(buf) - elen, format, vargs);
 	va_end(vargs);
 
-	bootmsg_error(errcode, &buf[7]);
+	bootmsg_error(errcode, &buf[elen - 6]);
 	write_mm_log(buf, strlen(buf), 0x91);
 }
 
@@ -404,12 +405,13 @@ static void seed_rng(uint8_t mac[])
 }
 
 static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
-		     unsigned int retries, tftp_err_t *tftp_err, int32_t mode,
+		     unsigned int retries, int32_t mode,
 		     int32_t blksize, int ip_vers)
 {
+	tftp_err_t tftp_err;
 	int rc;
 
-	rc = tftp(fnip, buffer, len, retries, tftp_err, mode, blksize, ip_vers);
+	rc = tftp(fnip, buffer, len, retries, &tftp_err, mode, blksize, ip_vers);
 
 	if (rc > 0) {
 		printf("  TFTP: Received %s (%d KBytes)\n", fnip->filename,
@@ -445,7 +447,7 @@ static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
 		netload_error(0x3018, "file exceeds maximum TFTP transfer size");
 		return -117;
 	} else if (rc <= -10 && rc >= -15) {
-		char *icmp_err_str;
+		const char *icmp_err_str;
 		switch (rc) {
 		case -ICMP_NET_UNREACHABLE - 10:
 			icmp_err_str = "net unreachable";
@@ -474,18 +476,18 @@ static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
 	} else if (rc == -40) {
 		netload_error(0x3014, "TFTP error occurred after "
 			"%d bad packets received",
-			tftp_err->bad_tftp_packets);
+			tftp_err.bad_tftp_packets);
 		return -113;
 	} else if (rc == -41) {
 		netload_error(0x3015, "TFTP error occurred after "
 			"missing %d responses",
-			tftp_err->no_packets);
+			tftp_err.no_packets);
 		return -114;
 	} else if (rc == -42) {
 		netload_error(0x3016, "TFTP error missing block %d, "
 			"expected block was %d",
-			tftp_err->blocks_missed,
-			tftp_err->blocks_received);
+			tftp_err.blocks_missed,
+			tftp_err.blocks_received);
 		return -115;
 	}
 
@@ -498,7 +500,6 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 	int rc;
 	filename_ip_t fn_ip;
 	int fd_device;
-	tftp_err_t tftp_err;
 	obp_tftp_args_t obp_tftp_args;
 	char null_ip[4] = { 0x00, 0x00, 0x00, 0x00 };
 	char null_ip6[16] = { 0x00, 0x00, 0x00, 0x00,
@@ -724,7 +725,7 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 
 	/* Do the TFTP load and print error message if necessary */
 	rc = tftp_load(&fn_ip, (unsigned char *)buffer, len,
-		       obp_tftp_args.tftp_retries, &tftp_err, huge_load,
+		       obp_tftp_args.tftp_retries, huge_load,
 		       block_size, ip_version);
 
 	if (obp_tftp_args.ip_init == IP_INIT_DHCP)
