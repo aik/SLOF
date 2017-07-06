@@ -266,7 +266,7 @@ static void print_progress(int urgent, int received_bytes)
 			sprintf(buffer, "%d KBytes", (progress_last_bytes >> 10));
 			for(ptr = buffer; *ptr != 0; ++ptr)
 				*ptr = '\b';
-			printf(buffer);
+			printf("%s", buffer);
 		}
 		printf("%d KBytes", (received_bytes >> 10));
 		i = 1;
