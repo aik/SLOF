@@ -44,4 +44,7 @@ extern int send_ether(int fd, void* buffer, int len);
 extern void fill_ethhdr(uint8_t * packet, uint16_t eth_type,
                         const uint8_t * src_mac, const uint8_t * dest_mac);
 
+/* Points either to send_ipv4() or send_ipv6() */
+extern int (*send_ip)(int fd, void *, int);
+
 #endif

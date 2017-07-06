@@ -71,8 +71,6 @@ extern void     set_ipv4_netmask(uint32_t subnet_mask);
 extern uint32_t get_ipv4_netmask(void);
 extern uint32_t get_default_ipv4_netmask(char *ip_addr);
 
-extern int   (*send_ip) (int fd, void *, int);
-
 /* fills ip header */
 extern void fill_iphdr(uint8_t * packet, uint16_t packetsize,
                        uint8_t ip_proto, uint32_t ip_src, uint32_t ip_dst);

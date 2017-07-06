@@ -130,8 +130,6 @@ struct ip6_config {
 };
 
 /******************** VARIABLES **********************************************/
-/* Function pointer send_ip. Points either to send_ipv4() or send_ipv6() */
-extern int   (*send_ip) (int fd, void *, int);
 
 extern struct ip6_config ip6_state;
 
