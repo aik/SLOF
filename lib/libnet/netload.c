@@ -17,7 +17,6 @@
 #include <dhcpv6.h>
 #include <ipv4.h>
 #include <ipv6.h>
-#include <dns.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -734,109 +733,4 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 	close(fn_ip.fd);
 
 	return rc;
-}
-
-/**
- * Parses a tftp arguments, extracts all
- * parameters and fills server ip according to this
- *
- * Parameters:
- * @param  buffer        string with arguments,
- * @param  server_ip	 server ip as result
- * @param  filename	 default filename
- * @param  fd            Socket descriptor
- * @param  len           len of the buffer,
- * @return               0 on SUCCESS and -1 on failure
- */
-int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd,
-		    int len)
-{
-	char *raw;
-	char *tmp, *tmp1;
-	int i, j = 0;
-	char domainname[256];
-	uint8_t server_ip6[16];
-
-	raw = malloc(len);
-	if (raw == NULL) {
-		printf("\n unable to allocate memory, parsing failed\n");
-		return -1;
-	}
-	strncpy(raw,(const char *)buffer,len);
-	/*tftp url contains tftp://[fd00:4f53:4444:90:214:5eff:fed9:b200]/testfile*/
-	if(strncmp(raw,"tftp://",7)){
-		printf("\n tftp missing in %s\n",raw);
-		free(raw);
-		return -1;
-	}
-	tmp = strchr(raw,'[');
-	if(tmp != NULL && *tmp == '[') {
-		/*check for valid ipv6 address*/
-		tmp1 = strchr(tmp,']');
-		if (tmp1 == NULL) {
-			printf("\n missing ] in %s\n",raw);
-			free(raw);
-			return -1;
-		}
-		i = tmp1 - tmp;
-		/*look for file name*/
-		tmp1 = strchr(tmp,'/');
-		if (tmp1 == NULL) {
-			printf("\n missing filename in %s\n",raw);
-			free(raw);
-			return -1;
-		}
-		tmp[i] = '\0';
-		/*check for 16 byte ipv6 address */
-		if (!str_to_ipv6((tmp+1), (uint8_t *)(server_ip))) {
-			printf("\n wrong format IPV6 address in %s\n",raw);
-			free(raw);
-			return -1;;
-		}
-		else {
-			/*found filename */
-			strcpy(filename,(tmp1+1));
-			free(raw);
-			return 0;
-		}
-	}
-	else {
-		/*here tftp://hostname/testfile from option request of dhcp*/
-		/*look for dns server name */
-		tmp1 = strchr(raw,'.');
-		if(tmp1 == NULL) {
-			printf("\n missing . seperator in %s\n",raw);
-			free(raw);
-			return -1;
-		}
-		/*look for domain name beyond dns server name
-		* so ignore the current . and look for one more
-		*/
-		tmp = strchr((tmp1+1),'.');
-		if(tmp == NULL) {
-			printf("\n missing domain in %s\n",raw);
-			free(raw);
-			return -1;
-		}
-		tmp1 = strchr(tmp1,'/');
-		if (tmp1 == NULL) {
-			printf("\n missing filename in %s\n",raw);
-			free(raw);
-			return -1;
-		}
-		j = tmp1 - (raw + 7);
-		tmp = raw + 7;
-		tmp[j] = '\0';
-		strcpy(domainname, tmp);
-		if (dns_get_ip(fd, domainname, server_ip6, 6) == 0) {
-			printf("\n DNS failed for IPV6\n");
-			return -1;
-		}
-		ipv6_to_str(server_ip6, server_ip);
-
-		strcpy(filename,(tmp1+1));
-		free(raw);
-		return 0;
-	}
-
 }
