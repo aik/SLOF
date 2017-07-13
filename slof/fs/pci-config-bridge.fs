@@ -73,7 +73,7 @@
       nip
    THEN
    F NOT AND                            \ Clear indicator bits
-   \ TODO: Use translate-address here!
+   translate-my-address
 ;
 
 : map-out ( virt size -- )
