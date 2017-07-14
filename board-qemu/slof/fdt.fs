@@ -279,8 +279,8 @@ fdt-claim-reserve
    2drop
 ;
 
-\ Replace one FDT phandle "old" with a OF1275 phandle "new" in the
-\ whole tree:
+\ Replace one phandle "old" with a phandle "new" in "node" and recursively
+\ in its child nodes:
 : fdt-replace-all-phandles ( old new node -- )
    \ ." Replacing in " dup node>path type cr
    >r
@@ -308,25 +308,33 @@ fdt-claim-reserve
    3drop
 ;
 
+\ Replace one FDT phandle "val" with a OF1275 phandle "node" in the
+\ whole tree:
+: fdt-update-phandle ( val node -- )
+   >r
+   FALSE TO (fdt-phandle-replaced)
+   r@ s" /" find-node               ( val node root )
+   fdt-replace-all-phandles
+   (fdt-phandle-replaced) IF
+      r@ set-node
+      s" phandle" delete-property
+      s" linux,phandle" delete-property
+   ELSE
+      diagnostic-mode? IF
+         cr ." Warning: Did not replace phandle in " r@ node>path type cr
+      THEN
+   THEN
+r> drop
+;
+
 \ Check whether a node has "phandle" or "linux,phandle" properties
 \ and replace them:
 : fdt-fix-node-phandle  ( node -- )
    >r
-   FALSE TO (fdt-phandle-replaced)
    s" phandle" r@ get-property 0= IF
       decode-int nip nip
       \ ." found phandle: " dup . cr
-      r@ s" /" find-node               ( val node root )
-      fdt-replace-all-phandles
-      (fdt-phandle-replaced) IF
-         r@ set-node
-         s" phandle" delete-property
-         s" linux,phandle" delete-property
-      ELSE
-         diagnostic-mode? IF
-            cr ." Warning: Did not replace phandle in " r@ node>path type cr
-         THEN
-      THEN
+      r@ fdt-update-phandle
    THEN
    r> drop
 ;
