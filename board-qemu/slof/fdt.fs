@@ -314,11 +314,10 @@ fdt-claim-reserve
    >r
    FALSE TO (fdt-phandle-replaced)
    s" phandle" r@ get-property 0= IF
-      decode-int                       ( p-addr2 p-len2 val )
+      decode-int nip nip
       \ ." found phandle: " dup . cr
-      r@ s" /" find-node               ( p-addr2 p-len2 val node root )  
-      fdt-replace-all-phandles         ( p-addr2 p-len2 )
-      2drop
+      r@ s" /" find-node               ( val node root )
+      fdt-replace-all-phandles
       (fdt-phandle-replaced) IF
          r@ set-node
          s" phandle" delete-property
