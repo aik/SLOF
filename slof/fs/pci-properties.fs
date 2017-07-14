@@ -159,7 +159,12 @@
 \ Setup a prefetchable 32bit BAR and return its size
 : assign-mem32-bar ( bar-addr -- 4 )
         dup pci-bar-size-mem32          \ fetch size
-        pci-next-mem                    \ var to change
+        \ Do we have a dedicated 32-bit prefetchable area? If not, use MMIO
+        pci-next-mem @ IF
+            pci-next-mem
+        ELSE
+            pci-next-mmio
+        THEN
         assign-bar-value32              \ and set it all
 ;
 

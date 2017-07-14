@@ -253,12 +253,9 @@ setup-puid
             THEN
          ENDOF
          2000000 OF                             \ 32-bit memory space?
-            decode-64 pci-next-mem !            \ Decode mem base address
+            decode-64 dup >r pci-next-mmio !    \ Decode base address
             decode-64 drop                      \ Forget the parent address
-            decode-64 2 / dup >r                \ Decode and calc size/2
-            pci-next-mem @ + dup pci-max-mem !  \ and calc max mem address
-            dup pci-next-mmio !                 \ which is the same as MMIO base
-            r> + pci-max-mmio !                 \ calc max MMIO address
+            decode-64 r> + pci-max-mmio !       \ calc max MMIO address
          ENDOF
          3000000 OF                             \ 64-bit memory space?
             decode-64 dup >r pci-next-mem64 !
@@ -269,6 +266,15 @@ setup-puid
    REPEAT
    ( prop-addr prop-len )
    2drop
+
+   \ If we do not have 64-bit prefetchable memory, split the 32-bit space:
+   pci-next-mem64 @ 0= IF
+      pci-next-mmio @ pci-next-mem !            \ Start of 32-bit prefetchable
+      pci-max-mmio @ pci-next-mmio @ - 2 /      \ Calculate new size
+      pci-next-mmio @ +                         \ The middle of the area
+      dup pci-max-mem !
+      pci-next-mmio !
+   THEN
 
    phb-debug? IF
       pci-var-out
