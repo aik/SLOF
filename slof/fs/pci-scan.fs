@@ -59,9 +59,14 @@ here 100 allot CONSTANT pci-device-vec
 
 \ prints out all relevant pci variables
 : pci-var-out ( -- )
-        s"   mem:" type pci-next-mem @ 16 0.r cr
-        s"  mmio:" type pci-next-mmio @ 16 0.r cr
-        s"    io:" type pci-next-io @ 16 0.r cr
+    ." pci-next-io    = " pci-next-io @ 10 0.r cr
+    ." pci-max-io     = " pci-max-io @ 10 0.r cr
+    ." pci-next-mem   = " pci-next-mem @ 10 0.r cr
+    ." pci-max-mem    = " pci-max-mem @ 10 0.r cr
+    ." pci-next-mmio  = " pci-next-mmio @ 10 0.r cr
+    ." pci-max-mmio   = " pci-max-mmio @ 10 0.r cr
+    ." pci-next-mem64 = " pci-next-mem64 @ 10 0.r cr
+    ." pci-max-mem64  = " pci-max-mem64 @ 10 0.r cr
 ;
 
 

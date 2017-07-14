@@ -271,14 +271,7 @@ setup-puid
    2drop
 
    phb-debug? IF
-     ." pci-next-io   = " pci-next-io @ . cr
-     ." pci-max-io    = " pci-max-io  @ . cr
-     ." pci-next-mem  = " pci-next-mem @ . cr
-     ." pci-max-mem   = " pci-max-mem  @ . cr
-     ." pci-next-mmio = " pci-next-mmio @ . cr
-     ." pci-max-mmio  = " pci-max-mmio @ . cr
-     ." pci-next-mem64  = " pci-next-mem64 @ . cr
-     ." pci-max-mem64   = " pci-max-mem64  @ . cr
+      pci-var-out
    THEN
 ;
 
