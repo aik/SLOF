@@ -81,8 +81,8 @@ long engine(int mode, long param_1, long param_2)
 		LAST_ELEMENT(xt_FORTH_X2d_WORDLIST).a = xt_LASTWORD;
 
 		// stack-pointers
-		dp = the_data_stack - 1;
-		rp = handler_stack - 1;
+		dp = (cell *)((type_u)the_data_stack - CELLSIZE);
+		rp = (cell *)((type_u)handler_stack - CELLSIZE);
 
 		// return-address for "evaluate" personality
 		dummy.a = &&over;
