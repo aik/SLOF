@@ -144,6 +144,7 @@ scsi-open
 ;
 
 : dev-generate-srplun ( target lun-id -- srplun )
+    dup ff > IF 4000 or THEN    \ Use the LUN "flat space addressing method"
     swap 0100 or 10 << or 20 <<
 ;
 
