@@ -104,47 +104,56 @@ here 100 allot CONSTANT pci-device-vec
         or swap 20 + rtas-config-l!             \ and write it into the Reg
 ;
 
-\ Update pci-next-mem to be 1MB aligned and set the mem-base and mem-base-upper register
-\ and set the Limit register to the maximum available address space
-\ needed for scanning possible devices behind the bridge
+\ Update pci-next-mem (or mem64) to be aligned and set the mem-base and
+\ mem-base-upper register. Also set the Limit register to the maximum available
+\ address space needed for scanning possible devices behind the bridge
 : pci-bridge-set-mem-base ( addr -- )
-        pci-next-mem @ 100000 #aligned          \ read the current Value and align to 1MB boundary
-        dup pci-next-mem !                      \ and write it back
-        over 24 + rtas-config-w@                \ check if 64bit support
-        1 and IF                                \ IF 64 bit support
-                pci-next-mem64 @ 100000000 #aligned \ | read the current Value of 64-bit and align to 4GB boundary
-                dup 100000000 + pci-next-mem64 x!   \ | and write back with 1GB for bridge
-                2 pick swap                         \ |
-                20 rshift                           \ | keep upper 32 bits
-                swap 28 + rtas-config-l!            \ | and write it into the Base-Upper32-bits
-                pci-max-mem64 @ 20 rshift           \ | fetch max Limit address and keep upper 32 bits
-                2 pick 2C + rtas-config-l!          \ | and set the Limit
-        THEN                                    \ FI
-        10 rshift                               \ keep upper 16 bits
-        pci-max-mem @ 1- FFFF0000 and or        \ and Insert mmem Limit (set it to max)
-        swap 24 + rtas-config-l!                \ and write it into the bridge
+    dup 24 + rtas-config-w@ 1 and           \ does bridge support 64-bit?
+    pci-next-mem64 @ 0<> and IF             \ and do we have 64-bit memory?
+        \ Align variable to 4GB boundary
+        pci-next-mem64 @ 100000000 #aligned
+        dup pci-next-mem64 x!
+        \ Set base and limit registers:
+        20 rshift over 28 + rtas-config-l!  \ set prefetch base upper 32 bits
+        pci-next-mem64 @ 10 rshift FFF0 and
+        pci-max-mem64 @ 1- FFF00000 and or
+        over 24 + rtas-config-l!            \ set prefetch limit & base lower
+        pci-max-mem64 @ 1- 20 rshift
+        swap 2C + rtas-config-l!            \ and set the limit upper 32 bits
+    ELSE
+        \ Align variable to 1MB boundary
+        pci-next-mem @ 100000 #aligned
+        dup pci-next-mem !
+        \ Set base and limit register:
+        10 rshift FFF0 and
+        pci-max-mem @ 1- FFF00000 and or
+        swap 24 + rtas-config-l!
+    THEN
 ;
 
-\ Update pci-next-mem to be 1MB aligned and set the mem-limit register
-\ The Limit Value is one less then the upper boundary
-\ If the limit is less than the base the mem is disabled
+\ Update pci-next-mem (or -mem64) to be aligned (with some additional space
+\ for hot-plugging later) and set the mem-limit register. The Limit Value is
+\ one less then the upper boundary.
 : pci-bridge-set-mem-limit ( addr -- )
-        pci-next-mem @ 100000 +                 \ add space for hot-plugging
-        100000 #aligned                         \ align to 1MB boundary
-        dup pci-next-mem !                      \ and write it back
-        1-                                      \ make limit one less than boundary
-        over 24 + rtas-config-w@                \ check if 64bit support
-        1 and IF                                \ IF 64 bit support
-                pci-next-mem64 @ 100000000 #aligned \ | Reat current value of 64-bar and align at 4GB
-                dup pci-next-mem64 x!               \ | and write it back
-                1-                                  \ | make limite one less than boundary
-                2 pick swap                         \ |
-                20 rshift                           \ | keep upper 32 bits
-                swap 2C + rtas-config-l!            \ | and write it into the Limit-Upper32-bits
-        THEN                                    \ FI
-        FFFF0000 and                            \ keep upper 16 bits
-        over 24 + rtas-config-l@ 0000FFFF and   \ fetch original Value
-        or swap 24 + rtas-config-l!             \ and write it into the bridge
+    dup 24 + rtas-config-w@ 1 and           \ does bridge support 64-bit?
+    pci-next-mem64 @ 0<> and IF             \ and do we have 64-bit memory?
+        \ Update current variable (add space for hot-plugging and align it)
+        pci-next-mem64 @ 80000000 +
+        100000000 #aligned
+        dup pci-next-mem64 x!
+        \ Update the limit registers:
+        1- 20 rshift
+        over 2C + rtas-config-l!            \ set the limit upper 32 bits
+        pci-next-mem64 @ 1- 10 rshift
+        swap 26 + rtas-config-w!            \ set limit lower bits
+    ELSE
+        \ Update current variable (add space for hot-plugging and align it)
+        pci-next-mem @ 100000 +
+        100000 #aligned
+        dup pci-next-mem !
+        1- 10 rshift
+        swap 26 + rtas-config-w!
+    THEN
 ;
 
 \ Update pci-next-io to be 4KB aligned and set the io-base and io-base-upper register
