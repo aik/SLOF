@@ -173,11 +173,6 @@ s" /openprom" find-device
    0 0 s" relative-addressing" property
 device-end
 
-s" /aliases" find-device
-   : open  true ;
-   : close ;
-device-end
-
 s" /mmu" open-dev encode-int s" mmu" set-chosen
 
 #include "available.fs"

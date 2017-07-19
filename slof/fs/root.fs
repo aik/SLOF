@@ -57,6 +57,8 @@ THEN
 \ Create /aliases
 new-device
     s" aliases" device-name
+   : open  true ;
+   : close ;
 finish-device
 
 \ Create /options

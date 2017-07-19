@@ -216,11 +216,6 @@ s" /openprom" find-device
    THEN
 device-end
 
-s" /aliases" find-device
-   : open  true ;
-   : close ;
-device-end
-
 s" /mmu" open-dev encode-int s" mmu" set-chosen
 
 #include "available.fs"
