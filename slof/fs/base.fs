@@ -59,14 +59,10 @@ CREATE $catpad 400 allot
    r> dup $catpad + r> swap r@ move
    r> + $catpad swap ;
 
-\ WARNING: The following two ($cat-comm & $cat-space) are dirty in a sense
-\ that they add 1 or 2 characters to str1 before executing $cat
+\ WARNING: The following $cat-space is dirty in a sense that it adds one
+\ character to str1 before executing $cat.
 \ The ASSUMPTION is that str1 buffer provides that extra space and it is
 \ responsibility of the code owner to ensure that
-: $cat-comma ( str2 len2 str1 len1 -- "str1, str2" len1+len2+2 )
-	2dup + s" , " rot swap move 2+ 2swap $cat
-;
-
 : $cat-space ( str2 len2 str1 len1 -- "str1 str2" len1+len2+1 )
 	2dup + bl swap c! 1+ 2swap $cat
 ;
@@ -141,10 +137,6 @@ CONSTANT <2constant>
 
 : isdigit ( char -- true | false )
    30 39 between
-;
-
-: ishexdigit ( char -- true | false )
-   30 39 between 41 46 between OR 61 66 between OR
 ;
 
 \ Variant of $number that defaults to decimal unless "0x" is
