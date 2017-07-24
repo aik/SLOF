@@ -129,3 +129,10 @@ PRIM(check_X2d_and_X2d_patch_X2d_sc1)
 
 	patch_broken_sc1((void*)start, (void*)end, (void*)patch_ins);
 MIRP
+
+// : hv-update-phandle ( old_phandle new_phandle -- res )
+PRIM(hv_X2d_update_X2d_phandle)
+	uint32_t new_phandle = TOS.u; POP;
+	uint32_t old_phandle = TOS.u;
+	TOS.u = hv_generic(KVMPPC_H_UPDATE_PHANDLE, old_phandle, new_phandle);
+MIRP
