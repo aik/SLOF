@@ -137,42 +137,44 @@ MIRP
 
 /******** virtio-net ********/
 
-// : virtio-net-open ( dev -- false | [ driver true ] )
+// : virtio-net-open ( dev -- false | [ vnet true ] )
 PRIM(virtio_X2d_net_X2d_open)
 {
 	void *dev = TOS.a;
 
-	net_driver_t *net_driver = virtionet_open(dev);
+	void *vnet = virtionet_open(dev);
 
-	if (net_driver) {
-		TOS.u = (unsigned long)net_driver; PUSH;
+	if (vnet) {
+		TOS.u = (unsigned long)vnet; PUSH;
 		TOS.n = -1;
 	} else
 		TOS.n = 0;
 }
 MIRP
 
-// : virtio-net-close ( driver -- )
+// : virtio-net-close ( vnet -- )
 PRIM(virtio_X2d_net_X2d_close)
 {
-	net_driver_t *driver = TOS.a; POP;
-	virtionet_close(driver);
+	void *vnet = TOS.a; POP;
+	virtionet_close(vnet);
 }
 MIRP
 
-// : virtio-net-read ( addr len -- actual )
+// : virtio-net-read ( addr len vnet -- actual )
 PRIM(virtio_X2d_net_X2d_read)
 {
+	void *vnet = TOS.a; POP;
 	int len = TOS.u; POP;
-	TOS.n = virtionet_read(TOS.a, len);
+	TOS.n = virtionet_read(vnet, TOS.a, len);
 }
 MIRP
 
-// : virtio-net-write ( addr len -- actual )
+// : virtio-net-write ( addr len vnet -- actual )
 PRIM(virtio_X2d_net_X2d_write)
 {
+	void *vnet = TOS.a; POP;
 	int len = TOS.u; POP;
-	TOS.n = virtionet_write(TOS.a, len);
+	TOS.n = virtionet_write(vnet, TOS.a, len);
 }
 MIRP
 

@@ -24,7 +24,6 @@
 #include <helpers.h>
 #include <cache.h>
 #include <byteorder.h>
-#include "virtio.h"
 #include "virtio-net.h"
 #include "virtio-internal.h"
 
@@ -39,10 +38,6 @@
 #define sync()  asm volatile (" sync \n" ::: "memory")
 
 #define DRIVER_FEATURE_SUPPORT  (VIRTIO_NET_F_MAC | VIRTIO_F_VERSION_1)
-
-struct virtio_device virtiodev;
-static struct vqs vq_rx;     /* Information about receive virtqueues */
-static struct vqs vq_tx;     /* Information about transmit virtqueues */
 
 /* See Virtio Spec, appendix C, "Device Operation" */
 struct virtio_net_hdr {
@@ -74,33 +69,35 @@ static uint16_t last_rx_idx;	/* Last index in RX "used" ring */
  * Checks whether we're reponsible for the given device and set up
  * the virtqueue configuration.
  */
-static int virtionet_init_pci(struct virtio_device *dev)
+static int virtionet_init_pci(struct virtio_net *vnet, struct virtio_device *dev)
 {
+	struct virtio_device *vdev = &vnet->vdev;
+
 	dprintf("virtionet: doing virtionet_init_pci!\n");
 
 	if (!dev)
 		return -1;
 
 	/* make a copy of the device structure */
-	memcpy(&virtiodev, dev, sizeof(struct virtio_device));
+	memcpy(vdev, dev, sizeof(struct virtio_device));
 
 	/* Reset device */
-	virtio_reset_device(&virtiodev);
+	virtio_reset_device(vdev);
 
 	/* The queue information can be retrieved via the virtio header that
 	 * can be found in the I/O BAR. First queue is the receive queue,
 	 * second the transmit queue, and the forth is the control queue for
 	 * networking options.
 	 * We are only interested in the receive and transmit queue here. */
-	if (virtio_queue_init_vq(dev, &vq_rx, VQ_RX) ||
-	    virtio_queue_init_vq(dev, &vq_tx, VQ_TX)) {
-		virtio_set_status(dev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
+	if (virtio_queue_init_vq(vdev, &vnet->vq_rx, VQ_RX) ||
+	    virtio_queue_init_vq(vdev, &vnet->vq_tx, VQ_TX)) {
+		virtio_set_status(vdev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
 				  |VIRTIO_STAT_FAILED);
 		return -1;
 	}
 
 	/* Acknowledge device. */
-	virtio_set_status(&virtiodev, VIRTIO_STAT_ACKNOWLEDGE);
+	virtio_set_status(vdev, VIRTIO_STAT_ACKNOWLEDGE);
 
 	return 0;
 }
@@ -110,10 +107,14 @@ static int virtionet_init_pci(struct virtio_device *dev)
  * See the Virtio Spec, chapter 2.2.1 and Appendix C "Device Initialization"
  * for details.
  */
-static int virtionet_init(net_driver_t *driver)
+static int virtionet_init(struct virtio_net *vnet)
 {
 	int i;
 	int status = VIRTIO_STAT_ACKNOWLEDGE | VIRTIO_STAT_DRIVER;
+	struct virtio_device *vdev = &vnet->vdev;
+	net_driver_t *driver = &vnet->driver;
+	struct vqs *vq_tx = &vnet->vq_tx;
+	struct vqs *vq_rx = &vnet->vq_rx;
 
 	dprintf("virtionet_init(%02x:%02x:%02x:%02x:%02x:%02x)\n",
 		driver->mac_addr[0], driver->mac_addr[1],
@@ -124,68 +125,68 @@ static int virtionet_init(net_driver_t *driver)
 		return 0;
 
 	/* Tell HV that we know how to drive the device. */
-	virtio_set_status(&virtiodev, status);
+	virtio_set_status(vdev, status);
 
 	/* Device specific setup */
-	if (virtiodev.is_modern) {
-		if (virtio_negotiate_guest_features(&virtiodev, DRIVER_FEATURE_SUPPORT))
+	if (vdev->is_modern) {
+		if (virtio_negotiate_guest_features(vdev, DRIVER_FEATURE_SUPPORT))
 			goto dev_error;
 		net_hdr_size = sizeof(struct virtio_net_hdr_v1);
-		virtio_get_status(&virtiodev, &status);
+		virtio_get_status(vdev, &status);
 	} else {
 		net_hdr_size = sizeof(struct virtio_net_hdr);
-		virtio_set_guest_features(&virtiodev,  0);
+		virtio_set_guest_features(vdev,  0);
 	}
 
 	/* Allocate memory for one transmit an multiple receive buffers */
-	vq_rx.buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+net_hdr_size)
+	vq_rx->buf_mem = SLOF_alloc_mem((BUFFER_ENTRY_SIZE+net_hdr_size)
 				   * RX_QUEUE_SIZE);
-	if (!vq_rx.buf_mem) {
+	if (!vq_rx->buf_mem) {
 		printf("virtionet: Failed to allocate buffers!\n");
 		goto dev_error;
 	}
 
 	/* Prepare receive buffer queue */
 	for (i = 0; i < RX_QUEUE_SIZE; i++) {
-		uint64_t addr = (uint64_t)vq_rx.buf_mem
+		uint64_t addr = (uint64_t)vq_rx->buf_mem
 			+ i * (BUFFER_ENTRY_SIZE+net_hdr_size);
 		uint32_t id = i*2;
 		/* Descriptor for net_hdr: */
-		virtio_fill_desc(&vq_rx.desc[id], virtiodev.is_modern, addr, net_hdr_size,
+		virtio_fill_desc(&vq_rx->desc[id], vdev->is_modern, addr, net_hdr_size,
 				 VRING_DESC_F_NEXT | VRING_DESC_F_WRITE, id + 1);
 
 		/* Descriptor for data: */
-		virtio_fill_desc(&vq_rx.desc[id+1], virtiodev.is_modern, addr + net_hdr_size,
+		virtio_fill_desc(&vq_rx->desc[id+1], vdev->is_modern, addr + net_hdr_size,
 				 BUFFER_ENTRY_SIZE, VRING_DESC_F_WRITE, 0);
 
-		vq_rx.avail->ring[i] = virtio_cpu_to_modern16(&virtiodev, id);
+		vq_rx->avail->ring[i] = virtio_cpu_to_modern16(vdev, id);
 	}
 	sync();
 
-	vq_rx.avail->flags = virtio_cpu_to_modern16(&virtiodev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_rx.avail->idx = virtio_cpu_to_modern16(&virtiodev, RX_QUEUE_SIZE);
+	vq_rx->avail->flags = virtio_cpu_to_modern16(vdev, VRING_AVAIL_F_NO_INTERRUPT);
+	vq_rx->avail->idx = virtio_cpu_to_modern16(vdev, RX_QUEUE_SIZE);
 
-	last_rx_idx = virtio_modern16_to_cpu(&virtiodev, vq_rx.used->idx);
+	last_rx_idx = virtio_modern16_to_cpu(vdev, vq_rx->used->idx);
 
-	vq_tx.avail->flags = virtio_cpu_to_modern16(&virtiodev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_tx.avail->idx = 0;
+	vq_tx->avail->flags = virtio_cpu_to_modern16(vdev, VRING_AVAIL_F_NO_INTERRUPT);
+	vq_tx->avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;
-	virtio_set_status(&virtiodev, status);
+	virtio_set_status(vdev, status);
 
 	/* Tell HV that RX queues are ready */
-	virtio_queue_notify(&virtiodev, VQ_RX);
+	virtio_queue_notify(vdev, VQ_RX);
 
 	driver->running = 1;
 	for(i = 0; i < (int)sizeof(driver->mac_addr); i++) {
-		driver->mac_addr[i] = virtio_get_config(&virtiodev, i, 1);
+		driver->mac_addr[i] = virtio_get_config(vdev, i, 1);
 	}
 	return 0;
 
 dev_error:
 	status |= VIRTIO_STAT_FAILED;
-	virtio_set_status(&virtiodev, status);
+	virtio_set_status(vdev, status);
 	return -1;
 }
 
@@ -195,20 +196,32 @@ dev_error:
  * We've got to make sure that the hosts stops all transfers since the buffers
  * in our main memory will become invalid after this module has been terminated.
  */
-static int virtionet_term(net_driver_t *driver)
+static int virtionet_term(struct virtio_net *vnet)
 {
+	struct virtio_device *vdev = &vnet->vdev;
+	net_driver_t *driver = &vnet->driver;
+	struct vqs *vq_rx = &vnet->vq_rx;
+	struct vqs *vq_tx = &vnet->vq_tx;
+
 	dprintf("virtionet_term()\n");
 
 	if (driver->running == 0)
 		return 0;
 
 	/* Quiesce device */
-	virtio_set_status(&virtiodev, VIRTIO_STAT_FAILED);
+	virtio_set_status(vdev, VIRTIO_STAT_FAILED);
 
 	/* Reset device */
-	virtio_reset_device(&virtiodev);
+	virtio_reset_device(vdev);
 
 	driver->running = 0;
+
+	SLOF_free_mem(vq_rx->buf_mem,
+		      (BUFFER_ENTRY_SIZE+net_hdr_size) * RX_QUEUE_SIZE);
+	vq_rx->buf_mem = NULL;
+
+	virtio_queue_term_vq(vdev, vq_rx, VQ_RX);
+	virtio_queue_term_vq(vdev, vq_tx, VQ_TX);
 
 	return 0;
 }
@@ -217,12 +230,14 @@ static int virtionet_term(net_driver_t *driver)
 /**
  * Transmit a packet
  */
-static int virtionet_xmit(char *buf, int len)
+static int virtionet_xmit(struct virtio_net *vnet, char *buf, int len)
 {
 	int id, idx;
 	static struct virtio_net_hdr_v1 nethdr_v1;
 	static struct virtio_net_hdr nethdr_legacy;
 	void *nethdr = &nethdr_legacy;
+	struct virtio_device *vdev = &vnet->vdev;
+	struct vqs *vq_tx = &vnet->vq_tx;
 
 	if (len > BUFFER_ENTRY_SIZE) {
 		printf("virtionet: Packet too big!\n");
@@ -231,29 +246,29 @@ static int virtionet_xmit(char *buf, int len)
 
 	dprintf("\nvirtionet_xmit(packet at %p, %d bytes)\n", buf, len);
 
-	if (virtiodev.is_modern)
+	if (vdev->is_modern)
 		nethdr = &nethdr_v1;
 
 	memset(nethdr, 0, net_hdr_size);
 
 	/* Determine descriptor index */
-	idx = virtio_modern16_to_cpu(&virtiodev, vq_tx.avail->idx);
-	id = (idx * 2) % vq_tx.size;
+	idx = virtio_modern16_to_cpu(vdev, vq_tx->avail->idx);
+	id = (idx * 2) % vq_tx->size;
 
 	/* Set up virtqueue descriptor for header */
-	virtio_fill_desc(&vq_tx.desc[id], virtiodev.is_modern, (uint64_t)nethdr,
+	virtio_fill_desc(&vq_tx->desc[id], vdev->is_modern, (uint64_t)nethdr,
 			 net_hdr_size, VRING_DESC_F_NEXT, id + 1);
 
 	/* Set up virtqueue descriptor for data */
-	virtio_fill_desc(&vq_tx.desc[id+1], virtiodev.is_modern, (uint64_t)buf, len, 0, 0);
+	virtio_fill_desc(&vq_tx->desc[id+1], vdev->is_modern, (uint64_t)buf, len, 0, 0);
 
-	vq_tx.avail->ring[idx % vq_tx.size] = virtio_cpu_to_modern16(&virtiodev, id);
+	vq_tx->avail->ring[idx % vq_tx->size] = virtio_cpu_to_modern16(vdev, id);
 	sync();
-	vq_tx.avail->idx = virtio_cpu_to_modern16(&virtiodev, idx + 1);
+	vq_tx->avail->idx = virtio_cpu_to_modern16(vdev, idx + 1);
 	sync();
 
 	/* Tell HV that TX queue is ready */
-	virtio_queue_notify(&virtiodev, VQ_TX);
+	virtio_queue_notify(vdev, VQ_TX);
 
 	return len;
 }
@@ -262,25 +277,27 @@ static int virtionet_xmit(char *buf, int len)
 /**
  * Receive a packet
  */
-static int virtionet_receive(char *buf, int maxlen)
+static int virtionet_receive(struct virtio_net *vnet, char *buf, int maxlen)
 {
 	uint32_t len = 0;
 	uint32_t id, idx;
 	uint16_t avail_idx;
+	struct virtio_device *vdev = &vnet->vdev;
+	struct vqs *vq_rx = &vnet->vq_rx;
 
-	idx = virtio_modern16_to_cpu(&virtiodev, vq_rx.used->idx);
+	idx = virtio_modern16_to_cpu(vdev, vq_rx->used->idx);
 
 	if (last_rx_idx == idx) {
 		/* Nothing received yet */
 		return 0;
 	}
 
-	id = (virtio_modern32_to_cpu(&virtiodev, vq_rx.used->ring[last_rx_idx % vq_rx.size].id) + 1)
-		% vq_rx.size;
-	len = virtio_modern32_to_cpu(&virtiodev, vq_rx.used->ring[last_rx_idx % vq_rx.size].len)
+	id = (virtio_modern32_to_cpu(vdev, vq_rx->used->ring[last_rx_idx % vq_rx->size].id) + 1)
+		% vq_rx->size;
+	len = virtio_modern32_to_cpu(vdev, vq_rx->used->ring[last_rx_idx % vq_rx->size].len)
 		- net_hdr_size;
-	dprintf("virtionet_receive() last_rx_idx=%i, vq_rx.used->idx=%i,"
-		" id=%i len=%i\n", last_rx_idx, vq_rx.used->idx, id, len);
+	dprintf("virtionet_receive() last_rx_idx=%i, vq_rx->used->idx=%i,"
+		" id=%i len=%i\n", last_rx_idx, vq_rx->used->idx, id, len);
 
 	if (len > (uint32_t)maxlen) {
 		printf("virtio-net: Receive buffer not big enough!\n");
@@ -292,7 +309,7 @@ static int virtionet_receive(char *buf, int maxlen)
 	printf("\n");
 	int i;
 	for (i=0; i<64; i++) {
-		printf(" %02x", *(uint8_t*)(vq_rx.desc[id].addr+i));
+		printf(" %02x", *(uint8_t*)(vq_rx->desc[id].addr+i));
 		if ((i%16)==15)
 			printf("\n");
 	}
@@ -300,64 +317,65 @@ static int virtionet_receive(char *buf, int maxlen)
 #endif
 
 	/* Copy data to destination buffer */
-	memcpy(buf, (void *)virtio_modern64_to_cpu(&virtiodev, vq_rx.desc[id].addr), len);
+	memcpy(buf, (void *)virtio_modern64_to_cpu(vdev, vq_rx->desc[id].addr), len);
 
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;
 
-	avail_idx = virtio_modern16_to_cpu(&virtiodev, vq_rx.avail->idx);
-	vq_rx.avail->ring[avail_idx % vq_rx.size] = virtio_cpu_to_modern16(&virtiodev, id - 1);
+	avail_idx = virtio_modern16_to_cpu(vdev, vq_rx->avail->idx);
+	vq_rx->avail->ring[avail_idx % vq_rx->size] = virtio_cpu_to_modern16(vdev, id - 1);
 	sync();
-	vq_rx.avail->idx = virtio_cpu_to_modern16(&virtiodev, avail_idx + 1);
+	vq_rx->avail->idx = virtio_cpu_to_modern16(vdev, avail_idx + 1);
 
 	/* Tell HV that RX queue entry is ready */
-	virtio_queue_notify(&virtiodev, VQ_RX);
+	virtio_queue_notify(vdev, VQ_RX);
 
 	return len;
 }
 
-net_driver_t *virtionet_open(struct virtio_device *dev)
+struct virtio_net *virtionet_open(struct virtio_device *dev)
 {
-	net_driver_t *driver;
+	struct virtio_net *vnet;
 
-	driver = SLOF_alloc_mem(sizeof(*driver));
-	if (!driver) {
+	vnet = SLOF_alloc_mem(sizeof(*vnet));
+	if (!vnet) {
 		printf("Unable to allocate virtio-net driver\n");
 		return NULL;
 	}
 
-	driver->running = 0;
+	vnet->driver.running = 0;
 
-	if (virtionet_init_pci(dev))
+	if (virtionet_init_pci(vnet, dev))
 		goto FAIL;
 
-	if (virtionet_init(driver))
+	if (virtionet_init(vnet))
 		goto FAIL;
 
-	return driver;
+	return vnet;
 
-FAIL:	SLOF_free_mem(driver, sizeof(*driver));
+FAIL:
+	SLOF_free_mem(vnet, sizeof(*vnet));
 	return NULL;
 }
 
-void virtionet_close(net_driver_t *driver)
+void virtionet_close(struct virtio_net *vnet)
 {
-	if (driver) {
-		virtionet_term(driver);
-		SLOF_free_mem(driver, sizeof(*driver));
+	if (vnet) {
+		virtionet_term(vnet);
+		SLOF_free_mem(vnet, sizeof(*vnet));
 	}
 }
 
-int virtionet_read(char *buf, int len)
+int virtionet_read(struct virtio_net *vnet, char *buf, int len)
 {
-	if (buf)
-		return virtionet_receive(buf, len);
+	if (vnet && buf)
+		return virtionet_receive(vnet, buf, len);
 	return -1;
 }
 
-int virtionet_write(char *buf, int len)
+int virtionet_write(struct virtio_net *vnet, char *buf, int len)
 {
-	if (buf)
-		return virtionet_xmit(buf, len);
+	if (vnet && buf)
+		return virtionet_xmit(vnet, buf, len);
 	return -1;
 }

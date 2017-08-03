@@ -110,6 +110,7 @@ extern void virtio_fill_desc(struct vring_desc *desc, bool is_modern,
                              uint64_t addr, uint32_t len,
                              uint16_t flags, uint16_t next);
 extern int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id);
+extern void virtio_queue_term_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id);
 
 extern struct virtio_device *virtio_setup_vd(void);
 extern void virtio_reset_device(struct virtio_device *dev);

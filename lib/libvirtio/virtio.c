@@ -401,6 +401,13 @@ int virtio_queue_init_vq(struct virtio_device *dev, struct vqs *vq, unsigned int
 	return 0;
 }
 
+void virtio_queue_term_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id)
+{
+	if (vq->desc)
+		SLOF_free_mem(vq->desc, virtio_vring_size(vq->size));
+	memset(vq, 0, sizeof(*vq));
+}
+
 /**
  * Set device status bits
  */

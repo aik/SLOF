@@ -64,7 +64,7 @@ virtio-setup-vd VALUE virtiodev
 
 : read ( buf len -- actual )
    dup IF
-      virtio-net-read
+      virtio-net-priv virtio-net-read
    ELSE
       nip
    THEN
@@ -72,7 +72,7 @@ virtio-setup-vd VALUE virtiodev
 
 : write ( buf len -- actual )
    dup IF
-      virtio-net-write
+      virtio-net-priv virtio-net-write
    ELSE
       nip
    THEN
