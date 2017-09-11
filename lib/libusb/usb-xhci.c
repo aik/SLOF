@@ -873,6 +873,7 @@ static bool xhci_hcd_init(struct xhci_hcd *xhcd)
 
 	return true;
 fail_erst_entries:
+	write_reg32(&irs->erstsz, 0);
 	write_reg64(&irs->erstba, 0);
 	mb();
 	SLOF_dma_map_out(xhcd->erst.dma, (void *)xhcd->erst.entries, XHCI_EVENT_TRBS_SIZE);
@@ -916,6 +917,7 @@ static bool xhci_hcd_exit(struct xhci_hcd *xhcd)
 	}
 
 	irs = &xhcd->run_regs->irs[0];
+	write_reg32(&irs->erstsz, 0);
 	write_reg64(&irs->erstba, 0);
 	mb();
 	if (xhcd->erst.entries) {
