@@ -543,7 +543,7 @@ int send_ipv6(int fd, void* buffer, int len)
 			memset(n, 0, sizeof(struct neighbor));
 			memcpy(&(n->ip.addr[0]), &ip_dst, 16);
 			n->status = NB_PROBE;
-			n->times_asked += 1;
+			n->times_asked = 1;
 			neighbor_add(n);
 		}
 
