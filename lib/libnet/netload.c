@@ -34,6 +34,7 @@
 #define IP_INIT_DHCPV6_STATELESS    3
 #define IP_INIT_IPV6_MANUAL         4
 
+#define MAX_PKT_SIZE         1720
 #define DEFAULT_BOOT_RETRIES 10
 #define DEFAULT_TFTP_RETRIES 20
 static int ip_version = 4;
@@ -493,8 +494,24 @@ static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
 	return rc;
 }
 
-int netload(char *buffer, int len, char *ret_buffer, int huge_load,
-	    int block_size, char *args_fs, int alen)
+static void encode_response(char *pkt_buffer, size_t size, int ip_init)
+{
+	switch(ip_init) {
+	case IP_INIT_BOOTP:
+		SLOF_encode_bootp_response(pkt_buffer, size);
+		break;
+	case IP_INIT_DHCP:
+	case IP_INIT_DHCPV6_STATELESS:
+	case IP_INIT_DEFAULT:
+		SLOF_encode_dhcp_response(pkt_buffer, size);
+		break;
+	default:
+		break;
+	}
+}
+
+int netload(char *buffer, int len, int huge_load, int block_size,
+	    char *args_fs, int alen)
 {
 	int rc;
 	filename_ip_t fn_ip;
@@ -506,6 +523,14 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 			     0x00, 0x00, 0x00, 0x00, 
 			     0x00, 0x00, 0x00, 0x00 };
 	uint8_t own_mac[6];
+	char *pkt_buffer;
+
+	pkt_buffer = SLOF_alloc_mem(MAX_PKT_SIZE);
+	if (!pkt_buffer) {
+		puts("ERROR: Unable to allocate memory");
+		return -1;
+	}
+	memset(pkt_buffer, 0, MAX_PKT_SIZE);
 
 	puts("\n Initializing NIC");
 	memset(&fn_ip, 0, sizeof(filename_ip_t));
@@ -533,11 +558,13 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 
 	if (fd_device == -1) {
 		netload_error(0x3000, "Could not read MAC address");
-		return -100;
+		rc = -100;
+		goto err_out;
 	}
 	else if (fd_device == -2) {
 		netload_error(0x3006, "Could not initialize network device");
-		return -101;
+		rc = -101;
+		goto err_out;
 	}
 
 	fn_ip.fd = fd_device;
@@ -556,7 +583,8 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 		char args[256];
 		if (alen > sizeof(args) - 1) {
 			puts("ERROR: Parameter string is too long.");
-			return -7;
+			rc = -7;
+			goto err_out;
 		}
 		/* Convert forth string into NUL-terminated C-string */
 		strncpy(args, args_fs, alen);
@@ -615,13 +643,13 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 		else {
 			memcpy(&fn_ip.server_ip, obp_tftp_args.giaddr, 4);
 		}
-		rc = bootp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries);
+		rc = bootp(pkt_buffer, &fn_ip, obp_tftp_args.bootp_retries);
 		break;
 	case IP_INIT_DHCP:
-		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, F_IPV4);
+		rc = dhcp(pkt_buffer, &fn_ip, obp_tftp_args.bootp_retries, F_IPV4);
 		break;
 	case IP_INIT_DHCPV6_STATELESS:
-		rc = dhcp(ret_buffer, &fn_ip,
+		rc = dhcp(pkt_buffer, &fn_ip,
 			  obp_tftp_args.bootp_retries, F_IPV6);
 		break;
 	case IP_INIT_IPV6_MANUAL:
@@ -637,7 +665,7 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 		}
 		break;
 	case IP_INIT_DEFAULT:
-		rc = dhcp(ret_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
+		rc = dhcp(pkt_buffer, &fn_ip, obp_tftp_args.bootp_retries, 0);
 		break;
 	case IP_INIT_NONE:
 	default:
@@ -668,7 +696,8 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 	if (rc == -1) {
 		netload_error(0x3001, "Could not get IP address");
 		close(fn_ip.fd);
-		return -101;
+		rc = -101;
+		goto err_out;
 	}
 
 	if (ip_version == 4) {
@@ -689,12 +718,14 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 			((fn_ip.server_ip >>  8) & 0xFF),
 			( fn_ip.server_ip        & 0xFF));
 		close(fn_ip.fd);
-		return -102;
+		rc = -102;
+		goto err_out;
 	}
 	if (rc == -4 || rc == -3) {
 		netload_error(0x3008, "Can't obtain TFTP server IP address");
 		close(fn_ip.fd);
-		return -107;
+		rc = -107;
+		goto err_out;
 	}
 
 	/***********************************************************
@@ -732,5 +763,10 @@ int netload(char *buffer, int len, char *ret_buffer, int huge_load,
 
 	close(fn_ip.fd);
 
+	if (rc >= 0) {
+		encode_response(pkt_buffer, MAX_PKT_SIZE, obp_tftp_args.ip_init);
+	}
+  err_out:
+	SLOF_free_mem(pkt_buffer, MAX_PKT_SIZE);
 	return rc;
 }

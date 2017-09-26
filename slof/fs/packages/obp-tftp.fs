@@ -28,24 +28,13 @@ VARIABLE huge-tftp-load 1 huge-tftp-load !
 
     60000000                        ( addr maxlen )
 
-    \ Allocate 1720 bytes to store the BOOTP-REPLY packet
-    6B8 alloc-mem dup >r            ( addr maxlen replybuf )
-    huge-tftp-load @  d# 1428       ( addr maxlen replybuf hugetftp blocksize )
+    huge-tftp-load @  d# 1428       ( addr maxlen hugetftp blocksize )
     \ Add OBP-TFTP Bootstring argument, e.g. "10.128.0.1,bootrom.bin,10.128.40.1"
     my-args
     net-load dup 0< IF drop 0 THEN
 
-    \ Recover buffer address of BOOTP-REPLY packet
-    r>
-
     r> r> over IF s" bootpath" set-chosen ELSE 2drop THEN
     r> r> over IF s" bootargs" set-chosen ELSE 2drop THEN
-
-    \ Store BOOTP-REPLY packet as property
-    dup 6B8 encode-bytes s" bootp-response" s" /chosen" find-node set-property
-
-    \ free buffer
-    6B8 free-mem
 ;
 
 : close ( -- )
