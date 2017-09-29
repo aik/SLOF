@@ -27,7 +27,7 @@ struct
   4 field >fdth_boot_cpu
   4 field >fdth_string_size
   4 field >fdth_struct_size
-drop
+constant /fdth
 
 h# d00dfeed constant OF_DT_HEADER
 h#        1 constant OF_DT_BEGIN_NODE
@@ -69,7 +69,7 @@ fdt-start fdt-init
         dup >fdth_version l@ 3 >= IF
             ."  strings size     : 0x" dup >fdth_string_size l@ . cr
         THEN
-        dup >fdth_version l@ 17 >= IF
+        dup >fdth_version l@ 11 >= IF
             ."  struct size      : 0x" dup >fdth_struct_size l@ . cr
         THEN
     THEN
