@@ -308,28 +308,18 @@ fdt-claim-reserve
    3drop
 ;
 
-\ Tell QEMU about the updated phandle:
-: fdt-hv-update-phandle ( old new -- )
-   hv-update-phandle ?dup IF
-      \ Ignore hcall not implemented error, print error otherwise
-      dup -2 <> IF ." HV-UPDATE-PHANDLE error: " . cr ELSE drop THEN
-   THEN
-;
-
 \ Replace one FDT phandle "val" with a OF1275 phandle "node" in the
 \ whole tree:
 : fdt-update-phandle ( val node -- )
    >r
    FALSE TO (fdt-phandle-replaced)
-   r@ 2dup s" /" find-node          ( val node val node root )
-   fdt-replace-all-phandles         ( val node )
+   r@ s" /" find-node               ( val node root )
+   fdt-replace-all-phandles
    (fdt-phandle-replaced) IF
-      fdt-hv-update-phandle
       r@ set-node
       s" phandle" delete-property
       s" linux,phandle" delete-property
    ELSE
-      2drop
       diagnostic-mode? IF
          cr ." Warning: Did not replace phandle in " r@ node>path type cr
       THEN
