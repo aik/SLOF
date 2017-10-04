@@ -176,7 +176,14 @@ rtas-node set-node
 : open true ;
 : close ;
 
+: store-rtas-loc ( adr )
+    s" /rtas" find-node >r
+    encode-int s" slof,rtas-base" r@ set-property
+    rtas-size encode-int s" slof,rtas-size" r> set-property
+;
+
 : instantiate-rtas ( adr -- entry )
+    dup store-rtas-loc
     dup rtas-base swap rtas-size move
     rtas-entry rtas-base - +
 ;
