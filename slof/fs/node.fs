@@ -23,7 +23,7 @@ STRUCT
   cell FIELD node>peer
   cell FIELD node>parent
   cell FIELD node>child
-  cell FIELD node>properties
+  cell FIELD node>properties \ points to wid (grep wid>names)
   cell FIELD node>words
   cell FIELD node>instance-template
   cell FIELD node>instance-size
