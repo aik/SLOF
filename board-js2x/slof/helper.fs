@@ -11,7 +11,7 @@
 \ ****************************************************************************/
 
 : slof-build-id  ( -- str len )
-   flash-header 10 + a
+   flash-header 10 + dup from-cstring a min
 ;
 
 : slof-revision s" 001" ;

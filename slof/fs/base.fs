@@ -107,6 +107,11 @@ CONSTANT <2constant>
 : str= ( str1 len1 str2 len2 -- equal? )
   rot over <> IF 3drop false ELSE comp 0= THEN ;
 
+: from-cstring ( addr - len )
+  dup dup BEGIN c@ 0 <> WHILE 1 + dup REPEAT
+  swap -
+;
+
 : test-string ( param len -- true | false )
    0 ?DO
       dup i + c@                     \ Get character / byte at current index
