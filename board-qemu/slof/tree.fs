@@ -155,12 +155,6 @@ populate-pci-busses
 
 6c0 cp
 
-\ Do not assume that cpu0 is available
-: set-chosen-cpu
-    " /cpus" find-device
-    get-node child dup 0= ABORT" CPU not found"
-    node>path open-dev encode-int s" cpu" set-chosen
-;
 set-chosen-cpu
 
 s" /memory@0" open-dev encode-int s" memory" set-chosen
