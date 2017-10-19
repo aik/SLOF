@@ -119,6 +119,8 @@ check-boot-menu
 
 380 cp
 
+#include "fdt-fl.fs"
+
 \ Grab rtas from qemu
 #include "rtas.fs"
 

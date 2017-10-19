@@ -98,6 +98,12 @@ find-qemu-rtas
 ;
 
 : rtas-quiesce ( -- )
+    fdt-flatten-tree
+    dup hv-update-dt ?dup IF
+        \ Ignore hcall not implemented error, print error otherwise
+        dup -2 <> IF ." HV-UPDATE-DT error: " . cr ELSE drop THEN
+    THEN
+    fdt-flatten-tree-free
     " quiesce" rtas-get-token rtas-cb rtas>token l!
     0 rtas-cb rtas>nargs l!
     0 rtas-cb rtas>nret l!
