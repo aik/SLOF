@@ -15,7 +15,26 @@
 VARIABLE state-valid false state-valid !
 CREATE go-args 2 cells allot go-args 2 cells erase
 
+4000 CONSTANT bootdev-size
+0 VALUE bootdev-buf
+
 \ \\\\\\\\\\\\\\ Structure/Implementation Dependent Methods
+
+: alloc-bootdev-buf ( -- )
+   bootdev-size alloc-mem ?dup 0= ABORT" Unable to allocate bootdev buffer!"
+   dup bootdev-size erase
+   to bootdev-buf
+;
+
+: free-bootdev-buf ( -- )
+   bootdev-buf bootdev-size free-mem
+   0 to bootdev-buf
+;
+
+: bootdev-string-cat ( addr1 len1 addr2 len2 -- addr1 len1+len2 )
+   dup 3 pick + bootdev-size > ABORT" bootdev size too big!"
+   string-cat
+;
 
 : $bootargs
    bootargs 2@ ?dup IF
@@ -24,14 +43,23 @@ CREATE go-args 2 cells allot go-args 2 cells erase
 ;
 
 : $bootdev ( -- device-name len )
-   bootdevice 2@ dup IF s"  " $cat THEN
+   alloc-bootdev-buf
+   bootdevice 2@ ?dup IF
+      swap bootdev-buf 2 pick move
+      bootdev-buf swap s"  " bootdev-string-cat
+   ELSE
+      \ use bootdev-buf for concatenating diag mode/boot-device if any
+      drop bootdev-buf 0
+   THEN
    s" diagnostic-mode?" evaluate IF
       s" diag-device" evaluate
    ELSE
       s" boot-device" evaluate
    THEN
-   $cat \ prepend bootdevice setting from vpd-bootlist
+   ( bootdev len str len1 )
+   bootdev-string-cat \ concatenate both
    strdup
+   free-bootdev-buf
    ?dup 0= IF
       disable-watchdog
       drop true ABORT" No boot device!"
@@ -51,7 +79,14 @@ CREATE go-args 2 cells allot go-args 2 cells erase
 ' (set-boot-device) to set-boot-device
 
 : (add-boot-device) ( str len -- )	\ Concatenate " str" to "bootdevice"
-   bootdevice 2@ ?dup IF $cat-space ELSE drop THEN set-boot-device
+   bootdevice 2@ ?dup IF
+      alloc-bootdev-buf
+      swap bootdev-buf 2 pick move
+      bootdev-buf swap s"  " bootdev-string-cat
+      2swap bootdev-string-cat
+   ELSE drop THEN
+   set-boot-device
+   bootdev-buf 0 <> IF free-bootdev-buf THEN
 ;
 
 ' (add-boot-device) to add-boot-device
