@@ -221,11 +221,19 @@ defer go ( -- )
    ELSE
       drop
    THEN
-   set-boot-args s" parse-load " $bootdev $cat strdup evaluate
+   set-boot-args
+   save-source  -1 to source-id
+   $bootdev dup #ib ! span ! to ib
+   0 >in !
+   ['] parse-load catch restore-source throw
 ;
 
 : load-next ( -- success )	\ Continue after go failed
-   load-list 2@ ?dup IF s" parse-load " 2swap $cat strdup evaluate
+   load-list 2@ ?dup IF
+      save-source  -1 to source-id
+      dup #ib ! span ! to ib
+      0 >in !
+      ['] parse-load catch restore-source throw
    ELSE drop false THEN
 ;
 
