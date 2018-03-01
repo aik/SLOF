@@ -214,8 +214,18 @@ romfs-base 400000 0 ' claim CATCH IF ." claim failed!" cr 2drop THEN drop
 
 8d0 cp
 
+: get-stdout-path ( - [ prop len ] success )
+    \ Check for new property
+    s" stdout-path" get-chosen ?dup NOT IF
+        \ May be running on older qemu, this property will be deprecated
+        s" linux,stdout-path" get-chosen ?dup NOT IF
+            FALSE
+        THEN
+    THEN
+;
+
 : set-default-console
-    s" linux,stdout-path" get-chosen IF
+    get-stdout-path IF
         decode-string
         ." Using default console: " 2dup type cr
         io
