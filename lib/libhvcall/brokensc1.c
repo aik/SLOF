@@ -47,13 +47,13 @@ static int check_broken_sc1(void)
 	 * supervisor mode.
 	 */
 	r = hcall(INS_SC1, H_SET_DABR, 0);
-	if (r == H_SUCCESS || r == H_HARDWARE) {
-		/* All is fine */
-		return 0;
+	if (r == H_PRIVILEGE) {
+		/* We found a broken sc1 host! */
+		return 1;
 	}
 
-	/* We found a broken sc1 host! */
-	return 1;
+	/* All is fine */
+	return 0;
 }
 
 int patch_broken_sc1(void *start, void *end, uint32_t *test_ins)

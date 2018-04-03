@@ -3,6 +3,7 @@
 
 #define H_SUCCESS		0
 #define H_HARDWARE		-1
+#define H_PRIVILEGE		-3   /* Caller not privileged */
 
 #define H_GET_TCE		0x1C
 #define H_PUT_TCE		0x20
