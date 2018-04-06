@@ -305,6 +305,11 @@ fdt-claim-reserve
    THEN
 
    2dup s" interrupt-parent" r@ (fdt-replace-phandles)
+   2dup s" ibm,gpu" r@ (fdt-replace-phandles)
+   2dup s" ibm,npu" r@ (fdt-replace-phandles)
+   2dup s" ibm,nvlink" r@ (fdt-replace-phandles)
+   2dup s" memory-region" r@ (fdt-replace-phandles)
+
    \ ... add more properties that have to be fixed here ...
    r>
    \ Now recurse over all child nodes:       ( old new node )
