@@ -166,7 +166,7 @@ receive_bootp(filename_ip_t * fn_ip)
 
 		fn_ip->own_ip = btph->yiaddr;
 		fn_ip->server_ip = btph->siaddr;
-		strcpy((char *) fn_ip->filename, (char *) btph->file);
+		strcpy(fn_ip->filename, (char *)btph->file);
 
 #if DEBUG
 		printf("\nThese are the details of the bootp reply:\n");

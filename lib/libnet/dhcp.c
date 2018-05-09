@@ -124,8 +124,8 @@ typedef struct {
 	uint32_t   subnet_mask;       /**< o. 1 Subnet mask                    */
 	uint8_t    msg_type;          /**< o.53 DHCP-message type              */
 	uint8_t    overload;          /**< o.52 Overload sname/file fields     */
-	int8_t     tftp_server[256];  /**< o.66 TFTP server name               */
-	int8_t     bootfile[256];     /**< o.67 Boot file name                 */
+	char       tftp_server[256];  /**< o.66 TFTP server name               */
+	char       bootfile[256];     /**< o.67 Boot file name                 */
 	uint16_t   client_arch;       /**< o.93 Client architecture type       */
 } dhcp_options_t;
 
@@ -197,7 +197,7 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 		dhcp_siaddr_ip = fn_ip->server_ip;
 	}
 	if(fn_ip->filename[0] != 0) {
-		strcpy(dhcp_filename, (char *) fn_ip->filename);
+		strcpy(dhcp_filename, fn_ip->filename);
 	}
 
 	// TFTP SERVER
@@ -230,7 +230,7 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	// Store configuration info into filename_ip strucutre
 	fn_ip -> own_ip = dhcp_own_ip;
 	fn_ip -> server_ip = dhcp_tftp_ip;
-	strcpy((char *) fn_ip -> filename, dhcp_filename);
+	strcpy(fn_ip->filename, dhcp_filename);
 
 	return 0;
 }
@@ -342,14 +342,14 @@ static int32_t dhcp_encode_options(uint8_t * opt_field, dhcp_options_t * opt_str
 
 	if (opt_struct -> flag[DHCP_TFTP_SERVER]) {
 		options[0] = DHCP_TFTP_SERVER;
-		options[1] = strlen((char *) opt_struct -> tftp_server) + 1;
+		options[1] = strlen(opt_struct->tftp_server) + 1;
 		memcpy(options + 2, opt_struct -> tftp_server, options[1]);
 		options += options[1] + 2;
 	}
 
 	if (opt_struct -> flag[DHCP_BOOTFILE]) {
 		options[0] = DHCP_BOOTFILE;
-		options[1] = strlen((char *) opt_struct -> bootfile) + 1;
+		options[1] = strlen(opt_struct->bootfile) + 1;
 		memcpy(options + 2, opt_struct -> bootfile, options[1]);
 		options += options[1] + 2;
 	}
@@ -716,7 +716,7 @@ void dhcp_send_release(int fd)
 	btph -> htype = 1;
 	btph -> hlen = 6;
 	btph -> xid = dhcp_xid;
-	strcpy((char *) btph -> file, "");
+	btph -> file[0] = 0;
 	memcpy(btph -> chaddr, get_mac_address(), 6);
 	btph -> ciaddr = htonl(dhcp_own_ip);
 
@@ -774,13 +774,14 @@ int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
 		dhcp_server_ip = htonl(iph -> ip_src);
 
 		if (strlen((char *) btph -> sname) && !dhcp_siaddr_ip) {
-			strncpy((char *) dhcp_tftp_name, (char *) btph -> sname,
-			        sizeof(btph -> sname));
+			strncpy(dhcp_tftp_name, (char *)btph->sname,
+			        sizeof(btph->sname));
 			dhcp_tftp_name[sizeof(btph -> sname)] = 0;
 		}
 
 		if (strlen((char *) btph -> file)) {
-			strncpy((char *) dhcp_filename, (char *) btph -> file, sizeof(btph -> file));
+			strncpy(dhcp_filename, (char *)btph->file,
+			        sizeof(btph->file));
 			dhcp_filename[sizeof(btph -> file)] = 0;
 		}
 
@@ -845,12 +846,14 @@ int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
 		dhcp_own_ip = htonl(btph -> yiaddr);
 		dhcp_siaddr_ip = htonl(btph -> siaddr);
 		if (strlen((char *) btph -> sname) && !dhcp_siaddr_ip) {
-			strncpy((char *) dhcp_tftp_name, (char *) btph -> sname, sizeof(btph -> sname));
+			strncpy(dhcp_tftp_name, (char *)btph->sname,
+			        sizeof(btph->sname));
 			dhcp_tftp_name[sizeof(btph -> sname)] = 0;
 		}
 
 		if (strlen((char *) btph -> file)) {
-			strncpy((char *) dhcp_filename, (char *) btph -> file, sizeof(btph -> file));
+			strncpy(dhcp_filename, (char *)btph->file,
+			        sizeof(btph->file));
 			dhcp_filename[sizeof(btph -> file)] = 0;
 		}
 
@@ -883,14 +886,14 @@ int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
 				dhcp_server_ip = opt.server_ID;
 				dhcp_siaddr_ip = htonl(btph -> siaddr);
 				if (opt.flag[DHCP_TFTP_SERVER]) {
-					strcpy((char *) dhcp_tftp_name, (char *) opt.tftp_server);
+					strcpy(dhcp_tftp_name, opt.tftp_server);
 				}
 				else {
-					strcpy((char *) dhcp_tftp_name, "");
+					dhcp_filename[0] = 0;
 					if ((opt.overload != DHCP_OVERLOAD_SNAME &&
 					     opt.overload != DHCP_OVERLOAD_BOTH) &&
 					     !dhcp_siaddr_ip) {
-						strncpy((char *) dhcp_tftp_name,
+						strncpy(dhcp_tftp_name,
 						        (char *) btph->sname,
 						        sizeof(btph -> sname));
 						dhcp_tftp_name[sizeof(btph->sname)] = 0;
@@ -898,14 +901,14 @@ int8_t handle_dhcp(int fd, uint8_t * packet, int32_t packetsize)
 				}
 
 				if (opt.flag[DHCP_BOOTFILE]) {
-					strcpy((char *) dhcp_filename, (char *) opt.bootfile);
+					strcpy(dhcp_filename, opt.bootfile);
 				}
 				else {
-					strcpy((char *) dhcp_filename, "");
+					dhcp_filename[0] = 0;
 					if (opt.overload != DHCP_OVERLOAD_FILE &&
-						opt.overload != DHCP_OVERLOAD_BOTH &&
-						strlen((char *) btph -> file)) {
-						strncpy((char *) dhcp_filename,
+					    opt.overload != DHCP_OVERLOAD_BOTH &&
+					    strlen((char *)btph->file)) {
+						strncpy(dhcp_filename,
 						        (char *) btph->file,
 						        sizeof(btph->file));
 						dhcp_filename[sizeof(btph -> file)] = 0;

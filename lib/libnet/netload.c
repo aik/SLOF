@@ -735,7 +735,7 @@ int netload(char *buffer, int len, int huge_load, int block_size,
 	 ***********************************************************/
 
 	if (obp_tftp_args.filename[0] != 0) {
-		strncpy((char *) fn_ip.filename, obp_tftp_args.filename, sizeof(fn_ip.filename)-1);
+		strncpy(fn_ip.filename, obp_tftp_args.filename, sizeof(fn_ip.filename)-1);
 		fn_ip.filename[sizeof(fn_ip.filename)-1] = 0;
 	}
 

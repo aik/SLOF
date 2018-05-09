@@ -97,7 +97,7 @@ static void send_rrq(int fd)
 	int ip_len = 0;
 	int ip6_payload_len    = 0;
 	unsigned short udp_len = 0;
-	unsigned char mode[] = "octet";
+	const char mode[] = "octet";
 	char *ptr	     = NULL;
 	struct iphdr *ip     = NULL;
 	struct ip6hdr *ip6   = NULL;
@@ -110,7 +110,7 @@ static void send_rrq(int fd)
 		ip = (struct iphdr *) packet;
 		udph = (struct udphdr *) (ip + 1);
 		ip_len = sizeof(struct iphdr) + sizeof(struct udphdr)
-			+ strlen((char *) fn_ip->filename) + strlen((char *) mode) + 4
+			+ strlen(fn_ip->filename) + strlen(mode) + 4
 			+ strlen("blksize") + strlen(blocksize_str) + 2;
 		fill_iphdr ((uint8_t *) ip, ip_len, IPTYPE_UDP, 0,
 			    fn_ip->server_ip);
@@ -119,7 +119,7 @@ static void send_rrq(int fd)
 		ip6 = (struct ip6hdr *) packet;
 		udph = (struct udphdr *) (ip6 + 1);
 		ip6_payload_len = sizeof(struct udphdr)
-			+ strlen((char *) fn_ip->filename) + strlen((char *) mode) + 4
+			+ strlen(fn_ip->filename) + strlen(mode) + 4
 			+ strlen("blksize") + strlen(blocksize_str) + 2;
 		ip_len = sizeof(struct ip6hdr) + ip6_payload_len;
 		fill_ip6hdr ((uint8_t *) ip6, ip6_payload_len, IPTYPE_UDP, get_ipv6_address(),
@@ -127,7 +127,7 @@ static void send_rrq(int fd)
 
 	}
 	udp_len = htons(sizeof(struct udphdr)
-			      + strlen((char *) fn_ip->filename) + strlen((char *) mode) + 4
+			      + strlen(fn_ip->filename) + strlen(mode) + 4
 			      + strlen("blksize") + strlen(blocksize_str) + 2);
 	fill_udphdr ((uint8_t *) udph, udp_len, htons(2001), htons(69));
 
@@ -135,12 +135,12 @@ static void send_rrq(int fd)
 	tftp->th_opcode = htons(RRQ);
 
 	ptr = (char *) &tftp->th_data;
-	memcpy(ptr, fn_ip->filename, strlen((char *) fn_ip->filename) + 1);
+	memcpy(ptr, fn_ip->filename, strlen(fn_ip->filename) + 1);
 
-	ptr += strlen((char *) fn_ip->filename) + 1;
-	memcpy(ptr, mode, strlen((char *) mode) + 1);
+	ptr += strlen(fn_ip->filename) + 1;
+	memcpy(ptr, mode, strlen(mode) + 1);
 
-	ptr += strlen((char *) mode) + 1;
+	ptr += strlen(mode) + 1;
 	memcpy(ptr, "blksize", strlen("blksize") + 1);
 
 	ptr += strlen("blksize") + 1;

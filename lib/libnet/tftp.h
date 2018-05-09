@@ -28,7 +28,7 @@ struct filename_ip {
 	uint32_t server_ip;
 	ip6_addr_t server_ip6;
 	ip6_addr_t dns_ip6;
-	int8_t filename[256];
+	char filename[256];
 	int    fd;
 } __attribute__ ((packed));
 typedef struct filename_ip filename_ip_t;

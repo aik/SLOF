@@ -176,8 +176,7 @@ static void dhcp6_process_options (uint8_t *option, int32_t option_length)
 			buffer[option_boot_url->length] = 0;
 			if (parse_tftp_args(buffer,
 					    (char *)my_fn_ip->server_ip6.addr,
-					    (char *)my_fn_ip->filename,
-					    (int)my_fn_ip->fd,
+					    my_fn_ip->filename, my_fn_ip->fd,
 					    option_boot_url->length) == -1)
 				return;
 			break;
