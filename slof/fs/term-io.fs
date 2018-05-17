@@ -10,9 +10,19 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+0 VALUE read-xt
 0 VALUE write-xt
 
+VARIABLE stdin
 VARIABLE stdout
+
+: set-stdin ( ihandle -- )
+   \ Close old stdin:
+   stdin @ ?dup IF close-dev THEN
+   \ Now set the new stdin:
+   dup stdin !
+   encode-int s" stdin"  set-chosen
+;
 
 : set-stdout ( ihandle -- )
    \ Close old stdout:
@@ -24,12 +34,15 @@ VARIABLE stdout
 
 : input  ( dev-str dev-len -- )
    open-dev ?dup IF
-      \ Close old stdin:
-      s" stdin" get-chosen IF
-         decode-int nip nip ?dup IF close-dev THEN
+      \ find new ihandle and xt handle
+      dup s" read" rot ihandle>phandle find-method
+      0= IF
+         drop
+         cr ." Cannot find the read method for the given input console " cr
+         EXIT
       THEN
-      \ Now set the new stdin:
-      encode-int s" stdin"  set-chosen
+      to read-xt
+      set-stdin
    THEN
 ;
 
@@ -51,7 +64,6 @@ VARIABLE stdout
    2dup input output
 ;
 
-
 1 BUFFER: (term-io-char-buf)
 
 : term-io-emit ( char -- )
@@ -67,16 +79,14 @@ VARIABLE stdout
 ' term-io-emit to emit
 
 : term-io-key  ( -- char )
-   s" stdin" get-chosen IF
-      decode-int nip nip dup 0= IF 0 EXIT THEN
-      >r BEGIN
-         (term-io-char-buf) 1 s" read" r@ $call-method
+   read-xt IF
+      BEGIN
+         (term-io-char-buf) 1 read-xt stdin @ call-package
          0 >
       UNTIL
       (term-io-char-buf) c@
-      r> drop
    ELSE
-      [ ' key behavior compile, ]
+      serial-key
    THEN
 ;
 
@@ -88,8 +98,7 @@ VARIABLE stdout
 \ - if it's an hv console, use hvterm-key?
 \ otherwise it will always return false
 : term-io-key?  ( -- true|false )
-   s" stdin" get-chosen IF
-      decode-int nip nip dup 0= IF drop 0 EXIT THEN \ return false and exit if no stdin set
+  stdin @ ?dup IF
       >r \ store ihandle on return stack
       s" device_type" r@ ihandle>phandle ( propstr len phandle )
       get-property ( true | data dlen false )
@@ -115,8 +124,7 @@ VARIABLE stdout
          2drop r> drop false EXIT \ unknown device_type cleanup return-stack, return false
       THEN
    ELSE
-      \ stdin not set, return false
-      false
+      serial-key?
    THEN
 ;
 
