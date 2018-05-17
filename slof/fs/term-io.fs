@@ -10,6 +10,17 @@
 \ *     IBM Corporation - initial implementation
 \ ****************************************************************************/
 
+0 VALUE write-xt
+
+VARIABLE stdout
+
+: set-stdout ( ihandle -- )
+   \ Close old stdout:
+   stdout @ ?dup IF close-dev THEN
+   \ Now set the new stdout:
+   dup stdout !
+   encode-int s" stdout" set-chosen
+;
 
 : input  ( dev-str dev-len -- )
    open-dev ?dup IF
@@ -24,12 +35,15 @@
 
 : output  ( dev-str dev-len -- )
    open-dev ?dup IF
-      \ Close old stdout:
-      s" stdout" get-chosen IF
-         decode-int nip nip ?dup IF close-dev THEN
+      \ find new ihandle and xt handle
+      dup s" write" rot ihandle>phandle find-method
+      0= IF
+         drop
+         cr ." Cannot find the write method for the given output console " cr
+         EXIT
       THEN
-      \ Now set the new stdout:
-      encode-int s" stdout" set-chosen
+      to write-xt
+      set-stdout
    THEN
 ;
 
@@ -39,6 +53,18 @@
 
 
 1 BUFFER: (term-io-char-buf)
+
+: term-io-emit ( char -- )
+    write-xt IF
+       (term-io-char-buf) c!
+       (term-io-char-buf) 1 write-xt stdout @ call-package
+       drop
+    ELSE
+       serial-emit
+    THEN
+;
+
+' term-io-emit to emit
 
 : term-io-key  ( -- char )
    s" stdin" get-chosen IF
