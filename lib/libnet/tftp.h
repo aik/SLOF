@@ -41,7 +41,7 @@ typedef struct {
 } tftp_err_t;
 
 int tftp(filename_ip_t *, unsigned char  *, int, unsigned int,
-         tftp_err_t *, int32_t mode, int32_t blocksize, int ip_version);
+         tftp_err_t *, int ip_version);
 
 int32_t handle_tftp(int fd, uint8_t *, int32_t);
 void handle_tftp_dun(uint8_t err_code);

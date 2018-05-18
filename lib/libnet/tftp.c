@@ -497,19 +497,15 @@ void handle_tftp_dun(uint8_t err_code)
  * @param  _len          size of destination buffer
  * @param  _retries      max number of retries
  * @param  _tftp_err     contains info about TFTP-errors (e.g. lost packets)
- * @param  _mode         NON ZERO - multicast, ZERO - unicast
- * @param  _blocksize    blocksize for DATA-packets
  * @return               ZERO - error condition occurs
  *                       NON ZERO - size of received file
  */
 int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
-	 unsigned int _retries, tftp_err_t * _tftp_err,
-	 int32_t _mode, int32_t _blocksize, int _ip_version)
+	 unsigned int _retries, tftp_err_t * _tftp_err, int _ip_version)
 {
 	retries     = _retries;
 	fn_ip       = _fn_ip;
 	len         = _len;
-	huge_load   = _mode;
 	ip_version  = _ip_version;
 	tftp_errno  = 0;
 	tftp_err    = _tftp_err;
@@ -523,17 +519,14 @@ int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
 	port_number = -1;
 	progress_first = -1;
 	progress_last_bytes = 0;
+	huge_load   = 1;
 
 	/* Default blocksize must be 512 for TFTP servers
 	 * which do not support the RRQ blocksize option */
 	blocksize = 512;
 
 	/* Preferred blocksize - used as option for the read request */
-	if (_blocksize < 8)
-		_blocksize = 8;
-	else if (_blocksize > MAX_BLOCKSIZE)
-		_blocksize = MAX_BLOCKSIZE;
-	sprintf(blocksize_str, "%d", _blocksize);
+	sprintf(blocksize_str, "%d", MAX_BLOCKSIZE);
 
 	printf("  Receiving data:  ");
 	print_progress(-1, 0);

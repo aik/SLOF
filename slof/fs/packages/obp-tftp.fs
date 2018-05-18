@@ -12,8 +12,6 @@
 
 s" obp-tftp" device-name
 
-VARIABLE huge-tftp-load 1 huge-tftp-load !
-
 : open ( -- okay? ) 
     true
 ;
@@ -28,7 +26,6 @@ VARIABLE huge-tftp-load 1 huge-tftp-load !
 
     60000000                        ( addr maxlen )
 
-    huge-tftp-load @  d# 1428       ( addr maxlen hugetftp blocksize )
     \ Add OBP-TFTP Bootstring argument, e.g. "10.128.0.1,bootrom.bin,10.128.40.1"
     my-args
     net-load dup 0< IF drop 0 THEN
