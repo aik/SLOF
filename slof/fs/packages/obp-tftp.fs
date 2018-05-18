@@ -24,7 +24,13 @@ s" obp-tftp" device-name
     my-parent ihandle>phandle node>path encode-string
     s" bootpath" set-chosen
 
-    60000000                        ( addr maxlen )
+    \ Determine the maximum size that we can load:
+    dup paflof-start < IF
+        paflof-start
+    ELSE
+        MIN-RAM-SIZE
+    THEN                                  ( addr endaddr )
+    over -                                ( addr maxlen )
 
     \ Add OBP-TFTP Bootstring argument, e.g. "10.128.0.1,bootrom.bin,10.128.40.1"
     my-args
