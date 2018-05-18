@@ -19,8 +19,10 @@ free(void *ptr)
 {
 	struct chunk *header;
 
+	if (!ptr)
+		return;
+
 	header = (struct chunk *) ptr;
 	header--;
 	header->inuse = 0;
-
 }
