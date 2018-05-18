@@ -13,7 +13,7 @@
 
 STRING_SRC_C = strcat.c strchr.c strcmp.c strcpy.c strlen.c strncmp.c \
 		strncpy.c strstr.c memset.c memcpy.c memmove.c memchr.c \
-		memcmp.c strcasecmp.c strncasecmp.c strtok.c
+		memcmp.c strcasecmp.c strncasecmp.c strtok.c strrchr.c
 STRING_SRC_ASM = 
 STRING_SRCS = $(STRING_SRC_C:%=$(STRINGCMNDIR)/%) $(STRING_SRC_ASM:%=$(STRINGCMNDIR)/%)
 STRING_OBJS = $(STRING_SRC_C:%.c=%.o) $(STRING_SRC_ASM:%.S=%.o)
