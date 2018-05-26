@@ -427,6 +427,21 @@ static int tftp_load(filename_ip_t *fnip, void *buffer, int len,
 	return rc;
 }
 
+static const char *get_uuid(void)
+{
+	char *addr;
+	int len;
+
+	if (SLOF_get_property("/", "system-id", &addr, &len))
+		return NULL;
+	if (len < 37) {    /* This should never happen... */
+		puts("Warning: UUID property is too short.");
+		return NULL;
+	}
+
+	return addr;
+}
+
 #define CFG_BUF_SIZE 2048
 #define MAX_PL_CFG_ENTRIES 16
 static int net_pxelinux_load(filename_ip_t *fnip, char *loadbase,
@@ -442,7 +457,8 @@ static int net_pxelinux_load(filename_ip_t *fnip, char *loadbase,
 		return -1;
 	}
 
-	rc = pxelinux_load_parse_cfg(fnip, mac, retries, cfgbuf, CFG_BUF_SIZE,
+	rc = pxelinux_load_parse_cfg(fnip, mac, get_uuid(), retries,
+	                             cfgbuf, CFG_BUF_SIZE,
 	                             entries, MAX_PL_CFG_ENTRIES, &def);
 	if (rc < 0)
 		goto out_free;

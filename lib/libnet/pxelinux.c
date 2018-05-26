@@ -51,7 +51,7 @@ static int pxelinux_tftp_load(filename_ip_t *fnip, void *buffer, int len,
  * Try to load a pxelinux.cfg file by probing the possible file names.
  * Note that this function will overwrite filename_ip_t->filename.
  */
-static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac,
+static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid,
                              int retries, char *cfgbuf, int cfgbufsize)
 {
 	int rc, idx;
@@ -95,6 +95,15 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac,
 			return -1;
 		}
 		strcpy(baseptr, fn_ip->pl_cfgfile);
+		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+		if (rc > 0) {
+			return rc;
+		}
+	}
+
+	/* Try to load config file with name based on the VM UUID */
+	if (uuid) {
+		strcpy(baseptr, uuid);
 		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
 		if (rc > 0) {
 			return rc;
@@ -215,6 +224,7 @@ nextline:
  * Try to load and parse a pxelinux-style configuration file.
  * @param fn_ip        must contain server and client IP information
  * @param mac          MAC address which should be used for probing
+ * @param uuid         UUID which should be used for probing (can be NULL)
  * @param retries      Amount of TFTP retries before giving up
  * @param cfgbuf       Pointer to the buffer where config file should be loaded
  * @param cfgsize      Size of the cfgbuf buffer
@@ -223,14 +233,14 @@ nextline:
  * @param def_ent      Used to return the index of the default entry
  * @return             Number of valid entries
  */
-int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac,
+int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid,
                             int retries, char *cfgbuf, int cfgsize,
                             struct pl_cfg_entry *entries, int max_entries,
                             int *def_ent)
 {
 	int rc;
 
-	rc = pxelinux_load_cfg(fn_ip, mac, retries, cfgbuf, cfgsize);
+	rc = pxelinux_load_cfg(fn_ip, mac, uuid, retries, cfgbuf, cfgsize);
 	if (rc < 0)
 		return rc;
 

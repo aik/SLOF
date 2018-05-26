@@ -25,7 +25,7 @@ struct pl_cfg_entry {
 
 int pxelinux_parse_cfg(char *cfg, int cfgsize, struct pl_cfg_entry *entries,
                        int max_entries, int *def_ent);
-int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac,
+int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid,
                             int retries, char *cfgbuf, int cfgsize,
                             struct pl_cfg_entry *entries,
                             int max_entries, int *def_ent);
