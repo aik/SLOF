@@ -29,6 +29,8 @@ struct filename_ip {
 	ip6_addr_t server_ip6;
 	ip6_addr_t dns_ip6;
 	char filename[256];
+	char *pl_cfgfile; /* For PXELINUX DHCPv4 option 209. Must be free()ed */
+	char *pl_prefix;  /* For PXELINUX DHCPv4 option 210. Must be free()ed */
 	int fd;
 	int ip_version;
 };

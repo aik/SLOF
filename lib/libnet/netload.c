@@ -759,7 +759,8 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 	/* Do the TFTP load and print error message if necessary */
 	rc = 0;
 	filename_len = strlen(fn_ip.filename);
-	if (filename_len > 0 && fn_ip.filename[filename_len - 1] != '/') {
+	if (filename_len > 0 && fn_ip.filename[filename_len - 1] != '/' &&
+	    !fn_ip.pl_cfgfile) {
 		rc = tftp_load(&fn_ip, buffer, len, obp_tftp_args.tftp_retries);
 	}
 
@@ -779,5 +780,7 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 	}
   err_out:
 	SLOF_free_mem(pkt_buffer, MAX_PKT_SIZE);
+	free(fn_ip.pl_cfgfile);
+	free(fn_ip.pl_prefix);
 	return rc;
 }

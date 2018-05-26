@@ -79,6 +79,8 @@
 #define DHCP_TFTP_SERVER      66
 #define DHCP_BOOTFILE         67
 #define DHCP_CLIENT_ARCH      93
+#define DHCP_PXELINUX_CFGFILE 209   /* See RFC 5071 */
+#define DHCP_PXELINUX_PREFIX  210
 #define DHCP_ENDOPT         0xFF
 #define DHCP_PADOPT         0x00
 
@@ -167,6 +169,8 @@ static uint32_t dhcp_siaddr_ip     = 0;
 static char   dhcp_filename[256];
 static char   dhcp_tftp_name[256];
 static uint32_t dhcp_xid;
+static char *pxelinux_cfgfile;
+static char *pxelinux_prefix;
 
 static char   * response_buffer;
 
@@ -184,6 +188,8 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 
 	strcpy(dhcp_filename, "");
 	strcpy(dhcp_tftp_name, "");
+
+	pxelinux_cfgfile = pxelinux_prefix = NULL;
 
 	response_buffer = ret_buffer;
 
@@ -231,6 +237,10 @@ int32_t dhcpv4(char *ret_buffer, filename_ip_t *fn_ip)
 	fn_ip -> own_ip = dhcp_own_ip;
 	fn_ip -> server_ip = dhcp_tftp_ip;
 	strcpy(fn_ip->filename, dhcp_filename);
+
+	fn_ip->pl_cfgfile = pxelinux_cfgfile;
+	fn_ip->pl_prefix = pxelinux_prefix;
+	pxelinux_cfgfile = pxelinux_prefix = NULL;
 
 	return 0;
 }
@@ -454,6 +464,26 @@ static int32_t dhcp_decode_options(uint8_t opt_field[], uint32_t opt_len,
 		case DHCP_CLIENT_ARCH :
 			opt_struct -> client_arch = ((opt_field[offset + 2] << 8) & 0xFF00) | (opt_field[offset + 3] & 0xFF);
 			offset += 4;
+			break;
+
+		case DHCP_PXELINUX_CFGFILE:
+			pxelinux_cfgfile = malloc(opt_field[offset + 1] + 1);
+			if (pxelinux_cfgfile) {
+				memcpy(pxelinux_cfgfile, opt_field + offset + 2,
+				       opt_field[offset + 1]);
+				pxelinux_cfgfile[opt_field[offset + 1]] = 0;
+			}
+			offset += 2 + opt_field[offset + 1];
+			break;
+
+		case DHCP_PXELINUX_PREFIX:
+			pxelinux_prefix = malloc(opt_field[offset + 1] + 1);
+			if (pxelinux_prefix) {
+				memcpy(pxelinux_prefix, opt_field + offset + 2,
+				       opt_field[offset + 1]);
+				pxelinux_prefix[opt_field[offset + 1]] = 0;
+			}
+			offset += 2 + opt_field[offset + 1];
 			break;
 
 		case DHCP_PADOPT :
@@ -681,6 +711,9 @@ static void dhcp_send_request(int fd)
 	opt.request_list[DHCP_ROUTER] = 1;
 	opt.request_list[DHCP_TFTP_SERVER] = 1;
 	opt.request_list[DHCP_BOOTFILE] = 1;
+	opt.request_list[DHCP_PXELINUX_CFGFILE] = 1;
+	opt.request_list[DHCP_PXELINUX_PREFIX] = 1;
+
 	opt.request_list[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
 	opt.flag[DHCP_CLIENT_ARCH] = USE_DHCPARCH;
 

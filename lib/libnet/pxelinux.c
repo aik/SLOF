@@ -57,23 +57,49 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac,
 	int rc, idx;
 	char *baseptr;
 
-	/* Try to get a usable base directory from the DHCP bootfile name */
-	baseptr = strrchr(fn_ip->filename, '/');
-	if (!baseptr)
-		baseptr = fn_ip->filename;
-	else
-		++baseptr;
-	/* Check that we've got enough space to store "pxelinux.cfg/" and
-	 * the UUID (which is the longest file name) there */
-	if (baseptr - fn_ip->filename > sizeof(fn_ip->filename) - 50) {
-		puts("Error: The bootfile string is too long for deriving the "
-		     "pxelinux.cfg file name from it.");
-		return -1;
+	/* Did we get a usable base directory via DHCP? */
+	if (fn_ip->pl_prefix) {
+		idx = strlen(fn_ip->pl_prefix);
+		/* Do we have enough space left to store a UUID file name? */
+		if (idx > sizeof(fn_ip->filename) - 36) {
+			puts("Error: pxelinux prefix is too long!");
+			return -1;
+		}
+		strcpy(fn_ip->filename, fn_ip->pl_prefix);
+		baseptr = &fn_ip->filename[idx];
+	} else {
+		/* Try to get a usable base directory from the DHCP bootfile name */
+		baseptr = strrchr(fn_ip->filename, '/');
+		if (!baseptr)
+			baseptr = fn_ip->filename;
+		else
+			++baseptr;
+		/* Check that we've got enough space to store "pxelinux.cfg/"
+		 * and the UUID (which is the longest file name) there */
+		if (baseptr - fn_ip->filename > sizeof(fn_ip->filename) - 50) {
+			puts("Error: The bootfile string is too long for "
+			     "deriving the pxelinux.cfg file name from it.");
+			return -1;
+		}
+		strcpy(baseptr, "pxelinux.cfg/");
+		baseptr += strlen(baseptr);
 	}
-	strcpy(baseptr, "pxelinux.cfg/");
-	baseptr += strlen(baseptr);
 
 	puts("Trying pxelinux.cfg files...");
+
+	/* Try to load config file according to file name in DHCP option 209 */
+	if (fn_ip->pl_cfgfile) {
+		if (strlen(fn_ip->pl_cfgfile) + strlen(fn_ip->filename)
+		    > sizeof(fn_ip->filename)) {
+			puts("Error: pxelinux.cfg prefix + filename too long!");
+			return -1;
+		}
+		strcpy(baseptr, fn_ip->pl_cfgfile);
+		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+		if (rc > 0) {
+			return rc;
+		}
+	}
 
 	/* Look for config file with MAC address in its name */
 	sprintf(baseptr, "01-%02x-%02x-%02x-%02x-%02x-%02x",

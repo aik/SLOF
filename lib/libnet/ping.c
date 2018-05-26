@@ -115,6 +115,7 @@ int ping(char *args_fs, int alen)
 	uint8_t own_mac[6];
 	uint32_t netmask;
 	char args[256];
+	int ret = -1;
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
@@ -164,8 +165,7 @@ int ping(char *args_fs, int alen)
 
 		if (arp_failed == -1) {
 			printf("\n  DHCP: Could not get ip address\n");
-			close(fn_ip.fd);
-			return -1;
+			goto free_out;
 		}
 
 	} else {
@@ -210,12 +210,16 @@ int ping(char *args_fs, int alen)
 		receive_ether(fd_device);
 		if(pong_ipv4() == 0) {
 			printf("success\n");
-			close(fn_ip.fd);
-			return 0;
+			ret = 0;
+			goto free_out;
 		}
 	}
 
 	printf("failed\n");
+free_out:
+	free(fn_ip.pl_cfgfile);
+	free(fn_ip.pl_prefix);
 	close(fn_ip.fd);
-	return -1;
+
+	return ret;
 }
