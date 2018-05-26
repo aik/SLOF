@@ -40,6 +40,8 @@ extern void SLOF_set_chosen_int(const char *s, long val);
 extern void SLOF_set_chosen_bytes(const char *s, const char *addr, size_t size);
 extern void SLOF_encode_bootp_response(void *addr, size_t size);
 extern void SLOF_encode_dhcp_response(void *addr, size_t size);
+extern int SLOF_get_property(const char *node, const char *propname,
+                             char **addr, int *len);
 
 #define offset_of(type, member) ((long) &((type *)0)->member)
 #define container_of(ptr, type, member) ({                      \

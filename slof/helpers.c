@@ -209,3 +209,18 @@ void SLOF_encode_dhcp_response(void *addr, size_t size)
 {
 	SLOF_set_chosen_bytes("dhcp-response", addr, size);
 }
+
+int SLOF_get_property(const char *node, const char *propname,
+                      char **addr, int *len)
+{
+	forth_push((unsigned long)propname);
+	forth_push(strlen(propname));
+	forth_push((unsigned long)node);
+	forth_push(strlen(node));
+	forth_eval("find-node get-property");
+	if (forth_pop())
+		return -1;
+	*len = forth_pop();
+	*addr = (char *)forth_pop();
+	return 0;
+}
