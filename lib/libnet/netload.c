@@ -415,79 +415,12 @@ static int tftp_load(filename_ip_t *fnip, void *buffer, int len,
 	if (rc > 0) {
 		printf("  TFTP: Received %s (%d KBytes)\n", fnip->filename,
 		       rc / 1024);
-	} else if (rc == -1) {
-		netload_error(0x3003, "unknown TFTP error");
-		return -103;
-	} else if (rc == -2) {
-		netload_error(0x3004, "TFTP buffer of %d bytes "
-			"is too small for %s",
-			len, fnip->filename);
-		return -104;
-	} else if (rc == -3) {
-		netload_error(0x3009, "file not found: %s",
-			fnip->filename);
-		return -108;
-	} else if (rc == -4) {
-		netload_error(0x3010, "TFTP access violation");
-		return -109;
-	} else if (rc == -5) {
-		netload_error(0x3011, "illegal TFTP operation");
-		return -110;
-	} else if (rc == -6) {
-		netload_error(0x3012, "unknown TFTP transfer ID");
-		return -111;
-	} else if (rc == -7) {
-		netload_error(0x3013, "no such TFTP user");
-		return -112;
-	} else if (rc == -8) {
-		netload_error(0x3017, "TFTP blocksize negotiation failed");
-		return -116;
-	} else if (rc == -9) {
-		netload_error(0x3018, "file exceeds maximum TFTP transfer size");
-		return -117;
-	} else if (rc <= -10 && rc >= -15) {
-		const char *icmp_err_str;
-		switch (rc) {
-		case -ICMP_NET_UNREACHABLE - 10:
-			icmp_err_str = "net unreachable";
-			break;
-		case -ICMP_HOST_UNREACHABLE - 10:
-			icmp_err_str = "host unreachable";
-			break;
-		case -ICMP_PROTOCOL_UNREACHABLE - 10:
-			icmp_err_str = "protocol unreachable";
-			break;
-		case -ICMP_PORT_UNREACHABLE - 10:
-			icmp_err_str = "port unreachable";
-			break;
-		case -ICMP_FRAGMENTATION_NEEDED - 10:
-			icmp_err_str = "fragmentation needed and DF set";
-			break;
-		case -ICMP_SOURCE_ROUTE_FAILED - 10:
-			icmp_err_str = "source route failed";
-			break;
-		default:
-			icmp_err_str = " UNKNOWN";
-			break;
-		}
-		netload_error(0x3005, "ICMP ERROR \"%s\"", icmp_err_str);
-		return -105;
-	} else if (rc == -40) {
-		netload_error(0x3014, "TFTP error occurred after "
-			"%d bad packets received",
-			tftp_err.bad_tftp_packets);
-		return -113;
-	} else if (rc == -41) {
-		netload_error(0x3015, "TFTP error occurred after "
-			"missing %d responses",
-			tftp_err.no_packets);
-		return -114;
-	} else if (rc == -42) {
-		netload_error(0x3016, "TFTP error missing block %d, "
-			"expected block was %d",
-			tftp_err.blocks_missed,
-			tftp_err.blocks_received);
-		return -115;
+	} else {
+		int ecode;
+		const char *errstr = NULL;
+		rc = tftp_get_error_info(fnip, &tftp_err, rc, &errstr, &ecode);
+		if (errstr)
+			netload_error(ecode, errstr);
 	}
 
 	return rc;

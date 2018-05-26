@@ -46,5 +46,7 @@ int tftp(filename_ip_t *fnip, unsigned char *buf, int len,
 int32_t handle_tftp(int fd, uint8_t *, int32_t);
 void handle_tftp_dun(uint8_t err_code);
 int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd, int len);
+int tftp_get_error_info(filename_ip_t *fnip, tftp_err_t *tftperr, int rc,
+                        const char **errstr, int *ecode);
 
 #endif

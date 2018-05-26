@@ -690,3 +690,104 @@ int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd,
 		return 0;
 	}
 }
+
+int tftp_get_error_info(filename_ip_t *fnip, tftp_err_t *tftperr, int rc,
+                        const char **errstr, int *ecode)
+{
+	static char estrbuf[80];
+
+	if (rc == -1) {
+		*ecode = 0x3003;
+		*errstr = "unknown TFTP error";
+		return -103;
+	} else if (rc == -2) {
+		*ecode = 0x3004;
+		snprintf(estrbuf, sizeof(estrbuf),
+			 "TFTP buffer of %d bytes is too small for %s", len,
+			fnip->filename);
+		*errstr = estrbuf;
+		return -104;
+	} else if (rc == -3) {
+		*ecode = 0x3009;
+		snprintf(estrbuf, sizeof(estrbuf), "file not found: %s",
+			 fnip->filename);
+		*errstr = estrbuf;
+		return -108;
+	} else if (rc == -4) {
+		*ecode = 0x3010;
+		*errstr = "TFTP access violation";
+		return -109;
+	} else if (rc == -5) {
+		*ecode = 0x3011;
+		*errstr = "illegal TFTP operation";
+		return -110;
+	} else if (rc == -6) {
+		*ecode = 0x3012;
+		*errstr = "unknown TFTP transfer ID";
+		return -111;
+	} else if (rc == -7) {
+		*ecode = 0x3013;
+		*errstr = "no such TFTP user";
+		return -112;
+	} else if (rc == -8) {
+		*ecode = 0x3017;
+		*errstr = "TFTP blocksize negotiation failed";
+		return -116;
+	} else if (rc == -9) {
+		*ecode = 0x3018;
+		*errstr = "file exceeds maximum TFTP transfer size";
+		return -117;
+	} else if (rc <= -10 && rc >= -15) {
+		const char *icmp_err_str;
+		switch (rc) {
+		case -ICMP_NET_UNREACHABLE - 10:
+			icmp_err_str = "net unreachable";
+			break;
+		case -ICMP_HOST_UNREACHABLE - 10:
+			icmp_err_str = "host unreachable";
+			break;
+		case -ICMP_PROTOCOL_UNREACHABLE - 10:
+			icmp_err_str = "protocol unreachable";
+			break;
+		case -ICMP_PORT_UNREACHABLE - 10:
+			icmp_err_str = "port unreachable";
+			break;
+		case -ICMP_FRAGMENTATION_NEEDED - 10:
+			icmp_err_str = "fragmentation needed and DF set";
+			break;
+		case -ICMP_SOURCE_ROUTE_FAILED - 10:
+			icmp_err_str = "source route failed";
+			break;
+		default:
+			icmp_err_str = "UNKNOWN";
+			break;
+		}
+		*ecode = 0x3005;
+		sprintf(estrbuf, "ICMP ERROR \"%s\"", icmp_err_str);
+		*errstr = estrbuf;
+		return -105;
+	} else if (rc == -40) {
+		*ecode = 0x3014;
+		sprintf(estrbuf,
+			"TFTP error occurred after %d bad packets received",
+			tftperr->bad_tftp_packets);
+		*errstr = estrbuf;
+		return -113;
+	} else if (rc == -41) {
+		*ecode = 0x3015;
+		sprintf(estrbuf,
+			"TFTP error occurred after missing %d responses",
+			tftperr->no_packets);
+		*errstr = estrbuf;
+		return -114;
+	} else if (rc == -42) {
+		*ecode = 0x3016;
+		sprintf(estrbuf,
+			"TFTP error missing block %d, expected block was %d",
+			tftperr->blocks_missed, tftperr->blocks_received);
+		*errstr = estrbuf;
+		return -115;
+	}
+
+	return rc;
+}
