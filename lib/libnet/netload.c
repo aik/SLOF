@@ -404,13 +404,13 @@ static void seed_rng(uint8_t mac[])
 	srand(seed);
 }
 
-static int tftp_load(filename_ip_t *fnip, unsigned char *buffer, int len,
-		     unsigned int retries, int ip_vers)
+static int tftp_load(filename_ip_t *fnip, void *buffer, int len,
+                     unsigned int retries)
 {
 	tftp_err_t tftp_err;
 	int rc;
 
-	rc = tftp(fnip, buffer, len, retries, &tftp_err, ip_vers);
+	rc = tftp(fnip, buffer, len, retries, &tftp_err);
 
 	if (rc > 0) {
 		printf("  TFTP: Received %s (%d KBytes)\n", fnip->filename,
@@ -737,6 +737,8 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 		fn_ip.filename[sizeof(fn_ip.filename)-1] = 0;
 	}
 
+	fn_ip.ip_version = ip_version;
+
 	if (ip_version == 4) {
 		printf("  Requesting file \"%s\" via TFTP from %d.%d.%d.%d\n",
 			fn_ip.filename,
@@ -752,8 +754,7 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 	}
 
 	/* Do the TFTP load and print error message if necessary */
-	rc = tftp_load(&fn_ip, (unsigned char *)buffer, len,
-		       obp_tftp_args.tftp_retries, ip_version);
+	rc = tftp_load(&fn_ip, buffer, len, obp_tftp_args.tftp_retries);
 
 	if (obp_tftp_args.ip_init == IP_INIT_DHCP)
 		dhcp_send_release(fn_ip.fd);

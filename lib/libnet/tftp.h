@@ -29,8 +29,9 @@ struct filename_ip {
 	ip6_addr_t server_ip6;
 	ip6_addr_t dns_ip6;
 	char filename[256];
-	int    fd;
-} __attribute__ ((packed));
+	int fd;
+	int ip_version;
+};
 typedef struct filename_ip filename_ip_t;
 
 typedef struct {
@@ -40,9 +41,8 @@ typedef struct {
 	uint32_t blocks_received;
 } tftp_err_t;
 
-int tftp(filename_ip_t *, unsigned char  *, int, unsigned int,
-         tftp_err_t *, int ip_version);
-
+int tftp(filename_ip_t *fnip, unsigned char *buf, int len,
+         unsigned int retries, tftp_err_t *err);
 int32_t handle_tftp(int fd, uint8_t *, int32_t);
 void handle_tftp_dun(uint8_t err_code);
 int parse_tftp_args(char buffer[], char *server_ip, char filename[], int fd, int len);

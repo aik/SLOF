@@ -501,12 +501,12 @@ void handle_tftp_dun(uint8_t err_code)
  *                       NON ZERO - size of received file
  */
 int tftp(filename_ip_t * _fn_ip, unsigned char *_buffer, int _len,
-	 unsigned int _retries, tftp_err_t * _tftp_err, int _ip_version)
+	 unsigned int _retries, tftp_err_t * _tftp_err)
 {
 	retries     = _retries;
 	fn_ip       = _fn_ip;
 	len         = _len;
-	ip_version  = _ip_version;
+	ip_version  = _fn_ip->ip_version;
 	tftp_errno  = 0;
 	tftp_err    = _tftp_err;
 	tftp_err->bad_tftp_packets = 0;
