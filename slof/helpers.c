@@ -181,7 +181,16 @@ int write_mm_log(char *data, unsigned int len, unsigned short type)
 	return forth_eval_pop("write-mm-log");
 }
 
-static void SLOF_encode_response(void *addr, size_t size,char *s)
+void SLOF_set_chosen_int(const char *s, long val)
+{
+	forth_push(val);
+	forth_eval("encode-int");
+	forth_push((unsigned long)s);
+	forth_push(strlen(s));
+	forth_eval("set-chosen");
+}
+
+void SLOF_set_chosen_bytes(const char *s, const char *addr, size_t size)
 {
 	forth_push((unsigned long)addr);
 	forth_push(size);
@@ -193,10 +202,10 @@ static void SLOF_encode_response(void *addr, size_t size,char *s)
 
 void SLOF_encode_bootp_response(void *addr, size_t size)
 {
-	SLOF_encode_response(addr, size, "bootp-response");
+	SLOF_set_chosen_bytes("bootp-response", addr, size);
 }
 
 void SLOF_encode_dhcp_response(void *addr, size_t size)
 {
-	SLOF_encode_response(addr, size, "dhcp-response");
+	SLOF_set_chosen_bytes("dhcp-response", addr, size);
 }

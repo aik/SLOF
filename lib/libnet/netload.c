@@ -26,6 +26,7 @@
 #include <helpers.h>
 #include "args.h"
 #include "netapps.h"
+#include "pxelinux.h"
 
 #define IP_INIT_DEFAULT 5
 #define IP_INIT_NONE    0
@@ -426,6 +427,75 @@ static int tftp_load(filename_ip_t *fnip, void *buffer, int len,
 	return rc;
 }
 
+#define CFG_BUF_SIZE 2048
+#define MAX_PL_CFG_ENTRIES 16
+static int net_pxelinux_load(filename_ip_t *fnip, char *loadbase,
+                             int maxloadlen, uint8_t *mac, int retries)
+{
+	struct pl_cfg_entry entries[MAX_PL_CFG_ENTRIES];
+	int def, rc, ilen;
+	static char *cfgbuf;
+
+	cfgbuf = malloc(CFG_BUF_SIZE);
+	if (!cfgbuf) {
+		puts("Not enough memory for pxelinux config file buffer!");
+		return -1;
+	}
+
+	rc = pxelinux_load_parse_cfg(fnip, mac, retries, cfgbuf, CFG_BUF_SIZE,
+	                             entries, MAX_PL_CFG_ENTRIES, &def);
+	if (rc < 0)
+		goto out_free;
+	if (rc == 0) {
+		puts("No valid entries in pxelinux config file.");
+		rc = -1;
+		goto out_free;
+	}
+
+	/* Load kernel */
+	strncpy(fnip->filename, entries[def].kernel,
+		sizeof(fnip->filename) - 1);
+	fnip->filename[sizeof(fnip->filename) - 1] = 0;
+	rc = tftp_load(fnip, loadbase, maxloadlen, retries);
+	if (rc <= 0)
+		goto out_free;
+
+	/* Load ramdisk */
+	if (entries[def].initrd) {
+		loadbase += rc;
+		maxloadlen -= rc;
+		if (maxloadlen <= 0) {
+			puts("  Not enough space for loading the initrd!");
+			rc = -1;
+			goto out_free;
+		}
+		strncpy(fnip->filename, entries[def].initrd,
+			sizeof(fnip->filename) - 1);
+		ilen = tftp_load(fnip, loadbase, maxloadlen, retries);
+		if (ilen < 0) {
+			rc = ilen;
+			goto out_free;
+		}
+		/* The ELF loader will move the kernel to some spot in low mem
+		 * later, thus move the initrd to the end of the RAM instead */
+		memmove(loadbase + maxloadlen - ilen, loadbase, ilen);
+		/* Encode the initrd information in the device tree */
+		SLOF_set_chosen_int("linux,initrd-start",
+		                    (long)loadbase + maxloadlen - ilen);
+		SLOF_set_chosen_int("linux,initrd-end",
+		                    (long)loadbase + maxloadlen);
+	}
+
+	if (entries[def].append) {
+		SLOF_set_chosen_bytes("bootargs", entries[def].append,
+		                      strlen(entries[def].append) + 1);
+	}
+
+out_free:
+	free(cfgbuf);
+	return rc;
+}
+
 static void encode_response(char *pkt_buffer, size_t size, int ip_init)
 {
 	switch(ip_init) {
@@ -444,7 +514,7 @@ static void encode_response(char *pkt_buffer, size_t size, int ip_init)
 
 int netload(char *buffer, int len, char *args_fs, int alen)
 {
-	int rc;
+	int rc, filename_len;
 	filename_ip_t fn_ip;
 	int fd_device;
 	obp_tftp_args_t obp_tftp_args;
@@ -687,7 +757,17 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 	}
 
 	/* Do the TFTP load and print error message if necessary */
-	rc = tftp_load(&fn_ip, buffer, len, obp_tftp_args.tftp_retries);
+	rc = 0;
+	filename_len = strlen(fn_ip.filename);
+	if (filename_len > 0 && fn_ip.filename[filename_len - 1] != '/') {
+		rc = tftp_load(&fn_ip, buffer, len, obp_tftp_args.tftp_retries);
+	}
+
+	if (rc <= 0 && !obp_tftp_args.filename[0] &&
+	    (!filename_len || fn_ip.filename[filename_len - 1] == '/')) {
+		rc = net_pxelinux_load(&fn_ip, buffer, len, own_mac,
+		                       obp_tftp_args.tftp_retries);
+	}
 
 	if (obp_tftp_args.ip_init == IP_INIT_DHCP)
 		dhcp_send_release(fn_ip.fd);
