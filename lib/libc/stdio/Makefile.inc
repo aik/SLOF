@@ -13,7 +13,7 @@
 
 STDIO_SRC_C = fscanf.c sprintf.c vfprintf.c vsnprintf.c vsprintf.c fprintf.c \
 	      printf.c setvbuf.c putc.c puts.c putchar.c scanf.c stdchnls.c \
-	      vfscanf.c vsscanf.c fileno.c
+	      vfscanf.c vsscanf.c fileno.c snprintf.c
 
 STDIO_SRC_ASM = 
 STDIO_SRCS = $(STDIO_SRC_C:%=$(STDIOCMNDIR)/%) $(STDIO_SRC_ASM:%=$(STDIOCMNDIR)/%)
