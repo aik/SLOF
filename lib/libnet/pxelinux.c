@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "tftp.h"
 #include "pxelinux.h"
 
@@ -95,7 +96,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 			return -1;
 		}
 		strcpy(baseptr, fn_ip->pl_cfgfile);
-		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize, retries);
 		if (rc > 0) {
 			return rc;
 		}
@@ -104,7 +105,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 	/* Try to load config file with name based on the VM UUID */
 	if (uuid) {
 		strcpy(baseptr, uuid);
-		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+		rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize, retries);
 		if (rc > 0) {
 			return rc;
 		}
@@ -113,7 +114,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 	/* Look for config file with MAC address in its name */
 	sprintf(baseptr, "01-%02x-%02x-%02x-%02x-%02x-%02x",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-	rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+	rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize, retries);
 	if (rc > 0) {
 		return rc;
 	}
@@ -127,7 +128,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 			fn_ip->own_ip & 0xff);
 		for (idx = 0; idx <= 7; idx++) {
 			baseptr[8 - idx] = 0;
-			rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1,
+			rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize,
 			                        retries);
 			if (rc > 0) {
 				return rc;
@@ -137,7 +138,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 
 	/* Try "default" config file */
 	strcpy(baseptr, "default");
-	rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize - 1, retries);
+	rc = pxelinux_tftp_load(fn_ip, cfgbuf, cfgbufsize, retries);
 
 	return rc;
 }
@@ -240,9 +241,10 @@ int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid
 {
 	int rc;
 
-	rc = pxelinux_load_cfg(fn_ip, mac, uuid, retries, cfgbuf, cfgsize);
+	rc = pxelinux_load_cfg(fn_ip, mac, uuid, retries, cfgbuf, cfgsize - 1);
 	if (rc < 0)
 		return rc;
+	assert(rc < cfgsize);
 
 	return pxelinux_parse_cfg(cfgbuf, rc, entries, max_entries, def_ent);
 }
