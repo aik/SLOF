@@ -151,8 +151,9 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
  * in entries point to the original location in the cfg buffer area. The cfg
  * buffer is altered for this, too, e.g. terminating NUL-characters are put
  * into the right locations.
- * @param cfg          Pointer to the buffer with contents of the config file
- * @param cfgsize      Size of the cfg buffer
+ * @param cfg          Pointer to the buffer with contents of the config file.
+ *                     The caller must make sure that it is NUL-terminated.
+ * @param cfgsize      Size of the cfg data (including the terminating NUL)
  * @param entries      Pointer to array where the results should be put into
  * @param max_entries  Number of available slots in the entries array
  * @param def_ent      Used to return the index of the default entry
@@ -167,12 +168,10 @@ int pxelinux_parse_cfg(char *cfg, int cfgsize, struct pl_cfg_entry *entries,
 
 	*def_ent = 0;
 
-	cfg[cfgsize - 1] = 0;  /* Make sure it is NUL-terminated */
-
 	while (ptr < cfg + cfgsize && num_entries < max_entries) {
 		eol = strchr(ptr, '\n');
 		if (!eol) {
-			eol = cfg + cfgsize;
+			eol = cfg + cfgsize - 1;
 		}
 		nextptr = eol + 1;
 		do {
@@ -245,6 +244,8 @@ int pxelinux_load_parse_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid
 	if (rc < 0)
 		return rc;
 	assert(rc < cfgsize);
+
+	cfgbuf[rc++] = '\0';	/* Make sure it is NUL-terminated */
 
 	return pxelinux_parse_cfg(cfgbuf, rc, entries, max_entries, def_ent);
 }
