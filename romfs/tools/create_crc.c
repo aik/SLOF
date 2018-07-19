@@ -10,6 +10,7 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,21 +72,18 @@ createHeaderImage(int notime)
 	char dastr[16] = { 0, };
 	unsigned long long da = 0;
 
-	union {
-		unsigned char pcArray[FLASHFS_HEADER_DATA_SIZE];
-		struct stH stHeader;
-	} uHeader;
+	struct stH stHeader;
 
 	/* initialize Header */
-	memset(uHeader.pcArray, 0x00, FLASHFS_HEADER_DATA_SIZE);
+	memset(&stHeader, 0x00, sizeof(stHeader));
 
 	/* read driver info */
 	if (NULL != (pcVersion = getenv("DRIVER_NAME"))) {
-		strncpy(uHeader.stHeader.version, pcVersion, 16);
+		strncpy(stHeader.version, pcVersion, 16);
 	} else if (NULL != (pcVersion = getenv("USER"))) {
-		strncpy(uHeader.stHeader.version, pcVersion, 16);
+		strncpy(stHeader.version, pcVersion, 16);
 	} else if (pcVersion == NULL) {
-		strncpy(uHeader.stHeader.version, "No known user!", 16);
+		strncpy(stHeader.version, "No known user!", 16);
 	}
 
 	if (!notime) {
@@ -104,18 +102,18 @@ createHeaderImage(int notime)
 		}
 		da = cpu_to_be64(strtoll(dastr, NULL, 16));
 	}
-	memcpy(uHeader.stHeader.date, &da, 8);
+	memcpy(stHeader.date, &da, 8);
 
 	/* write Magic value into data stream */
-	strncpy(uHeader.stHeader.magic, FLASHFS_MAGIC, 8);
+	strncpy(stHeader.magic, FLASHFS_MAGIC, 8);
 	/* write platform name into data stream */
-	strcpy(uHeader.stHeader.platform_name, FLASHFS_PLATFORM_MAGIC);
+	strcpy(stHeader.platform_name, FLASHFS_PLATFORM_MAGIC);
 	/* write platform revision into data stream */
-	strcpy(uHeader.stHeader.platform_revision, FLASHFS_PLATFORM_REVISION);
+	strcpy(stHeader.platform_revision, FLASHFS_PLATFORM_REVISION);
 
 
 	/* fill end of file info (8 bytes of FF) into data stream */
-	uHeader.stHeader.ui64FileEnd = -1;
+	stHeader.ui64FileEnd = -1;
 
 	/* read address of next file and address of header date, both are 64 bit values */
 	ui64RomAddr = 0;
@@ -129,7 +127,7 @@ createHeaderImage(int notime)
 
 	/* calculate final flash-header-size and flash-file-size */
 	/* calculate end addr of header */
-	ui64globalHeaderSize = (uint32_t) ui64DataAddr + (uint32_t) FLASHFS_HEADER_DATA_SIZE;
+	ui64globalHeaderSize = (uint32_t) ui64DataAddr + sizeof(stHeader);
 	/* cut 64 bit to place CRC for File-End */
 	ui64globalHeaderSize -= 8;
 	/* add 64 bit to place CRC behind File-End */
@@ -143,8 +141,7 @@ createHeaderImage(int notime)
 	/* fill free space in Header with zeros */
 	memset(&pucFileStream[ui64DataAddr], 0, (ui64RomAddr - ui64DataAddr));
 	/* place data to header */
-	memcpy(&pucFileStream[ui64DataAddr], uHeader.pcArray,
-	       FLASHFS_HEADER_DATA_SIZE);
+	memcpy(&pucFileStream[ui64DataAddr], &stHeader, sizeof(stHeader));
 
 	/* insert header length into data stream */
 	*(uint64_t *) (pucFileStream + FLASHFS_HEADER_SIZE_ADDR) =
