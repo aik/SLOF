@@ -72,10 +72,12 @@ createHeaderImage(int notime)
 	char dastr[16] = { 0, };
 	unsigned long long da = 0;
 
-	struct stH stHeader;
-
-	/* initialize Header */
-	memset(&stHeader, 0x00, sizeof(stHeader));
+	struct stH stHeader = {
+		.magic = FLASHFS_MAGIC,
+		.platform_name = FLASHFS_PLATFORM_MAGIC,
+		.platform_revision = FLASHFS_PLATFORM_REVISION,
+		.ui64FileEnd = -1,
+	};
 
 	/* read driver info */
 	if (NULL != (pcVersion = getenv("DRIVER_NAME"))) {
@@ -103,17 +105,6 @@ createHeaderImage(int notime)
 		da = cpu_to_be64(strtoll(dastr, NULL, 16));
 	}
 	memcpy(stHeader.date, &da, 8);
-
-	/* write Magic value into data stream */
-	strncpy(stHeader.magic, FLASHFS_MAGIC, 8);
-	/* write platform name into data stream */
-	strcpy(stHeader.platform_name, FLASHFS_PLATFORM_MAGIC);
-	/* write platform revision into data stream */
-	strcpy(stHeader.platform_revision, FLASHFS_PLATFORM_REVISION);
-
-
-	/* fill end of file info (8 bytes of FF) into data stream */
-	stHeader.ui64FileEnd = -1;
 
 	/* read address of next file and address of header date, both are 64 bit values */
 	ui64RomAddr = 0;
