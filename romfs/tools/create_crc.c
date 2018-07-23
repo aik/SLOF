@@ -32,6 +32,11 @@ static uint64_t ui64globalHeaderSize = 0;
 /* flag to filter detect the header in buildDataStream() */
 static int iglobalHeaderFlag = 1;
 
+static size_t min(size_t a, size_t b)
+{
+	return a < b ? a : b;
+}
+
 /**
  * Build the file image and store it as Data Stream of bytes
  * calculate a first CRC for the first file and
@@ -80,13 +85,13 @@ createHeaderImage(int notime)
 	};
 
 	/* read driver info */
-	if (NULL != (pcVersion = getenv("DRIVER_NAME"))) {
-		strncpy(stHeader.version, pcVersion, 16);
-	} else if (NULL != (pcVersion = getenv("USER"))) {
-		strncpy(stHeader.version, pcVersion, 16);
-	} else if (pcVersion == NULL) {
-		strncpy(stHeader.version, "No known user!", 16);
-	}
+	pcVersion = getenv("DRIVER_NAME");
+	if (!pcVersion)
+		pcVersion = getenv("USER");
+	if (!pcVersion)
+		pcVersion = "unknown";
+	memcpy(stHeader.version, pcVersion,
+	       min(strlen(pcVersion), sizeof(stHeader.version)));
 
 	if (!notime) {
 		/* read time and write it into data stream */
