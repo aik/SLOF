@@ -507,9 +507,9 @@ TRUE VALUE first-time-init?
     10000 \ Larger value seem to have problems with some CDROMs
 ;
 
-8 CONSTANT #dev
+\ Report the amount of supported SCSI IDs - QEMU uses "max_target = 63"
 : dev-max-target ( -- #max-target )
-    #dev
+    40
 ;
 
 " scsi-probe-helpers.fs" included
