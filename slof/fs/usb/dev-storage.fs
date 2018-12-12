@@ -103,23 +103,30 @@ scsi-open
 \ if sense-len is 0 then no sense data is actually present
 \
 
-: do-bulk-command ( resp-buffer resp-size -- TRUE | FALSE )
+: do-bulk-command ( dir resp-buffer resp-size -- TRUE | FALSE )
     TO resp-size
     TO resp-buffer
     udev USB_PIPE_OUT td-buf td-buf-phys dma-buf-phys usb>cmd 1F
     usb-transfer-bulk 0= IF
-        FALSE EXIT
+        drop FALSE EXIT
     THEN
     \ transfer CBW
     resp-size IF
         d# 125 us
-        udev USB_PIPE_IN td-buf td-buf-phys resp-buffer resp-size
+        IF
+            udev USB_PIPE_IN
+        ELSE
+            udev USB_PIPE_OUT
+        THEN
+        td-buf td-buf-phys resp-buffer resp-size
         usb-transfer-bulk 0= IF \ transfer data
             usb-disk-debug? IF ." Data phase failed " cr THEN
             \ FALSE EXIT
             \ in case of a stall/halted endpoint we clear the halt
             \ Fall through and try reading the CSW
         THEN
+    ELSE
+        drop
     THEN
     d# 125 us
     udev USB_PIPE_IN td-buf td-buf-phys dma-buf-phys usb>csw 0D
@@ -182,18 +189,28 @@ CONSTANT cbw-length
     build-cbw
     1 tag + to tag
 
+    \ copy command
     usb-cmd-addr
     dma-buf usb>cmd SCSI-COMMAND-OFFSET +
     usb-cmd-len
     move
 
+    \ copy data to write
+    usb-dir not IF
+        usb-buf-addr dma-buf usb>data usb-buf-len move
+    THEN
+
     \ Send it
-    dma-buf-phys usb>data usb-buf-len
+    usb-dir dma-buf-phys usb>data usb-buf-len
     do-bulk-command 0= IF
         ." USB-DISK: Bulk command failed!" cr
         0 0 -1 EXIT
     THEN
-    dma-buf usb>data usb-buf-addr usb-buf-len move
+
+    \ copy read data
+    usb-dir IF
+        dma-buf usb>data usb-buf-addr usb-buf-len move
+    THEN
 
     dma-buf usb>csw to csw-addr
     csw-addr csw>sig l@ 55534253 <> IF
