@@ -38,7 +38,7 @@
 #define MAX_PKT_SIZE         1720
 #define DEFAULT_BOOT_RETRIES 10
 #define DEFAULT_TFTP_RETRIES 20
-static int ip_version = 4;
+static int ip_version;
 
 typedef struct {
 	char filename[100];
@@ -541,6 +541,8 @@ int netload(char *buffer, int len, char *args_fs, int alen)
 			     0x00, 0x00, 0x00, 0x00 };
 	uint8_t own_mac[6];
 	char *pkt_buffer;
+
+	ip_version = 4;
 
 	pkt_buffer = SLOF_alloc_mem(MAX_PKT_SIZE);
 	if (!pkt_buffer) {
