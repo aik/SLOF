@@ -37,48 +37,13 @@ rtas-cb /rtas-control-block erase
 
 0 VALUE rtas-base
 0 VALUE rtas-size
-0 VALUE rtas-entry
 0 VALUE rtas-node
 
-\ Locate qemu RTAS, remove the linux,... properties we really don't
-\ want them to stick around
-
-372 cp
-
-: find-qemu-rtas ( -- )
-    " /rtas" find-device get-node to rtas-node
-
-    " linux,rtas-base" rtas-node get-package-property IF
-         device-end EXIT THEN
-    drop l@ to rtas-base
-    " linux,rtas-base" delete-property
-
-    " rtas-size" rtas-node get-package-property IF
-         device-end EXIT THEN
-    drop l@ to rtas-size
-
-    " linux,rtas-entry" rtas-node get-package-property IF
-        rtas-base to rtas-entry
-    ELSE
-        drop l@ to rtas-entry
-        " linux,rtas-entry" delete-property
-    THEN
-
-\    ." RTAS found, base=" rtas-base . ."  size=" rtas-size . cr
-
-    \ Patch the RTAS blob with our sc1 patcher if necessary
-    0
-    rtas-base
-    dup rtas-size +
-    check-and-patch-sc1
-
-    device-end
-;
-find-qemu-rtas
+s" /rtas" find-node to rtas-node
 373 cp
 
 : enter-rtas ( -- )
-    rtas-cb rtas-base 0 rtas-entry call-c drop
+    rtas-cb rtas-base 0 rtas-base call-c drop
 ;
 
 : rtas-get-token ( str len -- token | 0 )
@@ -185,8 +150,12 @@ rtas-node set-node
 : instantiate-rtas ( adr -- entry )
     dup store-rtas-loc
     dup rtas-base swap rtas-size move
-    rtas-entry rtas-base - +
 ;
+
+hv-rtas-get
+dup encode-int s" rtas-size" s" /rtas" find-node set-property
+to rtas-size
+to rtas-base
 
 device-end
 

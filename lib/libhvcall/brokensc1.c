@@ -36,7 +36,7 @@ static unsigned long hcall(uint32_t inst, unsigned long arg0, unsigned long arg1
 	return r3;
 }
 
-static int check_broken_sc1(void)
+int check_broken_sc1(void)
 {
 	long r;
 

@@ -18,6 +18,7 @@ cod(hv-free-crq)
 cod(hv-send-crq)
 cod(hv-put-tce)
 cod(check-and-patch-sc1)
+cod(hv-rtas-get)
 
 cod(RB@)
 cod(RB!)

@@ -97,10 +97,15 @@ extern unsigned long hv_logical_ci_store(unsigned long size, unsigned long addr,
 extern unsigned long hv_logical_memop(unsigned long dst, unsigned long src,
 				      unsigned long esize, unsigned long count,
 				      unsigned long op);
+extern int check_broken_sc1(void);
 extern int patch_broken_sc1(void *start, void *end, uint32_t *test_ins);
 
 extern unsigned long hv_cas(unsigned long vec, unsigned long buf,
 			unsigned long size);
+
+extern unsigned long hv_rtas(unsigned long params);
+extern unsigned long hv_rtas_broken_sc1(unsigned long params);
+extern unsigned int hv_rtas_size, hv_rtas_broken_sc1_size;
 
 #endif /* __ASSEMBLY__ */
 

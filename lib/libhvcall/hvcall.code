@@ -128,3 +128,17 @@ PRIM(hv_X2d_update_X2d_dt)
 	unsigned long dt = TOS.u;
 	TOS.u = hv_generic(KVMPPC_H_UPDATE_DT, dt);
 MIRP
+
+PRIM(hv_X2d_rtas_X2d_get)
+	if (check_broken_sc1()) {
+		PUSH;
+		TOS.u = (unsigned long) hv_rtas_broken_sc1;
+		PUSH;
+		TOS.u = hv_rtas_broken_sc1_size;
+	} else {
+		PUSH;
+		TOS.u = (unsigned long) hv_rtas;
+		PUSH;
+		TOS.u = hv_rtas_size;
+	}
+MIRP
