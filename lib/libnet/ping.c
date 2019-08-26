@@ -119,7 +119,7 @@ int ping(char *args_fs, int alen)
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
-	if (alen <= 0 && alen >= sizeof(args) - 1) {
+	if (alen <= 0 || alen >= sizeof(args) - 1) {
 		usage();
 		return -1;
 	}
