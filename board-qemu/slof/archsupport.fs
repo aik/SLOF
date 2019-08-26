@@ -29,6 +29,7 @@
 	    fdt-check-header
 	    fdt-struct fdt-fix-cas-node
 	    fdt-fix-cas-success NOT
+	    s" /" find-node fdt-fix-phandles
 	ELSE
 	    FALSE
 	THEN
