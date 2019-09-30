@@ -55,7 +55,7 @@ router_add (struct router *nghb )
  * @return pointer to new router
  */
 void *
-router_create (uint8_t *mac, ip6_addr_t *ip)
+router_create(uint8_t *mac, ip6_addr_t ip)
 {
 	struct router *new_router;
 
@@ -67,18 +67,18 @@ router_create (uint8_t *mac, ip6_addr_t *ip)
 
 	/* fill neighbor struct */
 	memcpy (new_router->mac, mac, 6);
-	memcpy (&(new_router->ip.addr[0]), &(ip->addr[0]), IPV6_ADDR_LENGTH);
+	memcpy (&(new_router->ip.addr[0]), ip.addr, IPV6_ADDR_LENGTH);
 
 	return new_router;
 }
 
 struct router *
-find_router( ip6_addr_t *ip )
+find_router(ip6_addr_t ip)
 {
 	struct router *n = NULL;
 
 	for (n = first_router; n != NULL ; n=n->next)
-		if (ip6_cmp (&(n->ip), ip))
+		if (ip6_cmp(n->ip, ip))
 			return n; /* router is already in list*/
 
 	return NULL; /* router is unknown */
@@ -89,12 +89,12 @@ find_router( ip6_addr_t *ip )
  * @param  ip - IPv6 address with the prefered prefix
  * @return pointer to router, or NULL if none is available
  */
-struct router *ipv6_get_default_router(ip6_addr_t *ip)
+struct router *ipv6_get_default_router(ip6_addr_t ip)
 {
 	struct router *n = NULL;
 
 	for (n = first_router; n != NULL; n = n->next) {
-		if (n->ip.part.prefix == ip->part.prefix)
+		if (n->ip.part.prefix == ip.part.prefix)
 			return n;
 	}
 
@@ -159,12 +159,12 @@ neighbor_create (uint8_t *packet, struct packeth *headers)
  *         NULL    - Neighbor not found
  */
 struct neighbor *
-find_neighbor (ip6_addr_t *ip)
+find_neighbor(ip6_addr_t ip)
 {
 	struct neighbor *n = NULL;
 
 	for (n = first_neighbor; n != NULL ; n=n->next) {
-		if (ip6_cmp (&(n->ip), ip)) {
+		if (ip6_cmp(n->ip, ip)) {
 			return n; /* neighbor is already in cache */
 		}
 	}

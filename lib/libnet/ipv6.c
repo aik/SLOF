@@ -116,15 +116,12 @@ ip6_addr_t *get_ipv6_address(void)
  * @return 0 - IPv6 address is not in list
  *         1 - IPv6 address is in list
  */
-static int8_t find_ip6addr(ip6_addr_t *ip)
+static int8_t find_ip6addr(ip6_addr_t ip)
 {
 	struct ip6addr_list_entry *n = NULL;
 
-	if (ip == NULL)
-	    return 0;
-
 	for (n = first_ip6; n != NULL ; n=n->next)
-		if (ip6_cmp (&(n->addr), ip))
+		if (ip6_cmp(n->addr, ip))
 			return 1; /* IPv6 address is in  our list*/
 
 	return 0; /* not one of our IPv6 addresses*/
@@ -149,7 +146,7 @@ int8_t handle_ipv6(int fd, uint8_t * ip6_packet, uint32_t packetsize)
 	ip6 = (struct ip6hdr *) ip6_packet;
 
 	/* Only handle packets which are for us */
-	if (! find_ip6addr(&(ip6->dst)))
+	if (!find_ip6addr(ip6->dst))
 		return -1;
 
 	if (packetsize < sizeof(struct ip6hdr))
@@ -307,7 +304,7 @@ int8_t ip6addr_add(struct ip6addr_list_entry *new_address)
 		return 0;
 
 	 /* Don't add the same address twice */
-	if (find_ip6addr (&(new_address->addr)))
+	if (find_ip6addr(new_address->addr))
 		return 0;
 
 	/* If address is a unicast address, we also have to process packets
@@ -379,10 +376,9 @@ static void ipv6_init(int fd)
  * @param  ip6_addr ip_1
  * @param  ip6_addr ip_2
  */
-int8_t ip6_cmp(ip6_addr_t *ip_1, ip6_addr_t *ip_2)
+int8_t ip6_cmp(ip6_addr_t ip_1, ip6_addr_t ip_2)
 {
-	return ((int8_t) !memcmp( &(ip_1->addr[0]), &(ip_2->addr[0]),
-		IPV6_ADDR_LENGTH ));
+	return !memcmp(ip_1.addr, ip_2.addr, IPV6_ADDR_LENGTH);
 }
 
 /**
@@ -434,34 +430,33 @@ static bool is_ip6addr_in_my_net(ip6_addr_t *ip)
  *      (e.g. UDP or ICMPv6)
  *
  * @param  struct ip6hdr *ip6h    - pointer to IPv6 header
- * @param  unsigned short *packet - pointer to header of upper-layer
+ * @param  unsigned char *packet  - pointer to header of upper-layer
  *				    protocol
- * @param  int words              - number of words (as in 2 bytes)
+ * @param  int bytes              - number of bytes
  *				    starting from *packet
  * @return checksum
  */
-static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned short *packet,
-				   int words)
+static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned char *packet,
+				   int bytes)
 {
-	int i=0;
+	int i;
 	unsigned long checksum;
-	struct ip6hdr pseudo_ip6h;
-	unsigned short *pip6h;
+	const int ip6size = sizeof(struct ip6hdr)/sizeof(unsigned short);
+	union {
+		struct ip6hdr ip6h;
+		unsigned short raw[ip6size];
+	} pseudo;
 
-	memcpy (&pseudo_ip6h, ip6h, sizeof(struct ip6hdr));
-	pseudo_ip6h.hl	      = ip6h->nh;
-	pseudo_ip6h.ver_tc_fl = 0;
-	pseudo_ip6h.nh	      = 0;
-	pip6h = (unsigned short *) &pseudo_ip6h;
+	memcpy (&pseudo.ip6h, ip6h, sizeof(struct ip6hdr));
+	pseudo.ip6h.hl	      = ip6h->nh;
+	pseudo.ip6h.ver_tc_fl = 0;
+	pseudo.ip6h.nh	      = 0;
 
-	for (checksum = 0; words > 0; words--) {
-		checksum += *packet++;
-		i++;
-	}
+	for (checksum = 0, i = 0; i < bytes; i += 2)
+		checksum += (packet[i] << 8) | packet[i + 1];
 
-	for (i = 0; i < 20; i++) {
-		checksum += *pip6h++;
-	}
+	for (i = 0; i < ip6size; i++)
+		checksum += pseudo.raw[i];
 
 	checksum = (checksum >> 16) + (checksum & 0xffff);
 	checksum += (checksum >> 16);
@@ -503,12 +498,12 @@ int send_ipv6(int fd, void* buffer, int len)
 	if(len + sizeof(struct ethhdr) > ETH_MTU_SIZE)
 		return -1;
 
-	if ( ip6_cmp (&ip6h->src, &null_ip6))
+	if ( ip6_cmp(ip6h->src, null_ip6))
 		memcpy (&(ip6h->src), get_ipv6_address(), IPV6_ADDR_LENGTH);
 
 	if (ip6h->nh == 17) {//UDP
-		udph->uh_sum = ip6_checksum (ip6h, (unsigned short *) udph ,
-					     ip6h->pl >> 1);
+		udph->uh_sum = ip6_checksum (ip6h, (unsigned char *) udph,
+					     ip6h->pl);
 		/* As per RFC 768, if the computed  checksum  is zero,
 		 * it is transmitted as all ones (the equivalent in
 		 * one's complement arithmetic).
@@ -517,9 +512,8 @@ int send_ipv6(int fd, void* buffer, int len)
 			udph->uh_sum = ~udph->uh_sum;
 	}
 	else if (ip6h->nh == 0x3a) //ICMPv6
-		icmp6h->checksum = ip6_checksum (ip6h,
-						 (unsigned short *) icmp6h,
-						 ip6h->pl >> 1);
+		icmp6h->checksum = ip6_checksum (ip6h, (unsigned char *) icmp6h,
+		                                 ip6h->pl);
 
 	if (ip6_is_multicast (&ip_dst)) {
 		/* If multicast, then create a proper multicast mac address */
@@ -527,11 +521,11 @@ int send_ipv6(int fd, void* buffer, int len)
 	} else if (!is_ip6addr_in_my_net(&ip_dst)) {
 		/* If server is not in same subnet, user MAC of the router */
 		struct router *gw;
-		gw = ipv6_get_default_router(&ip6h->src);
+		gw = ipv6_get_default_router(ip6h->src);
 		mac_addr = gw ? gw->mac : null_mac;
 	} else {
 		/* Normal unicast, so use neighbor cache to look up MAC */
-		struct neighbor *n = find_neighbor (&ip_dst);
+		struct neighbor *n = find_neighbor(ip_dst);
 		if (n) {				/* Already cached ? */
 			if (memcmp(n->mac, null_mac, ETH_ALEN) != 0)
 				mac_addr = n->mac;		/* found it */

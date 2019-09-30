@@ -161,7 +161,7 @@ struct prefix_info * ip6_create_prefix_info(void);
 void * ip6_prefix2addr (ip6_addr_t prefix);
 
 /* Compare IPv6 adresses */
-int8_t ip6_cmp( ip6_addr_t *ip_1, ip6_addr_t *ip_2 );
+int8_t ip6_cmp(ip6_addr_t ip_1, ip6_addr_t ip_2);
 
 /* Check if it is a link-local address */
 static inline int ip6_is_linklocal(ip6_addr_t *ip)

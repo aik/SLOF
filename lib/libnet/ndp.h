@@ -62,11 +62,11 @@ struct neighbor {
 void ndp_init(void);
 int8_t neighbor_add (struct neighbor *);
 void * neighbor_create (uint8_t *packet, struct packeth *headers);
-struct neighbor * find_neighbor (ip6_addr_t *);
+struct neighbor *find_neighbor(ip6_addr_t ip);
 
 int8_t router_add(struct router*);
-void * router_create(uint8_t *mac, ip6_addr_t *ip);
-struct router * find_router(ip6_addr_t *);
-struct router *ipv6_get_default_router(ip6_addr_t *ip);
+void *router_create(uint8_t *mac, ip6_addr_t ip);
+struct router *find_router(ip6_addr_t ip);
+struct router *ipv6_get_default_router(ip6_addr_t ip);
 
 #endif //_NDP_H_
