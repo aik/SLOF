@@ -55,7 +55,7 @@ struct usb_ep_descr {
 	uint8_t		bmAttributes;
 	uint16_t	wMaxPacketSize;
 	uint8_t		bInterval;
-} __attribute__((packed));
+} __attribute__((packed, aligned(4)));
 
 #define	DEV_HID_KEYB            0x030101	/* class=HIB,	protocol=Keyboard */
 #define	DEV_HID_MOUSE           0x030102	/* class=HIB,	protocol=Mouse */

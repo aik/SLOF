@@ -29,7 +29,7 @@ struct ehci_cap_regs {
 	uint32_t hcsparams;
 	uint32_t hccparams;
 	uint64_t portroute;
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(4)));
 
 struct ehci_op_regs {
 	uint32_t usbcmd;
@@ -42,7 +42,7 @@ struct ehci_op_regs {
 	uint32_t reserved[9];
 	uint32_t configflag;
 	uint32_t portsc[0];
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(4)));
 
 struct ehci_framelist {
 	uint32_t fl_ptr[FL_SIZE];

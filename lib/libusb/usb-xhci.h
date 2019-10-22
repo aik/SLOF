@@ -37,7 +37,7 @@ struct xhci_cap_regs {
 #define XHCI_HCCPARAMS_XECP(x)  ((x & 0xFFFF0000) >> 16)
 	uint32_t dboff;
 	uint32_t rtsoff;
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(4)));
 
 /* USB 3.0: Section 7 and 7.2 */
 #define XHCI_XECP_CAP_ID(x)     ((x & 0xF))
@@ -90,7 +90,7 @@ struct xhci_port_regs {
 	uint32_t portpmsc;
 	uint32_t portli;
 	uint32_t reserved;
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(4)));
 
 struct port_state {
 	bool    PP;
@@ -132,7 +132,7 @@ struct xhci_op_regs {
 	/* USB Port register set */
 #define XHCI_PORT_MAX 256
 	struct xhci_port_regs prs[XHCI_PORT_MAX];
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(8)));
 
 /*
  * 5.5.2  Interrupter Register Set
@@ -148,7 +148,7 @@ struct xhci_int_regs {
 #define XHCI_ERST_ADDR_MASK (~(0x3FUL))
 	uint64_t erdp;
 #define XHCI_ERDP_MASK      (~(0xFUL))
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(8)));
 
 /* 5.5 Host Controller Runtime Registers */
 struct xhci_run_regs {
@@ -156,12 +156,12 @@ struct xhci_run_regs {
 	uint8_t reserved[28];
 #define XHCI_IRS_MAX 1024
 	struct xhci_int_regs irs[XHCI_IRS_MAX];
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(8)));
 
 /* 5.6 Doorbell Registers*/
 struct xhci_db_regs {
 	uint32_t db[256];
-}  __attribute__ ((packed));
+}  __attribute__ ((packed, aligned(4)));
 
 #define COMP_SUCCESS         1
 
@@ -259,7 +259,7 @@ struct xhci_erst_entry {
 	uint64_t addr;
 	uint32_t size;
 	uint32_t reserved;
-} __attribute__ ((packed));
+} __attribute__ ((packed, aligned(8)));
 
 struct xhci_erst {
 	struct xhci_erst_entry *entries;

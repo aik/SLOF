@@ -47,7 +47,7 @@ struct ohci_regs {
 	uint32_t rh_desc_b;
 	uint32_t rh_status;
 	uint32_t rh_ps[5];
-} __attribute__((packed));
+} __attribute__((packed, aligned(4)));
 
 #define EDA_FADDR(x)     ((x & 0x7F))
 #define EDA_EP(x)        ((x & 0x0F) << 7)
