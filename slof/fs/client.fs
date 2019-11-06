@@ -45,6 +45,14 @@ VARIABLE  client-callback \ Address of client's callback function
   >r  ciregs >r7 !  ciregs >r6 !  client-entry-point @ ciregs >r5 !
   \ Initialise client-stack-pointer
   cistack ciregs >r1 !
+
+  s" linux,initrd-end" get-chosen IF decode-int nip nip ELSE 0 THEN
+  s" linux,initrd-start" get-chosen IF decode-int nip nip ELSE 0 THEN
+		    ( end start )
+  tuck -	    ( start len )
+  ciregs >r4 !
+  ciregs >r3 !
+
   \ jump-client maps to call_client in slof/entry.S
   \ When jump-client returns, R3 holds the address of a NUL-terminated string
   \ that holds the client interface word the client wants to call, R4 holds
