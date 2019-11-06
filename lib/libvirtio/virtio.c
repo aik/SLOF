@@ -360,7 +360,7 @@ void virtio_queue_notify(struct virtio_device *dev, int queue)
 /**
  * Set queue address
  */
-void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long qaddr)
+static void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long qaddr)
 {
 	if (dev->is_modern) {
 		uint64_t q_desc = qaddr;

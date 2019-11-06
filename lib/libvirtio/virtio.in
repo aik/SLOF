@@ -15,7 +15,6 @@ cod(virtio-setup-vd)
 cod(virtio-vring-size)
 cod(virtio-get-qsize)
 cod(virtio-get-config)
-cod(virtio-set-qaddr)
 
 cod(virtio-blk-init)
 cod(virtio-blk-shutdown)

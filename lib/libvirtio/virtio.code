@@ -42,14 +42,6 @@ PRIM(virtio_X2d_get_X2d_config)
 	TOS.u = virtio_get_config(TOS.a, offset, size);
 MIRP
 
-// : virtio-set-qaddr  ( dev queue qaddr --  )
-PRIM(virtio_X2d_set_X2d_qaddr)
-	unsigned int qaddr = TOS.u; POP;
-	int queue = TOS.u; POP;
-	void *dev = TOS.a; POP;
-	virtio_set_qaddr(dev, queue, qaddr);
-MIRP
-
 /******** virtio-blk ********/
 
 // : virtio-blk-init ( dev -- blk-size)
