@@ -119,7 +119,7 @@ unsigned long SLOF_bm_allocator_init(unsigned long start, unsigned long size,
 	struct bitmap *bm;
 	unsigned long alloc_size, bm_size, n_bits;
 
-	dprintf("enter start %x, size %d, block-size %d\n", start, size, blocksize);
+	dprintf("enter start %lx, size %ld, block-size %ld\n", start, size, blocksize);
 
 	if (!size)
 		return 0;
@@ -164,8 +164,8 @@ unsigned long SLOF_bm_alloc(unsigned long handle, unsigned long size)
 	if (bitpos == -1)
 		return -1;
 
-	dprintf("BMW %d, bitpos %d\n", i, bitpos);
-	dprintf("size %d, block_size %d, n_bits %d\n", size, bm->block_size, n_bits);
+	dprintf("BMW bitpos %d\n", bitpos);
+	dprintf("size %ld, block_size %ld, n_bits %ld\n", size, bm->block_size, n_bits);
 	for(i = bitpos; i < (bitpos + n_bits); i++) {
 #ifdef DEBUG
 		if (!bm_test_bit(bm->bmw, i))
@@ -175,7 +175,7 @@ unsigned long SLOF_bm_alloc(unsigned long handle, unsigned long size)
 	}
 	bm->free_blocks -= n_bits;
 	addr = bm->start + bitpos * bm->block_size;
-	dprintf("BMW %d, bitpos %d addr %lx free_blocks %d\n", i, bitpos, addr, bm->free_blocks);
+	dprintf("BMW %d, bitpos %d addr %lx free_blocks %ld\n", i, bitpos, addr, bm->free_blocks);
 	return addr;
 }
 
@@ -201,8 +201,8 @@ void SLOF_bm_free(unsigned long handle, unsigned long ptr, unsigned long size)
 	bm->free_blocks += n_bits;
 
 #ifdef DEBUG
-	dprintf("addr %lx, bitpos %d\n", addr, bitpos);
-	dprintf("size %d, block_size %d, n_bits %d, free_blocks %d\n", size, bm->block_size, n_bits, bm->free_blocks);
+	dprintf("addr %lx, bitpos %ld\n", addr, bitpos);
+	dprintf("size %ld, block_size %ld, n_bits %ld, free_blocks %ld\n", size, bm->block_size, n_bits, bm->free_blocks);
 	if (addr % bm->block_size) {
 		dprintf("Warning: Address not aligned addr %lx\n", addr);
 	}
