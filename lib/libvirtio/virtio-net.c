@@ -84,18 +84,6 @@ static int virtionet_init_pci(struct virtio_net *vnet, struct virtio_device *dev
 	/* Reset device */
 	virtio_reset_device(vdev);
 
-	/* The queue information can be retrieved via the virtio header that
-	 * can be found in the I/O BAR. First queue is the receive queue,
-	 * second the transmit queue, and the forth is the control queue for
-	 * networking options.
-	 * We are only interested in the receive and transmit queue here. */
-	if (!virtio_queue_init_vq(vdev, VQ_RX) ||
-	    !virtio_queue_init_vq(vdev, VQ_TX)) {
-		virtio_set_status(vdev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
-				  |VIRTIO_STAT_FAILED);
-		return -1;
-	}
-
 	/* Acknowledge device. */
 	virtio_set_status(vdev, VIRTIO_STAT_ACKNOWLEDGE);
 
@@ -113,7 +101,7 @@ static int virtionet_init(struct virtio_net *vnet)
 	int status = VIRTIO_STAT_ACKNOWLEDGE | VIRTIO_STAT_DRIVER;
 	struct virtio_device *vdev = &vnet->vdev;
 	net_driver_t *driver = &vnet->driver;
-	struct vqs *vq_tx = &vdev->vq[VQ_TX], *vq_rx = &vdev->vq[VQ_RX];
+	struct vqs *vq_tx, *vq_rx;
 
 	dprintf("virtionet_init(%02x:%02x:%02x:%02x:%02x:%02x)\n",
 		driver->mac_addr[0], driver->mac_addr[1],
@@ -135,6 +123,19 @@ static int virtionet_init(struct virtio_net *vnet)
 	} else {
 		net_hdr_size = sizeof(struct virtio_net_hdr);
 		virtio_set_guest_features(vdev,  0);
+	}
+
+	/* The queue information can be retrieved via the virtio header that
+	 * can be found in the I/O BAR. First queue is the receive queue,
+	 * second the transmit queue, and the forth is the control queue for
+	 * networking options.
+	 * We are only interested in the receive and transmit queue here. */
+	vq_rx = virtio_queue_init_vq(vdev, VQ_RX);
+	vq_tx = virtio_queue_init_vq(vdev, VQ_TX);
+	if (!vq_rx || !vq_tx) {
+		virtio_set_status(vdev, VIRTIO_STAT_ACKNOWLEDGE|VIRTIO_STAT_DRIVER
+				  |VIRTIO_STAT_FAILED);
+		return -1;
 	}
 
 	/* Allocate memory for one transmit an multiple receive buffers */
