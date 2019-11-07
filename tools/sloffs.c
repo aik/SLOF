@@ -22,6 +22,7 @@
 #include <byteswap.h>
 #include <getopt.h>
 #include <time.h>
+#include <errno.h>
 
 #include <calculatecrc.h>
 #include <crclib.h>
@@ -176,6 +177,7 @@ sloffs_header(const int fd)
 	struct sloffs file;
 	struct sloffs *sloffs;
 	struct stH *header;
+	ssize_t rc;
 
 	header = (struct stH *)malloc(sizeof(struct stH));
 
@@ -187,7 +189,12 @@ sloffs_header(const int fd)
 		return NULL;
 	}
 
-	read(fd, header, sizeof(struct stH));
+	rc = read(fd, header, sizeof(struct stH));
+	if (rc != sizeof(struct stH)) {
+		printf("Reading header, rc %ld, errno %d\n", rc, errno);
+		free(header);
+		header = NULL;
+	}
 	free(sloffs->name);
 	return header;
 }
@@ -298,6 +305,7 @@ sloffs_append(const int file, const char *name, const char *dest)
 	struct sloffs new_file;
 	uint64_t read_len;
 	int i;
+	ssize_t rc;
 
 	fd = open(name, O_RDONLY);
 
@@ -328,7 +336,11 @@ sloffs_append(const int file, const char *name, const char *dest)
 
 	/* write byte at the end to be able to mmap it */
 	lseek(out, new_len - 1, SEEK_SET);
-	write(out, "", 1);
+	rc = write(out, "", 1);
+	if (rc != 1) {
+		printf("Extending file failed, rc %ld, errno %d\n", rc, errno);
+		exit(1);
+	}
 	write_start = mmap(NULL, new_len, PROT_READ | PROT_WRITE,
 			   MAP_SHARED, out, 0);
 
@@ -427,6 +439,7 @@ sloffs_dump(const int fd)
 	int i;
 	uint64_t crc;
 	uint64_t header_len;
+	ssize_t rc;
 
 	header = sloffs_header(fd);
 
@@ -463,7 +476,11 @@ sloffs_dump(const int fd)
 	/* no copy the header to memory to crc test it */
 	data = malloc(header_len);
 	lseek(fd, 0, SEEK_SET);
-	read(fd, data, header_len);
+	rc = read(fd, data, header_len);
+	if (rc != (ssize_t) header_len) {
+		printf("Reading header failed, rc %zd, errno %d\n", rc, errno);
+		return;
+	}
 	crc = calCRCword((unsigned char *)data, header_length(fd), 0);
 	free(data);
 	if (!crc)
@@ -476,7 +493,11 @@ sloffs_dump(const int fd)
 	/* move to the CRC */
 	lseek(fd, crc - 8, SEEK_SET);
 	/* read it */
-	read(fd, &crc, 8);
+	rc = read(fd, &crc, 8);
+	if (rc != 8) {
+		printf("Reading crc failed, rc %zd, errno %d\n", rc, errno);
+		return;
+	}
 	crc = be64_to_cpu(crc);
 	printf("  Image CRC   : 0x%016lx CRC check: ", crc);
 	crc = check_image_crc(fd, be64_to_cpu(header->flashlen));
@@ -581,6 +602,7 @@ sloffs_copy(const int file, const char *name)
 	unsigned char *write_buf;
 	int i;
 	struct stH *header;
+	ssize_t rc;
 
 	header = sloffs_header(file);
 
@@ -598,7 +620,11 @@ sloffs_copy(const int file, const char *name)
 	}
 	/* write byte at the end to be able to mmap it */
 	lseek(out, len - 1, SEEK_SET);
-	write(out, "", 1);
+	rc = write(out, "", 1);
+	if (rc != 1) {
+		printf("Extending file failed, rc %zd, errno %d\n", rc, errno);
+		exit(1);
+	}
 	write_buf = mmap(NULL, len, PROT_WRITE, MAP_SHARED, out, 0);
 
 	if (write_buf == MAP_FAILED) {
