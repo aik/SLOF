@@ -27,8 +27,6 @@ enum {
 struct virtio_net {
 	net_driver_t driver;
 	struct virtio_device vdev;
-	struct vqs vq_rx;
-	struct vqs vq_tx;
 };
 
 /* VIRTIO_NET Feature bits */

@@ -30,13 +30,11 @@
 #define RX_Q 0
 #define TX_Q 1
 
-static struct vqs vq_rx;
-static struct vqs vq_tx;
 static uint16_t last_rx_idx;	/* Last index in RX "used" ring */
 
 int virtio_serial_init(struct virtio_device *dev)
 {
-	struct vring_avail *vq_avail;
+	struct vqs *vq_rx, *vq_tx;
 	int status = VIRTIO_STAT_ACKNOWLEDGE;
 	int i;
 
@@ -50,7 +48,7 @@ int virtio_serial_init(struct virtio_device *dev)
 	status |= VIRTIO_STAT_DRIVER;
 	virtio_set_status(dev, status);
 
-	if (dev->is_modern) {
+	if (dev->features & VIRTIO_F_VERSION_1) {
 		/* Negotiate features and sets FEATURES_OK if successful */
 		if (virtio_negotiate_guest_features(dev, DRIVER_FEATURE_SUPPORT))
 			goto dev_error;
@@ -58,36 +56,34 @@ int virtio_serial_init(struct virtio_device *dev)
 		virtio_get_status(dev, &status);
 	}
 
-	if (virtio_queue_init_vq(dev, &vq_rx, RX_Q))
+	vq_rx = virtio_queue_init_vq(dev, RX_Q);
+	if (!vq_rx)
 		goto dev_error;
 
 	/* Allocate memory for multiple receive buffers */
-	vq_rx.buf_mem = SLOF_alloc_mem(RX_ELEM_SIZE * RX_NUM_ELEMS);
-	if (!vq_rx.buf_mem) {
+	vq_rx->buf_mem = SLOF_alloc_mem(RX_ELEM_SIZE * RX_NUM_ELEMS);
+	if (!vq_rx->buf_mem) {
 		printf("virtio-serial: Failed to allocate buffers!\n");
 		goto dev_error;
 	}
 
 	/* Prepare receive buffer queue */
 	for (i = 0; i < RX_NUM_ELEMS; i++) {
-		uint64_t addr = (uint64_t)vq_rx.buf_mem + i * RX_ELEM_SIZE;
+		uint64_t addr = (uint64_t)vq_rx->buf_mem + i * RX_ELEM_SIZE;
 
 		/* Descriptor for data: */
-		virtio_fill_desc(&vq_rx.desc[i], dev->is_modern, addr, 1, VRING_DESC_F_WRITE, 0);
-		vq_rx.avail->ring[i] = virtio_cpu_to_modern16(dev, i);
+		virtio_fill_desc(vq_rx, i, dev->features, addr, 1, VRING_DESC_F_WRITE, 0);
+		vq_rx->avail->ring[i] = virtio_cpu_to_modern16(dev, i);
 	}
-	vq_rx.avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_rx.avail->idx = virtio_cpu_to_modern16(dev, RX_NUM_ELEMS);
+	vq_rx->avail->idx = virtio_cpu_to_modern16(dev, RX_NUM_ELEMS);
 	sync();
 
-	last_rx_idx = virtio_modern16_to_cpu(dev, vq_rx.used->idx);
+	last_rx_idx = virtio_modern16_to_cpu(dev, vq_rx->used->idx);
 
-	if (virtio_queue_init_vq(dev, &vq_tx, TX_Q))
+	vq_tx = virtio_queue_init_vq(dev, TX_Q);
+	if (vq_tx)
 		goto dev_error;
 
-	vq_avail = virtio_get_vring_avail(dev, TX_Q);
-	vq_avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
-	vq_avail->idx = 0;
 
 	/* Tell HV that setup succeeded */
 	status |= VIRTIO_STAT_DRIVER_OK;
@@ -112,35 +108,26 @@ void virtio_serial_shutdown(struct virtio_device *dev)
 
 int virtio_serial_putchar(struct virtio_device *dev, char c)
 {
-	struct vring_desc *desc;
 	int id;
-	uint32_t vq_size, time;
-	struct vring_desc *vq_desc;
-	struct vring_avail *vq_avail;
-	struct vring_used *vq_used;
+	uint32_t time;
 	volatile uint16_t *current_used_idx;
 	uint16_t last_used_idx, avail_idx;
+	struct vqs *vq = &dev->vq[TX_Q];
 
-	vq_size = virtio_get_qsize(dev, TX_Q);
-	vq_desc = virtio_get_vring_desc(dev, TX_Q);
-	vq_avail = virtio_get_vring_avail(dev, TX_Q);
-	vq_used = virtio_get_vring_used(dev, TX_Q);
+	avail_idx = virtio_modern16_to_cpu(dev, vq->avail->idx);
 
-	avail_idx = virtio_modern16_to_cpu(dev, vq_avail->idx);
-
-	last_used_idx = vq_used->idx;
-	current_used_idx = &vq_used->idx;
+	last_used_idx = vq->used->idx;
+	current_used_idx = &vq->used->idx;
 
 	/* Determine descriptor index */
-	id = avail_idx % vq_size;
+	id = avail_idx % vq->size;
 
 	/* Set up virtqueue descriptor for header */
-	desc = &vq_desc[id];
-	virtio_fill_desc(desc, dev->is_modern, (uint64_t)&c, 1, 0, 0);
+	virtio_fill_desc(vq, id, dev->features, (uint64_t)&c, 1, 0, 0);
 
-	vq_avail->ring[avail_idx % vq_size] = virtio_cpu_to_modern16 (dev, id);
+	vq->avail->ring[avail_idx % vq->size] = virtio_cpu_to_modern16 (dev, id);
 	mb();
-	vq_avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
+	vq->avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
 
 	/* Tell HV that the queue is ready */
 	virtio_queue_notify(dev, TX_Q);
@@ -159,33 +146,32 @@ int virtio_serial_putchar(struct virtio_device *dev, char c)
 	return 1;
 }
 
-static uint16_t last_rx_idx;	/* Last index in RX "used" ring */
-
 char virtio_serial_getchar(struct virtio_device *dev)
 {
 	int id, idx;
 	char buf[RX_NUM_ELEMS] = {0};
 	uint16_t avail_idx;
+	struct vqs *vq_rx = &dev->vq[RX_Q];
 
-	idx = virtio_modern16_to_cpu(dev, vq_rx.used->idx);
+	idx = virtio_modern16_to_cpu(dev, vq_rx->used->idx);
 	if (last_rx_idx == idx) {
 		/* Nothing received yet */
 		return 0;
 	}
 
-	id = (virtio_modern32_to_cpu(dev, vq_rx.used->ring[last_rx_idx % vq_rx.size].id) + 1)
-		% vq_rx.size;
+	id = (virtio_modern32_to_cpu(dev, vq_rx->used->ring[last_rx_idx % vq_rx->size].id) + 1)
+		% vq_rx->size;
 
 	/* Copy data to destination buffer */
-	memcpy(buf, (void *)virtio_modern64_to_cpu(dev, vq_rx.desc[id - 1].addr), RX_ELEM_SIZE);
+	memcpy(buf, (void *)virtio_modern64_to_cpu(dev, vq_rx->desc[id - 1].addr), RX_ELEM_SIZE);
 
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;
 
-	avail_idx = virtio_modern16_to_cpu(dev, vq_rx.avail->idx);
-	vq_rx.avail->ring[avail_idx % vq_rx.size] = virtio_cpu_to_modern16(dev, id - 1);
+	avail_idx = virtio_modern16_to_cpu(dev, vq_rx->avail->idx);
+	vq_rx->avail->ring[avail_idx % vq_rx->size] = virtio_cpu_to_modern16(dev, id - 1);
 	sync();
-	vq_rx.avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
+	vq_rx->avail->idx = virtio_cpu_to_modern16(dev, avail_idx + 1);
 	sync();
 
 	/* Tell HV that RX queue entry is ready */
@@ -196,7 +182,9 @@ char virtio_serial_getchar(struct virtio_device *dev)
 
 int virtio_serial_haschar(struct virtio_device *dev)
 {
-	if (last_rx_idx == virtio_modern16_to_cpu(dev, vq_rx.used->idx))
+	struct vqs *vq_rx = &dev->vq[RX_Q];
+
+	if (last_rx_idx == virtio_modern16_to_cpu(dev, vq_rx->used->idx))
 		return 0;
 	else
 		return 1;
