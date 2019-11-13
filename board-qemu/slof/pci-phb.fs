@@ -14,6 +14,8 @@
 
 0 VALUE phb-debug?
 
+1000 CONSTANT tce-ps		\ Default TCE page size is 4K
+tce-ps 1- CONSTANT tce-mask
 
 ." Populating " pwd cr
 
@@ -86,17 +88,17 @@ setup-puid
 
 : dma-alloc ( size -- virt )
    phb-debug? IF cr ." dma-alloc called: " .s cr THEN
-   fff + fff not and                  \ Align size to next 4k boundary
+   tce-ps #aligned
    alloc-mem
    \ alloc-mem always returns aligned memory - double check just to be sure
-   dup fff and IF
+   dup tce-mask and IF
       ." Warning: dma-alloc got unaligned memory!" cr
    THEN
 ;
 
 : dma-free ( virt size -- )
    phb-debug? IF cr ." dma-free called: " .s cr THEN
-   fff + fff not and                  \ Align size to next 4k boundary
+   tce-ps #aligned
    free-mem
 ;
 
@@ -107,10 +109,6 @@ setup-puid
 0 VALUE dma-window-size         \ Size of the window
 
 0 VALUE bm-handle               \ Bitmap allocator handle
-0 VALUE my-virt
-0 VALUE my-size
-0 VALUE dev-addr
-0 VALUE tmp-dev-addr
 
 \ Read helper variables (LIOBN, DMA window base and size) from the
 \ "ibm,dma-window" property. This property can be either located
@@ -130,11 +128,11 @@ setup-puid
    decode-64 TO dma-window-size
    2drop
    bm-handle 0= IF
-       dma-window-base dma-window-size 1000 bm-allocator-init to bm-handle
+       dma-window-base dma-window-size tce-ps bm-allocator-init to bm-handle
        \ Sometimes the window-base appears as zero, that does not
        \ go well with NULL pointers. So block this address
        dma-window-base 0= IF
-          bm-handle 1000 bm-alloc drop
+          bm-handle tce-ps bm-alloc drop
        THEN
    THEN
 ;
@@ -145,69 +143,54 @@ setup-puid
     0 TO dma-window-size
 ;
 
-\ We assume that firmware never maps more than the whole dma-window-size
-\ so we cheat by calculating the remainder of addr/windowsize instead
-\ of taking care to maintain a list of assigned device addresses
-: dma-virt2dev  ( virt -- devaddr )
-   dma-window-size mod dma-window-base +
-;
+\ grub does not align allocated addresses to the size so when mapping,
+\ we might need to ask bm-alloc for an extra IOMMU page
+: dma-align ( size virt -- aligned-size ) tce-mask and + tce-ps #aligned ;
+: dma-trunc ( addr -- addr&~fff ) tce-mask not and ;
 
 : dma-map-in  ( virt size cachable? -- devaddr )
    phb-debug? IF cr ." dma-map-in called: " .s cr THEN
    (init-dma-window-vars)
-   drop                               ( virt size )
-
-   to my-size
-   to my-virt
-   bm-handle my-size bm-alloc
-   to dev-addr
-   dev-addr 0 < IF
-       ." Bitmap allocation Failed " dev-addr .
-       FALSE EXIT
+   drop
+   over dma-align                     ( virt size ) \ size is aligned now
+   tuck                               ( size virt size )
+   bm-handle swap bm-alloc            ( size virt dev-addr ) \ dev-addr is aligned
+   dup 0 < IF
+       ." Bitmap allocation Failed "
+       3drop
+       0 EXIT
    THEN
-   dev-addr to tmp-dev-addr
 
-   my-virt my-size
-   bounds dup >r                      ( v+s virt  R: virt )
-   swap fff + fff not and             \ Align end to next 4k boundary
-   swap fff not and                   ( v+s' virt'  R: virt )
+   swap                               ( size dev-addr virt )
+   2dup tce-mask and or >r            \ add page offset to the return value
+
+   dma-trunc 3 OR                     \ Truncate and add read and write perm
+   rot                                ( dev-addr virt size r: dev-addr )
+   0
    ?DO
-       \ ." mapping " i . cr
-       dma-window-liobn                \ liobn
-       tmp-dev-addr                    \ ioba
-       i 3 OR                          \ Make a read- & writeable TCE
-       ( liobn ioba tce  R: virt )
+       2dup dma-window-liobn -rot     ( dev-addr virt liobn dev-addr virt r: dev-addr )
        hv-put-tce ABORT" H_PUT_TCE failed"
-       tmp-dev-addr 1000 + to tmp-dev-addr
-   1000 +LOOP
-   r> drop
-   my-virt FFF and dev-addr or
+       tce-ps + swap tce-ps + swap    ( dev-addr' virt' r: dev-addr )
+   tce-ps +LOOP
    (clear-dma-window-vars)
+   2drop
+   r>
 ;
 
 : dma-map-out  ( virt devaddr size -- )
    phb-debug? IF cr ." dma-map-out called: " .s cr THEN
    (init-dma-window-vars)
-   to my-size
-   to dev-addr
-   to my-virt
-   dev-addr fff not and to dev-addr
-   dev-addr to tmp-dev-addr
-
-   my-virt my-size                    ( virt size )
-   bounds                             ( v+s virt )
-   swap fff + fff not and             \ Align end to next 4k boundary
-   swap fff not and                   ( v+s' virt' )
+   rot drop                            ( devaddr size )
+   over dma-align
+   swap dma-trunc swap                 ( devaddr-trunc size-extended )
+   2dup bm-handle -rot bm-free
+   0
    ?DO
-       \ ." unmapping " i . cr
-       dma-window-liobn                \ liobn
-       tmp-dev-addr                    \ ioba
-       i                               \ Lowest bits not set => invalid TCE
-       ( liobn ioba tce )
+       dup 0 dma-window-liobn -rot
        hv-put-tce ABORT" H_PUT_TCE failed"
-       tmp-dev-addr 1000 + to tmp-dev-addr
-   1000 +LOOP
-   bm-handle dev-addr my-size bm-free
+       tce-ps +
+   tce-ps +LOOP
+   drop
    (clear-dma-window-vars)
 ;
 
