@@ -143,6 +143,9 @@ check-for-nvramrc
 
 8a0 cp
 
+\ For DMA functions used by client/package instances.
+#include "dma-instance-function.fs"
+
 \ The client interface.
 #include "client.fs"
 \ ELF binary file format.

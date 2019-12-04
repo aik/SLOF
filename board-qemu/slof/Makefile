@@ -99,6 +99,7 @@ OF_FFS_FILES = \
 	$(SLOFCMNDIR)/fs/graphics.fs \
 	$(SLOFCMNDIR)/fs/generic-disk.fs \
 	$(SLOFCMNDIR)/fs/dma-function.fs \
+	$(SLOFCMNDIR)/fs/dma-instance-function.fs \
 	$(SLOFCMNDIR)/fs/pci-device.fs \
 	$(SLOFCMNDIR)/fs/pci-bridge.fs \
 	$(SLOFCMNDIR)/fs/pci-properties.fs \
