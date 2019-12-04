@@ -18,7 +18,11 @@
     \ to come back to right boot device
     \ Allocate memory for H_CALL
     cas-buffer-size alloc-mem             ( vec memaddr )
-    dup 0= IF ." out of memory during ibm,client-architecture-support" cr THEN
+    dup 0= IF
+        ." out of memory during ibm,client-architecture-support" cr
+	2drop TRUE
+	EXIT
+    THEN
     swap over cas-buffer-size             ( memaddr vec memaddr size )
     \ make h_call to hypervisor
     hv-cas 0= IF                          ( memaddr )
@@ -28,7 +32,7 @@
 	    dup 4 + fdt-init
 	    fdt-check-header
 	    fdt-struct fdt-fix-cas-node
-	    fdt-fix-cas-success NOT
+	    fdt-fix-cas-success NOT       ( memaddr err? )
 	    s" /" find-node fdt-fix-phandles
 	ELSE
 	    FALSE
