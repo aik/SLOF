@@ -255,6 +255,9 @@ static int virtionet_xmit(struct virtio_net *vnet, char *buf, int len)
 	idx = virtio_modern16_to_cpu(vdev, vq_tx->avail->idx);
 	id = (idx * 2) % vq_tx->size;
 
+	virtio_free_desc(vq_tx, id, vdev->features);
+	virtio_free_desc(vq_tx, id + 1, vdev->features);
+
 	/* Set up virtqueue descriptor for header */
 	virtio_fill_desc(vq_tx, id, vdev->features, (uint64_t)nethdr,
 			 net_hdr_size, VRING_DESC_F_NEXT, id + 1);
@@ -317,7 +320,7 @@ static int virtionet_receive(struct virtio_net *vnet, char *buf, int maxlen)
 #endif
 
 	/* Copy data to destination buffer */
-	memcpy(buf, (void *)virtio_modern64_to_cpu(vdev, vq_rx->desc[id].addr), len);
+	memcpy(buf, virtio_desc_addr(vdev, VQ_RX, id), len);
 
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;

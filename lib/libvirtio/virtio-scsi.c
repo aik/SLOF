@@ -81,6 +81,11 @@ int virtioscsi_send(struct virtio_device *dev,
 			break;
 	}
 
+	virtio_free_desc(vq, id, dev->features);
+	virtio_free_desc(vq, id + 1, dev->features);
+	if (!(buf == NULL || buf_len == 0))
+		virtio_free_desc(vq, id + 2, dev->features);
+
 	return 0;
 }
 

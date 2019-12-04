@@ -129,6 +129,10 @@ static int virtio_9p_transact(void *opaque, uint8_t *tx, int tx_size, uint8_t *r
 		// do something better
 		mb();
 	}
+
+	virtio_free_desc(vq, id, dev->features);
+	virtio_free_desc(vq, id + 1, dev->features);
+
 	if (i == 0) {
 		return -1;
 	}

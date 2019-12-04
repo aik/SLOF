@@ -273,6 +273,17 @@ void virtio_fill_desc(struct vqs *vq, int id, uint64_t features,
 	next %= vq->size;
 
 	if (features & VIRTIO_F_VERSION_1) {
+		if (features & VIRTIO_F_IOMMU_PLATFORM) {
+			void *gpa = (void *) addr;
+
+			if (!vq->desc_gpas) {
+				fprintf(stderr, "IOMMU setup has not been done!\n");
+				return;
+			}
+
+			addr = SLOF_dma_map_in(gpa, len, 0);
+			vq->desc_gpas[id] = gpa;
+		}
 		desc->addr = cpu_to_le64(addr);
 		desc->len = cpu_to_le32(len);
 		desc->flags = cpu_to_le16(flags);
@@ -283,6 +294,34 @@ void virtio_fill_desc(struct vqs *vq, int id, uint64_t features,
 		desc->flags = flags;
 		desc->next = next;
 	}
+}
+
+void virtio_free_desc(struct vqs *vq, int id, uint64_t features)
+{
+	struct vring_desc *desc;
+
+	id %= vq->size;
+	desc = &vq->desc[id];
+
+	if (!(features & VIRTIO_F_VERSION_1) ||
+	    !(features & VIRTIO_F_IOMMU_PLATFORM))
+		return;
+
+	if (!vq->desc_gpas[id])
+		return;
+
+	SLOF_dma_map_out(le64_to_cpu(desc->addr), 0, le32_to_cpu(desc->len));
+	vq->desc_gpas[id] = NULL;
+}
+
+void *virtio_desc_addr(struct virtio_device *vdev, int queue, int id)
+{
+	struct vqs *vq = &vdev->vq[queue];
+
+	if (vq->desc_gpas)
+		return vq->desc_gpas[id];
+
+	return (void *) virtio_modern64_to_cpu(vdev, vq->desc[id].addr);
 }
 
 /**
@@ -325,6 +364,21 @@ static void virtio_set_qaddr(struct virtio_device *dev, int queue, unsigned long
 		uint64_t q_avail;
 		uint64_t q_used;
 		uint32_t q_size = virtio_get_qsize(dev, queue);
+
+		if (dev->features & VIRTIO_F_IOMMU_PLATFORM) {
+			unsigned long cb;
+
+			cb = q_size * sizeof(struct vring_desc);
+			cb += sizeof(struct vring_avail) +
+			      sizeof(uint16_t) * q_size;
+			cb = VQ_ALIGN(cb);
+			cb += sizeof(struct vring_used) +
+			      sizeof(struct vring_used_elem) * q_size;
+			cb = VQ_ALIGN(cb);
+			q_desc = SLOF_dma_map_in((void *)q_desc, cb, 0);
+
+			dev->vq[queue].bus_desc = q_desc;
+		}
 
 		virtio_pci_write64(dev->common.addr + offset_of(struct virtio_dev_common, q_desc), q_desc);
 		q_avail = q_desc + q_size * sizeof(struct vring_desc);
@@ -372,14 +426,42 @@ struct vqs *virtio_queue_init_vq(struct virtio_device *dev, unsigned int id)
 
 	vq->avail->flags = virtio_cpu_to_modern16(dev, VRING_AVAIL_F_NO_INTERRUPT);
 	vq->avail->idx = 0;
+	if (dev->features & VIRTIO_F_IOMMU_PLATFORM)
+		vq->desc_gpas = SLOF_alloc_mem_aligned(
+			vq->size * sizeof(vq->desc_gpas[0]), 4096);
 
 	return vq;
 }
 
 void virtio_queue_term_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id)
 {
-	if (vq->desc)
+	if (vq->desc_gpas) {
+		int i;
+
+		for (i = 0; i < vq->size; ++i)
+			virtio_free_desc(vq, i, dev->features);
+
+		SLOF_free_mem(vq->desc_gpas,
+			vq->size * sizeof(vq->desc_gpas[0]));
+	}
+	if (vq->desc) {
+		if (dev->features & VIRTIO_F_IOMMU_PLATFORM) {
+			unsigned long cb;
+			uint32_t q_size = virtio_get_qsize(dev, id);
+
+			cb = q_size * sizeof(struct vring_desc);
+			cb += sizeof(struct vring_avail) +
+			      sizeof(uint16_t) * q_size;
+			cb = VQ_ALIGN(cb);
+			cb += sizeof(struct vring_used) +
+			      sizeof(struct vring_used_elem) * q_size;
+			cb = VQ_ALIGN(cb);
+
+			SLOF_dma_map_out(vq->bus_desc, 0, cb);
+		}
+
 		SLOF_free_mem(vq->desc, virtio_vring_size(vq->size));
+	}
 	memset(vq, 0, sizeof(*vq));
 }
 
@@ -472,6 +554,9 @@ int virtio_negotiate_guest_features(struct virtio_device *dev, uint64_t features
 		fprintf(stderr, "Device does not support virtio 1.0 %llx\n", host_features);
 		return -1;
 	}
+
+	if (host_features & VIRTIO_F_IOMMU_PLATFORM)
+		features |= VIRTIO_F_IOMMU_PLATFORM;
 
 	virtio_set_guest_features(dev,  features);
 	host_features = virtio_get_host_features(dev);

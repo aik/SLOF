@@ -195,6 +195,10 @@ virtioblk_transfer(struct virtio_device *dev, char *buf, uint64_t blocknum,
 			break;
 	}
 
+	virtio_free_desc(vq, id, dev->features);
+	virtio_free_desc(vq, id + 1, dev->features);
+	virtio_free_desc(vq, id + 2, dev->features);
+
 	if (status == 0)
 		return cnt;
 

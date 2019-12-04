@@ -108,7 +108,7 @@ void virtio_serial_shutdown(struct virtio_device *dev)
 
 int virtio_serial_putchar(struct virtio_device *dev, char c)
 {
-	int id;
+	int id, ret;
 	uint32_t time;
 	volatile uint16_t *current_used_idx;
 	uint16_t last_used_idx, avail_idx;
@@ -133,17 +133,21 @@ int virtio_serial_putchar(struct virtio_device *dev, char c)
 	virtio_queue_notify(dev, TX_Q);
 
 	/* Wait for host to consume the descriptor */
+	ret = 1;
 	time = SLOF_GetTimer() + VIRTIO_TIMEOUT;
 	while (*current_used_idx == last_used_idx) {
 		// do something better
 		mb();
 		if (time < SLOF_GetTimer()) {
 			printf("virtio_serial_putchar failed! \n");
-			return 0;
+			ret = 0;
+			break;
 		}
 	}
 
-	return 1;
+	virtio_free_desc(vq, id, dev->features);
+
+	return ret;
 }
 
 char virtio_serial_getchar(struct virtio_device *dev)
@@ -163,7 +167,7 @@ char virtio_serial_getchar(struct virtio_device *dev)
 		% vq_rx->size;
 
 	/* Copy data to destination buffer */
-	memcpy(buf, (void *)virtio_modern64_to_cpu(dev, vq_rx->desc[id - 1].addr), RX_ELEM_SIZE);
+	memcpy(buf, virtio_desc_addr(dev, RX_Q, id - 1), RX_ELEM_SIZE);
 
 	/* Move indices to next entries */
 	last_rx_idx = last_rx_idx + 1;
