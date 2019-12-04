@@ -394,7 +394,7 @@ r> drop
     find-node ?dup 0 <> IF set-node THEN
 ;
 
-: fdt-fix-cas-node ( start -- end )
+: (fdt-fix-cas-node) ( start -- end )
     recursive
     fdt-next-tag dup OF_DT_BEGIN_NODE <> IF
 	." Error " cr
@@ -435,7 +435,7 @@ r> drop
 	ELSE dup OF_DT_BEGIN_NODE = IF
 		drop			( drop tag )
 		4 -
-		fdt-fix-cas-node
+		(fdt-fix-cas-node)
 		get-parent set-node
 		fdt-debug IF ." Returning back " pwd cr THEN
 	    ELSE
@@ -447,6 +447,10 @@ r> drop
 	THEN
     REPEAT
     drop \ drop tag
+;
+
+: fdt-fix-cas-node ( start -- )
+    (fdt-fix-cas-node) drop
 ;
 
 : fdt-fix-cas-success
