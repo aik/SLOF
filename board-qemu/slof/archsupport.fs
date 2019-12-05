@@ -33,7 +33,6 @@
 	    fdt-check-header
 	    fdt-struct fdt-fix-cas-node
 	    fdt-fix-cas-success NOT       ( memaddr err? )
-	    s" /" find-node fdt-fix-phandles
 	ELSE
 	    FALSE
 	THEN
