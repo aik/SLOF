@@ -12,6 +12,7 @@
 
 0 VALUE fdt-debug
 TRUE VALUE fdt-cas-fix?
+0 VALUE fdt-cas-pass
 
 \ Bail out if no fdt
 fdt-start 0 = IF -1 throw THEN
@@ -294,6 +295,81 @@ fdt-claim-reserve
     2drop 2drop
 ;
 
+: (phandle>node) ( phandle current -- node|0 )
+    dup s" phandle" rot get-property 0= IF
+	decode-int nip nip ( phandle current phandle-prop )
+	2 pick = IF
+	    fdt-debug IF ."        Found phandle; " dup . ."  <= " over . cr THEN
+	    nip            ( current )
+	    EXIT
+	THEN
+    ELSE
+	dup s" linux-phandle" rot get-property 0= IF
+	    decode-int nip nip ( phandle current phandle-prop )
+	    2 pick = IF
+		fdt-debug IF ."        Found linux-phandle; " dup . ."  <= " over . cr THEN
+		nip            ( current )
+		EXIT
+	    THEN
+	THEN
+    THEN
+    child BEGIN
+	dup
+    WHILE
+	2dup
+	RECURSE
+	?dup 0<> IF
+	    nip nip
+	    EXIT
+	THEN
+	PEER
+    REPEAT
+    2drop 0
+;
+
+: phandle>node ( phandle -- node ) s" /" find-node (phandle>node)  ;
+
+: (fdt-patch-phandles) ( prop-addr prop-len -- )
+    BEGIN
+        dup
+    WHILE                   ( prop-addr prop-len )
+        over l@ phandle>node
+	?dup 0<> IF
+	    fdt-debug IF ."     ### Patching phandle=" 2 pick l@ . cr THEN
+	    2 pick l!
+            TRUE TO (fdt-phandle-replaced)
+        THEN
+        4 - swap 4 + swap
+    REPEAT
+    2drop
+;
+
+: (fdt-patch-interrupt-map) ( prop-addr prop-len -- )
+    \ interrupt-controller phandle is expected to be the same accross the map
+    over 10 + l@ phandle>node ?dup 0= IF 2drop EXIT THEN
+    -rot
+    fdt-debug IF ."      ### Patching interrupt-map: " over 10 + l@ . ."  => " 2 pick . cr THEN
+
+    TRUE TO (fdt-phandle-replaced)
+    BEGIN
+        dup
+    WHILE                   ( newph prop-addr prop-len )
+	2 pick 2 pick 10 + l!
+        1c - swap 1c  + swap
+    REPEAT
+    3drop
+;
+
+: fdt-patch-phandles ( prop-addr prop-len nameadd namelen -- )
+   2dup s" interrupt-map" str= IF 2drop (fdt-patch-interrupt-map) EXIT THEN
+   2dup s" interrupt-parent" str= IF 2drop (fdt-patch-phandles) EXIT THEN
+   2dup s" ibm,gpu" str= IF 2drop (fdt-patch-phandles) EXIT THEN
+   2dup s" ibm,npu" str= IF 2drop (fdt-patch-phandles) EXIT THEN
+   2dup s" ibm,nvlink" str= IF 2drop (fdt-patch-phandles) EXIT THEN
+   2dup s" memory-region" str= IF 2drop (fdt-patch-phandles) EXIT THEN
+   4drop
+;
+
 \ Replace one phandle "old" with a phandle "new" in "node" and recursively
 \ in its child nodes:
 : fdt-replace-all-phandles ( old new node -- )
@@ -394,6 +470,12 @@ r> drop
     find-node ?dup 0 <> IF set-node THEN
 ;
 
+: str=phandle? ( s len -- true|false )
+    2dup s" phandle" str= >r
+    s" linux,phandle" str=
+    r> or
+;
+
 : (fdt-fix-cas-node) ( start -- end )
     recursive
     fdt-next-tag dup OF_DT_BEGIN_NODE <> IF
@@ -414,7 +496,7 @@ r> drop
     2dup find-node ?dup 0 <> IF
 	set-node 2drop
     ELSE
-	fdt-debug IF ." Node not found, creating " 2dup type cr THEN
+	fdt-debug IF ." Creating node: " 2dup type cr THEN
 	fdt-create-cas-node
     THEN
     fdt-debug IF ." Current  now: " pwd cr THEN
@@ -422,22 +504,48 @@ r> drop
 	fdt-next-tag dup OF_DT_END_NODE <>
     WHILE
 	dup OF_DT_PROP = IF
-	    fdt-debug IF ." Found property " cr THEN
 	    drop dup		( drop tag, dup addr     : a1 a1 )
 	    dup l@ dup rot 4 +	( fetch size, stack is   : a1 s s a2)
 	    dup l@ swap 4 +	( fetch nameid, stack is : a1 s s i a3 )
 	    rot			( we now have: a1 s i a3 s )
 	    fdt-encode-prop rot	( a1 s pa ps i)
 	    fdt-fetch-string		( a1 s pa ps na ns )
-	    property
-	    fdt-debug IF ." Setting property done " cr THEN
+
+	    fdt-cas-pass CASE
+	    0 OF
+		2dup str=phandle? IF
+		    fdt-debug IF 4dup ."   Phandle: " type ." =" swap ." @" . ."  " .d ."  bytes" cr THEN
+		    property
+		ELSE
+		    4drop
+		THEN
+	    ENDOF
+	    1 OF
+		2dup str=phandle? not IF
+		    fdt-debug IF 4dup ."   Property: "  type ." =" swap ." @" . ."  " .d ."  bytes" cr THEN
+		    4dup fdt-patch-phandles
+		    property
+		ELSE
+		    4drop
+		THEN
+	    ENDOF
+	    2 OF
+		2dup str=phandle? IF
+		    fdt-debug IF 4dup ."   Deleting: " type ." =" swap ." @" . ."  " .d ."  bytes" cr THEN
+		    delete-property
+		    2drop
+		ELSE
+		    4drop
+		THEN
+	    ENDOF
+	    ENDCASE
+
 	    + 8 + 3 + fffffffc and
 	ELSE dup OF_DT_BEGIN_NODE = IF
 		drop			( drop tag )
 		4 -
 		(fdt-fix-cas-node)
 		get-parent set-node
-		fdt-debug IF ." Returning back " pwd cr THEN
 	    ELSE
 		." Error " cr
 		drop
@@ -450,7 +558,10 @@ r> drop
 ;
 
 : fdt-fix-cas-node ( start -- )
-    (fdt-fix-cas-node) drop
+    0 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Add phandles
+    1 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Patch+add other properties
+    2 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Delete phandles from pass 1
+    drop
 ;
 
 : fdt-fix-cas-success
