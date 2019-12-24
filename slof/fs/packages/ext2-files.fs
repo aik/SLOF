@@ -16,7 +16,7 @@ INSTANCE VARIABLE inode-size
 INSTANCE VARIABLE block-size
 INSTANCE VARIABLE inodes/group
 
-INSTANCE VARIABLE group-desc-size
+INSTANCE VARIABLE blocks-per-group
 INSTANCE VARIABLE group-descriptors
 
 : seek  s" seek" $call-parent ;
@@ -128,11 +128,11 @@ CREATE mode-chars 10 allot s" ?pc?d?b?-?l?s???" mode-chars swap move
   ELSE
      data @ 58 + w@-le inode-size !
   THEN
-  data @ 20 + l@-le group-desc-size !
+  data @ 20 + l@-le blocks-per-group !
 
   \ Read the group descriptor table:
   first-block @ 1+ block-size @ *
-  group-desc-size @
+  blocks-per-group @
   read-data
   data @ group-descriptors !
 
@@ -189,7 +189,7 @@ INSTANCE VARIABLE current-pos
 
 : close
    inode @ inode-size @ free-mem
-   group-descriptors @ group-desc-size @ free-mem
+   group-descriptors @ blocks-per-group @ free-mem
    free-data
    blocks @ ?dup IF #blocks @ 4 * free-mem THEN
 ;
