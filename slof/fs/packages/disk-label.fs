@@ -370,34 +370,26 @@ CONSTANT /gpt-part-entry
    drop 0
 ;
 
-\ Check for GPT PReP partition GUID. Only first 3 blocks are
-\ byte-swapped treating last two blocks as contigous for simplifying
-\ comparison
-9E1A2D38            CONSTANT GPT-PREP-PARTITION-1
-C612                CONSTANT GPT-PREP-PARTITION-2
-4316                CONSTANT GPT-PREP-PARTITION-3
-AA268B49521E5A8B    CONSTANT GPT-PREP-PARTITION-4
+: uuid! ( v1 v2 v3 v4 addr -- ) >r r@ 8 + x! r@ 6 + w!-le r@ 4 + w!-le r> l!-le ;
+: uuid= ( addr1 addr2 -- true|false )  10 comp 0= ;
 
+\ PowerPC 	PReP boot 	9E1A2D38-C612-4316-AA26-8B49521E5A8B
+CREATE GPT-PREP-PARTITION 10 allot
+9E1A2D38 C612 4316 AA268B49521E5A8B GPT-PREP-PARTITION uuid!
 : gpt-prep-partition? ( -- true|false )
    block gpt-part-entry>part-type-guid
-   dup l@-le     GPT-PREP-PARTITION-1 <> IF drop false EXIT THEN
-   dup 4 + w@-le GPT-PREP-PARTITION-2 <> IF drop false EXIT THEN
-   dup 6 + w@-le GPT-PREP-PARTITION-3 <> IF drop false EXIT THEN
-       8 + x@    GPT-PREP-PARTITION-4 =
+   GPT-PREP-PARTITION uuid=
 ;
 
 \ Check for GPT MSFT BASIC DATA GUID - fat based
-EBD0A0A2            CONSTANT GPT-BASIC-DATA-PARTITION-1
-B9E5                CONSTANT GPT-BASIC-DATA-PARTITION-2
-4433                CONSTANT GPT-BASIC-DATA-PARTITION-3
-87C068B6B72699C7    CONSTANT GPT-BASIC-DATA-PARTITION-4
-
+\ Windows Basic data partition 	EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+CREATE GPT-BASIC-DATA-PARTITION 10 allot
+EBD0A0A2 B9E5 4433 87C068B6B72699C7 GPT-BASIC-DATA-PARTITION uuid!
 : gpt-basic-data-partition? ( -- true|false )
    block gpt-part-entry>part-type-guid
-   dup l@-le     GPT-BASIC-DATA-PARTITION-1 <> IF drop false EXIT THEN
-   dup 4 + w@-le GPT-BASIC-DATA-PARTITION-2 <> IF drop false EXIT THEN
-   dup 6 + w@-le GPT-BASIC-DATA-PARTITION-3 <> IF drop false EXIT THEN
-       8 + x@    GPT-BASIC-DATA-PARTITION-4 =
+   GPT-BASIC-DATA-PARTITION uuid=
+;
+
 ;
 
 \
@@ -443,6 +435,18 @@ B9E5                CONSTANT GPT-BASIC-DATA-PARTITION-2
      seek-pos gpt-part-size + to seek-pos
    LOOP
    false
+;
+
+: (interpose-filesystem) ( str len -- )
+   find-package IF args args-len rot interpose THEN
+;
+
+: try-ext2-files ( -- found? )
+   2 read-sector               \ read first superblock
+   block d# 56 + w@-le         \ fetch s_magic
+   ef53 <> IF false EXIT THEN  \ s_magic found?
+   s" ext2-files" (interpose-filesystem)
+   true
 ;
 
 : try-gpt-dos-partition ( -- true|false )
@@ -612,10 +616,6 @@ B9E5                CONSTANT GPT-BASIC-DATA-PARTITION-2
 
 \ try-files and try-partitions
 
-: (interpose-filesystem) ( str len -- )
-   find-package IF args args-len rot interpose THEN
-;
-
 : try-dos-files ( -- found? )
    no-mbr? IF false EXIT THEN
 
@@ -623,15 +623,6 @@ B9E5                CONSTANT GPT-BASIC-DATA-PARTITION-2
    s" fat-files" (interpose-filesystem)
    true
 ;
-
-: try-ext2-files ( -- found? )
-   2 read-sector               \ read first superblock
-   block d# 56 + w@-le         \ fetch s_magic
-   ef53 <> IF false EXIT THEN  \ s_magic found?
-   s" ext2-files" (interpose-filesystem)
-   true
-;
-
 
 : try-iso9660-files
    has-iso9660-filesystem 0= IF false exit THEN
