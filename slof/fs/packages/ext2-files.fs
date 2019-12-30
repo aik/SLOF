@@ -75,6 +75,61 @@ INSTANCE VARIABLE #blocks-left
 ;
 
 : inode-i-block ( inode -- block ) 28 + ;
+80000 CONSTANT EXT4_EXTENTS_FL
+: inode-i-flags ( inode -- i_flags ) 20 + l@-le ;
+F30A CONSTANT EXT4_EH_MAGIC
+: extent-tree-entries ( iblock -- entries ) C + ;
+
+STRUCT
+   2 field ext4-eh>magic
+   2 field ext4-eh>entries
+   2 field ext4-eh>max
+   2 field ext4-eh>depth
+   4 field ext4-eh>generation
+CONSTANT /ext4-eh
+
+STRUCT
+   4 field ext4-ee>block
+   2 field ext4-ee>len
+   2 field ext4-ee>start_hi
+   4 field ext4-ee>start_lo
+CONSTANT /ext4-ee
+
+: ext4-ee-start ( entries -- ee-start )
+    dup ext4-ee>start_hi w@-le 32 lshift
+    swap
+    ext4-ee>start_lo l@-le or
+;
+
+: expand-blocks ( start len -- )
+    bounds
+    ?DO
+        i ^blocks @ l!-le
+        1 blocks-read
+    1 +LOOP
+;
+
+\ [0x28..0x34] ext4_extent_header
+\ [0x34..0x64] ext4_extent_idx[eh_entries if eh_depth > 0] (not supported)
+\              ext4_extent[eh_entries if eh_depth == 0]
+: read-extent-tree ( inode -- )
+    inode-i-block
+    dup ext4-eh>magic w@-le EXT4_EH_MAGIC <> IF ." BAD extent tree magic" cr EXIT THEN
+    dup ext4-eh>depth w@-le 0 <> IF ." Root inode is not lead, not supported" cr EXIT THEN
+    \ depth=0 means it is a leaf and entries are ext4_extent[eh_entries]
+    dup ext4-eh>entries w@-le
+    >r
+    /ext4-eh +
+    r>
+    0
+    DO
+        dup ext4-ee-start
+        over ext4-ee>len w@-le ( ext4_extent^ start len )
+        expand-blocks
+        /ext4-ee +
+    LOOP
+    drop
+;
 
 \ Reads block numbers into blocks
 : read-block#s ( -- )
@@ -83,6 +138,7 @@ INSTANCE VARIABLE #blocks-left
   file-len @ block-size @ // #blocks !         \ *#blocks = roundup(file-len/block-size)
   #blocks @ 4 * alloc-mem blocks !             \ *blocks = allocmem(*#blocks)
   blocks @ ^blocks !  #blocks @ #blocks-left !
+  inode @ inode-i-flags EXT4_EXTENTS_FL and IF inode @ read-extent-tree EXIT THEN
   #blocks-left @ c min \ # direct blocks
   inode @ inode-i-block over 4 * ^blocks @ swap move blocks-read
   #blocks-left @ IF inode @ 58 + l@-le read-indirect-blocks THEN
