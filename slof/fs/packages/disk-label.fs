@@ -390,6 +390,12 @@ EBD0A0A2 B9E5 4433 87C068B6B72699C7 GPT-BASIC-DATA-PARTITION uuid!
    GPT-BASIC-DATA-PARTITION uuid=
 ;
 
+\ Linux filesystem data 	0FC63DAF-8483-4772-8E79-3D69D8477DE4
+CREATE GPT-LINUX-PARTITION 10 allot
+0FC63DAF 8483 4772 8E793D69D8477DE4 GPT-LINUX-PARTITION uuid!
+: gpt-linux-partition? ( -- true|false )
+   block gpt-part-entry>part-type-guid
+   GPT-LINUX-PARTITION uuid=
 ;
 
 \
@@ -455,7 +461,7 @@ EBD0A0A2 B9E5 4433 87C068B6B72699C7 GPT-BASIC-DATA-PARTITION uuid!
    1+ 1 ?DO
       seek-pos 0 seek drop
       block gpt-part-size read drop
-      gpt-basic-data-partition? IF
+      gpt-basic-data-partition? gpt-linux-partition? or IF
          debug-disk-label? IF ." GPT BASIC DATA partition found " cr THEN
          block gpt-part-entry>first-lba x@-le       ( first-lba )
          dup to part-start                          ( first-lba )
