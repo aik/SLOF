@@ -472,6 +472,7 @@ CREATE GPT-LINUX-PARTITION 10 allot
          0 0 seek drop
          block block-size read drop
          block fat-bootblock?                    ( true|false )
+         not IF try-ext2-files THEN
          UNLOOP EXIT
       THEN
       seek-pos gpt-part-size + to seek-pos
