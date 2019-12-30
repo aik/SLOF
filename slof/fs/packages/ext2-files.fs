@@ -39,9 +39,9 @@ INSTANCE VARIABLE dindirect-block
 
 INSTANCE VARIABLE inode
 INSTANCE VARIABLE file-len
-INSTANCE VARIABLE blocks
+INSTANCE VARIABLE blocks  \ data from disk blocks
 INSTANCE VARIABLE #blocks
-INSTANCE VARIABLE ^blocks
+INSTANCE VARIABLE ^blocks \ current pointer in blocks
 INSTANCE VARIABLE #blocks-left
 : blocks-read ( n -- )  dup negate #blocks-left +! 4 * ^blocks +! ;
 : read-indirect-blocks ( indirect-block# -- )
@@ -73,20 +73,27 @@ INSTANCE VARIABLE #blocks-left
    drop                         \ drop 0, the invalid block number
 ;
 
+: inode-i-block ( inode -- block ) 28 + ;
+
+\ Reads block numbers into blocks
 : read-block#s ( -- )
-  blocks @ ?dup IF #blocks @ 4 * free-mem THEN
-  inode @ 4 + l@-le file-len !
-  file-len @ block-size @ // #blocks !
-  #blocks @ 4 * alloc-mem blocks !
+  blocks @ ?dup IF #blocks @ 4 * free-mem THEN \ free blocks if allocated
+  inode @ 4 + l@-le file-len !                 \ *file-len = i_size_lo
+  file-len @ block-size @ // #blocks !         \ *#blocks = roundup(file-len/block-size)
+  #blocks @ 4 * alloc-mem blocks !             \ *blocks = allocmem(*#blocks)
   blocks @ ^blocks !  #blocks @ #blocks-left !
   #blocks-left @ c min \ # direct blocks
-  inode @ 28 + over 4 * ^blocks @ swap move blocks-read
+  inode @ inode-i-block over 4 * ^blocks @ swap move blocks-read
   #blocks-left @ IF inode @ 58 + l@-le read-indirect-blocks THEN
   #blocks-left @ IF inode @ 5c + l@-le read-double-indirect-blocks THEN
-  #blocks-left @ IF inode @ 60 + l@-le read-triple-indirect-blocks THEN ;
+  #blocks-left @ IF inode @ 60 + l@-le read-triple-indirect-blocks THEN
+;
+
 : read-inode ( inode# -- )
-  1- inodes/group @ u/mod \ # in group, group #
-  20 * group-descriptors @ + 8 + l@-le block-size @ * \ # in group, inode table
+  1- inodes/group @ u/mod
+  20 * group-descriptors @ +
+  8 + l@-le               \ reads bg_inode_table_lo
+  block-size @ *          \ # in group, inode table
   swap inode-size @ * + xlsplit seek drop  inode @ inode-size @ read drop
 ;
 
@@ -153,17 +160,25 @@ INSTANCE VARIABLE current-pos
 : read-dir ( inode# -- adr )
   read-inode read-block#s file-len @ alloc-mem
   0 0 seek ABORT" ext2-files read-dir: seek failed"
-  dup file-len @ read file-len @ <> ABORT" ext2-files read-dir: read failed" ;
+  dup file-len @ read file-len @ <> ABORT" ext2-files read-dir: read failed"
+;
+
 : .dir ( inode# -- )
   read-dir dup BEGIN 2dup file-len @ - > over l@-le tuck and WHILE
   cr dup 8 0.r space read-inode .inode space space dup .name
-  dup 4 + w@-le + REPEAT 2drop file-len @ free-mem ;
+  dup 4 + w@-le + REPEAT 2drop file-len @ free-mem
+;
+
 : (find-file) ( adr name len -- inode#|0 )
   2>r dup BEGIN 2dup file-len @ - > over l@-le and WHILE
   dup 8 + over 6 + c@ 2r@ str= IF 2r> 2drop nip l@-le EXIT THEN
-  dup 4 + w@-le + REPEAT 2drop 2r> 2drop 0 ;
+  dup 4 + w@-le + REPEAT 2drop 2r> 2drop 0
+;
+
 : find-file ( inode# name len -- inode#|0 )
-  2>r read-dir dup 2r> (find-file) swap file-len @ free-mem ;
+  2>r read-dir dup 2r> (find-file) swap file-len @ free-mem
+;
+
 : find-path ( inode# name len -- inode#|0 )
   dup 0= IF 3drop 0 ."  empty name " EXIT THEN
   over c@ [char] \ = IF 1 /string ."  slash " RECURSE EXIT THEN
