@@ -18,6 +18,7 @@ INSTANCE VARIABLE inodes/group
 
 INSTANCE VARIABLE blocks-per-group
 INSTANCE VARIABLE group-descriptors
+INSTANCE VARIABLE desc-size
 
 : seek  s" seek" $call-parent ;
 : read  s" read" $call-parent ;
@@ -91,7 +92,7 @@ INSTANCE VARIABLE #blocks-left
 
 : read-inode ( inode# -- )
   1- inodes/group @ u/mod
-  20 * group-descriptors @ +
+  desc-size @ * group-descriptors @ +
   8 + l@-le               \ reads bg_inode_table_lo
   block-size @ *          \ # in group, inode table
   swap inode-size @ * + xlsplit seek drop  inode @ inode-size @ read drop
@@ -117,6 +118,13 @@ CREATE mode-chars 10 allot s" ?pc?d?b?-?l?s???" mode-chars swap move
   inode @ 04 + l@-le 9 .r \ size
   r> base ! ;
 
+80 CONSTANT EXT4_INCOMPAT_64BIT
+: super-feature-incompat ( data -- flags ) 60 + l@-le ;
+: super-desc-size ( data -- size ) FE + w@-le ;
+: super-feature-incompat-64bit ( data -- true|false )
+    super-feature-incompat EXT4_INCOMPAT_64BIT and 0<>
+;
+
 : do-super ( -- )
   400 400 read-data
   data @ 14 + l@-le first-block !
@@ -129,6 +137,11 @@ CREATE mode-chars 10 allot s" ?pc?d?b?-?l?s???" mode-chars swap move
      data @ 58 + w@-le inode-size !
   THEN
   data @ 20 + l@-le blocks-per-group !
+  data @ super-feature-incompat-64bit IF
+     data @ super-desc-size desc-size !
+  ELSE
+     20 desc-size !
+  THEN
 
   \ Read the group descriptor table:
   first-block @ 1+ block-size @ *
