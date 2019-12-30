@@ -90,10 +90,19 @@ INSTANCE VARIABLE #blocks-left
   #blocks-left @ IF inode @ 60 + l@-le read-triple-indirect-blocks THEN
 ;
 
+: read-inode-table ( groupdesc -- table )
+  dup 8 + l@-le             \ reads bg_inode_table_lo
+  desc-size @ 20 > IF
+    over 28 + l@-le         \ reads bg_inode_table_hi
+    20 lshift or
+  THEN
+  nip
+;
+
 : read-inode ( inode# -- )
   1- inodes/group @ u/mod
   desc-size @ * group-descriptors @ +
-  8 + l@-le               \ reads bg_inode_table_lo
+  read-inode-table
   block-size @ *          \ # in group, inode table
   swap inode-size @ * + xlsplit seek drop  inode @ inode-size @ read drop
 ;
