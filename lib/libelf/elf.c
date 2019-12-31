@@ -140,6 +140,7 @@ elf_load_file_to_addr(void *file_addr, void *addr, unsigned long *entry,
 {
 	int type;
 	long offset;
+	struct ehdr *ehdr = (struct ehdr *) file_addr;
 
 	type = elf_check_file(file_addr);
 
@@ -157,6 +158,13 @@ elf_load_file_to_addr(void *file_addr, void *addr, unsigned long *entry,
 		*entry = elf_load_segments64(file_addr, offset, pre_load,
 		                             post_load) + offset;
 		elf_relocate64(file_addr, offset);
+		if (ehdr->ei_data != ELFDATA2MSB) {
+			uint32_t flags = elf_get_eflags_64(file_addr);
+			if ((flags & 0x3) == 2)
+				type = 4; /* LE64 ABIv2 */
+			else
+				type = 3; /* LE64 ABIv1 */
+		}
 		break;
 	}
 
