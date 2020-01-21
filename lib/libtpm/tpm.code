@@ -128,3 +128,12 @@ PRIM(tpm_X2d_measure_X2d_scrtm)
 	PUSH;
 	TOS.n = tpm_measure_scrtm();
 MIRP
+
+/*******************************************************************/
+/* Firmware API                                                    */
+/* SLOF:   tpm20-menu ( -- tpm-version )                           */
+/* LIBTPM: tpm20_menu()                                            */
+/*******************************************************************/
+PRIM(tpm20_X2d_menu)
+	tpm20_menu();
+MIRP
