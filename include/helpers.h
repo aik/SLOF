@@ -42,6 +42,8 @@ extern void SLOF_encode_bootp_response(void *addr, size_t size);
 extern void SLOF_encode_dhcp_response(void *addr, size_t size);
 extern int SLOF_get_property(const char *node, const char *propname,
                              char **addr, int *len);
+extern int SLOF_get_keystroke(void);
+extern void SLOF_reset(void);
 
 #define offset_of(type, member) ((long) &((type *)0)->member)
 #define container_of(ptr, type, member) ({                      \
