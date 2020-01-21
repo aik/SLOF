@@ -55,6 +55,12 @@
    nvramlog-write-string-cr
 ;
 
+: (t-pressed) ( -- )
+   s" /ibm,vtpm" find-node ?dup IF
+      s" vtpm-menu" rot $call-static
+   THEN
+;
+
 : (boot?) ( -- )
    \ last step before we boot we give up physical presence on the TPM
    s" /ibm,vtpm" find-node ?dup IF
@@ -105,6 +111,7 @@ TRUE VALUE use-load-watchdog?
    key? IF
       key CASE
 	 [char] s  OF (s-pressed) ENDOF
+	 [char] t  OF (t-pressed) (boot?) ENDOF
 	 1b        OF
 	     (esc-sequence) CASE
 		 1   OF

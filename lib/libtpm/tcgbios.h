@@ -28,5 +28,6 @@ uint32_t tpm_add_event_separators(uint32_t start_pcr, uint32_t end_pcr);
 uint32_t tpm_driver_get_failure_reason(void);
 void tpm_driver_set_failure_reason(uint32_t errcode);
 bool tpm_is_working(void);
+void tpm20_menu(void);
 
 #endif /* TCGBIOS_H */
