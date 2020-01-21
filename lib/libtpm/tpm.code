@@ -137,3 +137,35 @@ MIRP
 PRIM(tpm20_X2d_menu)
 	tpm20_menu();
 MIRP
+
+/*************************************************************************/
+/* Set the LBA1 of the GPT                                               */
+/* SLOF:   tpm-gpt-set-lba1 ( addr length -- )                       */
+/* LIBTPM: tpm_gpt_set_lba1(addr, length)                            */
+/*************************************************************************/
+PRIM(tpm_X2d_gpt_X2d_set_X2d_lba1)
+	int length = TOS.u; POP;
+	void *addr = TOS.a; POP;
+	tpm_gpt_set_lba1(addr, length);
+MIRP
+
+/*************************************************************************/
+/* Add a GPT table entry                                                 */
+/* SLOF:   tpm-gpt-add-entry  ( addr length -- )                         */
+/* LIBTPM: tpm_gpt_add_entry(addr, length)                               */
+/*************************************************************************/
+PRIM(tpm_X2d_gpt_X2d_add_X2d_entry)
+	int length = TOS.u; POP;
+	void *addr = TOS.a; POP;
+	tpm_gpt_add_entry(addr, length);
+MIRP
+
+/*************************************************************************/
+/* Measure and log GPT EVENT                                             */
+/* SLOF:   tpm-measure-gpt  ( -- errcode )                               */
+/* LIBTPM: errcode = tpm_measure_gpt()                                   */
+/*************************************************************************/
+PRIM(tpm_X2d_measure_X2d_gpt)
+	PUSH;
+	TOS.n = tpm_measure_gpt();
+MIRP

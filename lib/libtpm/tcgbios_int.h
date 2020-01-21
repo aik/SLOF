@@ -39,6 +39,8 @@
 #define EV_S_CRTM_VERSION                8
 #define EV_IPL                          13
 #define EV_IPL_PARTITION_DATA           14
+#define EV_EFI_EVENT_BASE               0x80000000
+#define EV_EFI_GPT_EVENT                (EV_EFI_EVENT_BASE + 0x6)
 
 #define BCV_DEVICE_HDD                  0x80
 
@@ -90,6 +92,44 @@ struct TCG_EfiSpecIdEventStruct {
 	uint8_t vendorInfo[0];
 	*/
 } __attribute__((packed));
+
+/* EFI related data structures for logging */
+typedef struct {
+	uint64_t signature;
+	uint32_t revision;
+	uint32_t size;
+	uint32_t crc32;
+	uint8_t reserved[4];
+} __attribute__((packed)) UEFI_TABLE_HEADER;
+
+typedef struct {
+	UEFI_TABLE_HEADER header;
+	uint64_t currentLba;
+	uint64_t backupLba;
+	uint64_t firstLba;
+	uint64_t lastLba;
+	uint8_t  diskGuid[16];
+	uint64_t partEntryLba;
+	uint32_t numPartEntry;
+	uint32_t partEntrySize;
+	uint32_t partArrayCrc32;
+	uint8_t reserved[420];
+} __attribute__((packed)) UEFI_PARTITION_TABLE_HEADER;
+
+typedef struct {
+	uint8_t partTypeGuid[16];
+	uint8_t partGuid[16];
+	uint64_t firstLba;
+	uint64_t lastLba;
+	uint64_t attribute;
+	uint8_t partName[72];
+} __attribute__((packed)) UEFI_PARTITION_ENTRY;
+
+typedef struct {
+    UEFI_PARTITION_TABLE_HEADER EfiPartitionHeader;
+    uint64_t                    NumberOfPartitions;
+    UEFI_PARTITION_ENTRY        Partitions[0];
+} __attribute__((packed)) UEFI_GPT_DATA;
 
 /* Input and Output headers for all TPM commands */
 struct tpm_req_header {

@@ -42,6 +42,14 @@ s" ibm,vtpm" 2dup device-name device-type
     THEN
 ;
 
+: measure-gpt ( )
+    0 7 separator-event
+    tpm-measure-gpt
+    ?dup IF
+        ." VTPM: Error code from tpm-measure-gpt: " . cr
+    THEN
+;
+
 : leave-firmware ( -- )
     tpm-leave-firmware                         ( errcode )
     ?dup IF
