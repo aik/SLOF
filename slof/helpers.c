@@ -235,3 +235,9 @@ void SLOF_reset(void)
 {
 	forth_eval("reset-all");
 }
+
+unsigned long SLOF_get_vtpm_unit(void)
+{
+	forth_eval("vtpm-unit");
+	return forth_pop();
+}
