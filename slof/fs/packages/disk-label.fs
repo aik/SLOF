@@ -431,6 +431,27 @@ CREATE GPT-LINUX-PARTITION 10 allot
    block gpt>signature x@ GPT-SIGNATURE =
 ;
 
+\ Measure the GPT partition table by collecting its LBA1
+\ and GPT Entries and then measuring them.
+\ This function modifies 'block' and 'seek-pos'
+
+: measure-gpt-partition ( -- )
+   s" /ibm,vtpm" find-node ?dup IF
+      get-gpt-partition 0= if drop EXIT THEN
+
+      block block-size tpm-gpt-set-lba1
+
+      block gpt>num-part-entry l@-le
+      1+ 1 ?DO
+         seek-pos 0 seek drop
+         block gpt-part-size read drop
+         block gpt-part-size tpm-gpt-add-entry
+         seek-pos gpt-part-size + to seek-pos
+      LOOP
+      s" measure-gpt" rot $call-static
+   THEN
+;
+
 : load-from-gpt-prep-partition ( addr -- size )
    get-gpt-partition 0= IF false EXIT THEN
    block gpt>num-part-entry l@-le dup 0= IF false exit THEN
@@ -465,6 +486,7 @@ CREATE GPT-LINUX-PARTITION 10 allot
 ;
 
 : try-gpt-dos-partition ( -- true|false )
+   measure-gpt-partition
    get-gpt-partition 0= IF false EXIT THEN
    block gpt>num-part-entry l@-le dup 0= IF false EXIT THEN
    1+ 1 ?DO

@@ -29,5 +29,8 @@ uint32_t tpm_driver_get_failure_reason(void);
 void tpm_driver_set_failure_reason(uint32_t errcode);
 bool tpm_is_working(void);
 void tpm20_menu(void);
+void tpm_gpt_set_lba1(const uint8_t *addr, uint32_t length);
+void tpm_gpt_add_entry(const uint8_t *addr, uint32_t length);
+uint32_t tpm_measure_gpt(void);
 
 #endif /* TCGBIOS_H */
