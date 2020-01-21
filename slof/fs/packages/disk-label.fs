@@ -338,6 +338,14 @@ CONSTANT /gpt-part-entry
    dup c@ eb = swap 2+ c@ 90 = and
 ;
 
+: measure-mbr ( addr length -- )
+   s" /ibm,vtpm" find-node ?dup IF
+      s" measure-hdd-mbr" rot $call-static
+   ELSE
+      2drop
+   THEN
+;
+
 \ NOTE: block-size is always 512 bytes for DOS partition tables.
 
 : load-from-dos-boot-partition ( addr -- size )
@@ -361,6 +369,7 @@ CONSTANT /gpt-part-entry
             block-size * to part-offset
             0 0 seek drop            ( addr offset )
             block-size * read        ( size )
+            block block-size measure-mbr
             UNLOOP EXIT
          ELSE
             2drop                    ( addr )

@@ -87,6 +87,9 @@ include fbuffer.fs
 	    2dup " qemu,spapr-nvram" strequal IF
 	    	" rtas-nvram.fs" included
 	    THEN
+	    2dup " IBM,vtpm20" strequal IF
+                " vio-vtpm-cdriver.fs" included
+	    THEN
             2drop
        THEN
        peer
