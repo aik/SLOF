@@ -23,7 +23,7 @@ TARGET = ../libtpm.a
 
 all: $(TARGET)
 
-SRCS = tpm_drivers.c
+SRCS = tpm_drivers.c sha256.c
 
 OBJS = $(SRCS:%.c=%.o)
 
