@@ -470,6 +470,20 @@ r> drop
     ELSE
 	drop
     THEN
+
+    fdt-cas-pass 0= IF
+	\ The guest might have asked to change the interrupt controller
+	\ type. It doesn't make sense to merge the new node and the
+	\ existing "interrupt-controller" node in this case. Delete the
+	\ latter. A brand new one will be created with the appropriate
+	\ properties and unit name.
+	2dup " interrupt-controller" find-substr 0= IF
+	    " interrupt-controller" find-node ?dup 0 <> IF
+		fdt-debug IF ." Deleting existing node: " dup .node cr THEN
+		delete-node
+	    THEN
+	THEN
+    THEN
     2dup find-node ?dup 0 <> IF
 	set-node
 	fdt-debug IF ." Setting node: " 2dup type cr THEN
