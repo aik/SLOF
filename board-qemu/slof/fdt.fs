@@ -112,7 +112,7 @@ fdt-check-header
 ;
 
 \ Lookup a string by index
-: fdt-fetch-string ( index -- str-addr str-len )  
+: fdt-fetch-string ( index -- str-addr str-len )
   fdt-strings + dup from-cstring
 ;
 
@@ -128,7 +128,7 @@ fdt-check-header
 ;
 
 \ Encode fdt property to OF property
-: fdt-encode-prop  ( addr len -- )
+: fdt-encode-prop  ( addr len -- pa ps )
    2dup fdt-prop-is-string? IF
       1- encode-string
    ELSE
@@ -443,37 +443,15 @@ r> drop
    device-end
 ;
 
-: fdt-create-cas-node ( name  -- )
-    2dup
-    2dup " memory@" find-substr 0 = IF
-	fdt-debug IF ." Creating memory@ " cr THEN
-	new-device
-	2dup " @" find-substr nip device-name       \ Parse the node name
-	2dup
-	2dup " @" find-substr rot over + 1 + -rot - 1 - \ Jump to addr afte "@"
-	parse-2int nip xlsplit set-unit                 \ Parse and set unit
-	finish-device
-    ELSE
-	2dup " ibm,dynamic-reconfiguration-memory" find-substr 0 = IF
-	    fdt-debug IF  ." Creating ibm,dynamic-reconfiguration-memory " cr THEN
-	    new-device
-	    device-name
-	    finish-device
-	ELSE
-	    2drop 2drop
-	    false to fdt-cas-fix?
-	    ." Node not supported " cr
-	    EXIT
-	THEN
-    THEN
-
-    find-node ?dup 0 <> IF set-node THEN
-;
-
 : str=phandle? ( s len -- true|false )
     2dup s" phandle" str= >r
     s" linux,phandle" str=
     r> or
+;
+
+: fdt-cas-finish-device ( -- )
+    " reg" get-node get-package-property IF ELSE fdt-reg-unit THEN
+    get-node finish-device set-node
 ;
 
 : (fdt-fix-cas-node) ( start -- end )
@@ -483,7 +461,7 @@ r> drop
 	false to fdt-cas-fix?
 	EXIT
     THEN drop
-    fdt-fetch-unit
+    fdt-fetch-unit		    ( a1 $name )
     dup 0 = IF drop drop " /" THEN
     40 left-parse-string
     2swap ?dup 0 <> IF
@@ -492,29 +470,52 @@ r> drop
     ELSE
 	drop
     THEN
-    fdt-debug IF ." Setting node: " 2dup type cr THEN
     2dup find-node ?dup 0 <> IF
-	set-node 2drop
+	set-node
+	fdt-debug IF ." Setting node: " 2dup type cr THEN
+	2drop
+	\ newnode?=0: updating the existing node, i.e. pass1 adds only phandles
+	0
     ELSE
+	fdt-cas-pass 0 <> IF
+	    \ We could not find the node added in the previous pass,
+	    \ most likely because it is hotplug-under-hotplug case
+	    \ (such as PCI brigde under bridge) when missing new node methods
+	    \ such as "decode-unit" are critical.
+	    \ Reboot when detect such case which is expected as it is a part of
+	    \ ibm,client-architecture-support.
+	    ." Cannot handle FDT update for the " 2dup type
+	    ."  node, rebooting" cr
+	    reset-all
+	THEN
 	fdt-debug IF ." Creating node: " 2dup type cr THEN
-	fdt-create-cas-node
+	new-device
+	2dup " @" find-substr nip
+	device-name
+	\ newnode?=1: adding new node, i.e. pass1 adds all properties,
+	\ most importantly "reg". After reading properties, we call
+	\ "fdt-cas-finish-device" which sets the unit address from "reg".
+	1
     THEN
-    fdt-debug IF ." Current  now: " pwd cr THEN
+    swap			( newnode? a1 )
+
+    fdt-debug IF ." Current  now: " pwd  get-node ."  = " . cr THEN
     BEGIN
 	fdt-next-tag dup OF_DT_END_NODE <>
     WHILE
+				( newnode? a1 tag )
 	dup OF_DT_PROP = IF
-	    drop dup		( drop tag, dup addr     : a1 a1 )
-	    dup l@ dup rot 4 +	( fetch size, stack is   : a1 s s a2)
-	    dup l@ swap 4 +	( fetch nameid, stack is : a1 s s i a3 )
-	    rot			( we now have: a1 s i a3 s )
-	    fdt-encode-prop rot	( a1 s pa ps i)
-	    fdt-fetch-string		( a1 s pa ps na ns )
+	    drop dup		( newnode? a1 a1 )
+	    dup l@ dup rot 4 +	( newnode? a1 s s a2)
+	    dup l@ swap 4 +	( newnode? a1 s s i a3 )
+	    rot			( newnode? a1 s i a3 s )
+	    fdt-encode-prop rot	( newnode? a1 s pa ps i)
+	    fdt-fetch-string	( newnode? a1 s pa ps na ns )
 
 	    fdt-cas-pass CASE
 	    0 OF
-		2dup str=phandle? IF
-		    fdt-debug IF 4dup ."   Phandle: " type ." =" swap ." @" . ."  " .d ."  bytes" cr THEN
+		2dup str=phandle? 7 pick or IF
+		    fdt-debug IF 4dup ."   Property: " type ." =" swap ." @" . ."  " .d ."  bytes" cr THEN
 		    property
 		ELSE
 		    4drop
@@ -541,8 +542,14 @@ r> drop
 	    ENDCASE
 
 	    + 8 + 3 + fffffffc and
-	ELSE dup OF_DT_BEGIN_NODE = IF
-		drop			( drop tag )
+	ELSE		( newnode? a1 tag )
+	    dup OF_DT_BEGIN_NODE = IF
+		2 pick IF
+		    rot drop 0 -rot
+		    fdt-cas-finish-device
+		    fdt-debug IF ." Finished node: " pwd  get-node ."  = " . cr THEN
+		THEN
+		drop			( a1 )
 		4 -
 		(fdt-fix-cas-node)
 		get-parent set-node
@@ -554,13 +561,19 @@ r> drop
 	    THEN
 	THEN
     REPEAT
-    drop \ drop tag
+			( newnode? a1 tag )
+    drop
+    swap		( a1 newnode? )
+    IF
+	fdt-cas-finish-device
+	fdt-debug IF ." Finished subnode: " pwd  get-node ."  = " . cr THEN
+    THEN
 ;
 
 : fdt-fix-cas-node ( start -- )
     0 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Add phandles
     1 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Patch+add other properties
-    2 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Delete phandles from pass 1
+    2 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Delete phandles from pass 0
     drop
 ;
 
