@@ -13,6 +13,11 @@
 0 VALUE fdt-debug
 TRUE VALUE fdt-cas-fix?
 0 VALUE fdt-cas-pass
+0 VALUE fdt-generation#
+
+: fdt-update-from-fdt ( -- )
+  fdt-generation# encode-int s" slof,from-fdt" property
+;
 
 \ Bail out if no fdt
 fdt-start 0 = IF -1 throw THEN
@@ -197,6 +202,8 @@ fdt-check-header
   " #address-cells" get-node get-package-property IF ELSE
     decode-int dup fdt-create-dec fdt-create-enc 2drop
   THEN
+
+  fdt-update-from-fdt
 
   finish-device  
 ;
@@ -514,6 +521,9 @@ r> drop
     swap			( newnode? a1 )
 
     fdt-debug IF ." Current  now: " pwd  get-node ."  = " . cr THEN
+    fdt-cas-pass 0= IF
+	fdt-update-from-fdt
+    THEN
     BEGIN
 	fdt-next-tag dup OF_DT_END_NODE <>
     WHILE
@@ -584,8 +594,70 @@ r> drop
     THEN
 ;
 
+: alias-dev-path ( xt -- dev-path len )
+    link> execute decode-string	2swap 2drop
+;
+
+: alias-name ( xt -- alias-name len )
+    link> >name name>string
+;
+
+: fdt-cas-alias-obsolete? ( xt -- true|false )
+    alias-dev-path find-node 0=
+;
+
+: (fdt-cas-delete-obsolete-aliases) ( xt -- )
+    dup IF
+	dup @
+	recurse
+	dup alias-name s" name" str= IF ELSE
+	    dup fdt-cas-alias-obsolete? IF
+		fdt-debug IF ." Deleting obsolete alias: " dup alias-name type ."  -> " dup alias-dev-path type cr THEN
+		dup alias-name
+		delete-property
+	    THEN
+	THEN
+    THEN
+    drop
+;
+
+: fdt-cas-delete-obsolete-aliases ( -- )
+    s" /aliases" find-device
+    get-node node>properties @ cell+ @ (fdt-cas-delete-obsolete-aliases)
+    device-end
+;
+
+: fdt-cas-node-obsolete? ( node -- true|false)
+    s" slof,from-fdt" rot get-package-property IF
+	\ Not a QEMU originated node
+	false
+    ELSE
+	decode-int nip nip fdt-generation# <
+    THEN
+;
+
+: (fdt-cas-search-obsolete-nodes) ( start node -- )
+    dup IF
+	dup child 2 pick swap recurse
+	dup peer 2 pick swap recurse
+
+	dup fdt-cas-node-obsolete? IF
+	    fdt-debug IF dup ." Deleting obsolete node: " dup .node ." = " . cr THEN
+	    dup delete-node
+	THEN
+    THEN
+    2drop
+;
+
+: fdt-cas-delete-obsolete-nodes ( start -- )
+    s" /" find-device get-node (fdt-cas-search-obsolete-nodes)
+    fdt-cas-delete-obsolete-aliases
+;
+
 : fdt-fix-cas-node ( start -- )
+    fdt-generation# 1+ to fdt-generation#
     0 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Add phandles
+    dup fdt-cas-delete-obsolete-nodes             \ Delete removed devices
     1 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Patch+add other properties
     2 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Delete phandles from pass 0
     drop
