@@ -81,7 +81,7 @@ int virtio_serial_init(struct virtio_device *dev)
 	last_rx_idx = virtio_modern16_to_cpu(dev, vq_rx->used->idx);
 
 	vq_tx = virtio_queue_init_vq(dev, TX_Q);
-	if (vq_tx)
+	if (!vq_tx)
 		goto dev_error;
 
 
