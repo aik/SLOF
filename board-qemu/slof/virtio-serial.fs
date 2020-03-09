@@ -39,9 +39,6 @@ virtio-setup-vd VALUE virtiodev
 : init  ( -- )
 virtiodev virtio-serial-init drop
     TRUE to initialized?
-    ['] virtio-serial-term-emit to emit
-    ['] virtio-serial-term-key  to key
-    ['] virtio-serial-term-key? to key?
     ['] shutdown add-quiesce-xt
 ;
 
