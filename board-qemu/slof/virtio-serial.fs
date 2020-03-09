@@ -21,6 +21,7 @@ virtio-setup-vd VALUE virtiodev
 : shutdown  ( -- )
     virtiodev virtio-serial-shutdown
     FALSE to initialized?
+    0 to virtiodev
 ;
 
 : virtio-serial-term-emit
@@ -58,6 +59,7 @@ virtiodev virtio-serial-init drop
 ;
 
 : write ( addr len -- actual )
+    virtiodev 0= IF nip EXIT THEN
     tuck
     0 ?DO
         dup c@ virtiodev SWAP virtio-serial-putchar
@@ -68,6 +70,7 @@ virtiodev virtio-serial-init drop
 
 : read ( addr len -- actual )
     0= IF drop 0 EXIT THEN
+    virtiodev 0= IF nip EXIT THEN
     virtiodev virtio-serial-haschar 0= IF 0 swap c! -2 EXIT THEN
     virtiodev virtio-serial-getchar swap c! 1
 ;

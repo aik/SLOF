@@ -102,6 +102,10 @@ void virtio_serial_shutdown(struct virtio_device *dev)
 	/* Quiesce device */
 	virtio_set_status(dev, VIRTIO_STAT_FAILED);
 
+	/* Stop queues */
+	virtio_queue_term_vq(dev, &dev->vq[TX_Q], TX_Q);
+	virtio_queue_term_vq(dev, &dev->vq[RX_Q], RX_Q);
+
 	/* Reset device */
 	virtio_reset_device(dev);
 }
@@ -113,6 +117,9 @@ int virtio_serial_putchar(struct virtio_device *dev, char c)
 	volatile uint16_t *current_used_idx;
 	uint16_t last_used_idx, avail_idx;
 	struct vqs *vq = &dev->vq[TX_Q];
+
+	if (!vq->desc)
+		return 0;
 
 	avail_idx = virtio_modern16_to_cpu(dev, vq->avail->idx);
 
