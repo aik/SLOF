@@ -19,13 +19,8 @@ virtio-setup-vd VALUE virtiodev
 \ Quiescence the virtqueue of this device so that no more background
 \ transactions can be pending.
 : shutdown  ( -- )
-    initialized? IF
-        my-phandle node>path open-dev ?dup IF
-            virtiodev virtio-serial-shutdown
-            close-dev
-        THEN
-        FALSE to initialized?
-    THEN
+    virtiodev virtio-serial-shutdown
+    FALSE to initialized?
 ;
 
 : virtio-serial-term-emit
@@ -39,7 +34,6 @@ virtio-setup-vd VALUE virtiodev
 : init  ( -- )
 virtiodev virtio-serial-init drop
     TRUE to initialized?
-    ['] shutdown add-quiesce-xt
 ;
 
 0 VALUE open-count
@@ -58,7 +52,7 @@ virtiodev virtio-serial-init drop
 : close
     open-count 0> IF
         open-count 1 - dup to open-count
-        0= IF close THEN
+        0= IF shutdown THEN
     THEN
     close
 ;

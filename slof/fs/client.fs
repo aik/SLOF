@@ -203,6 +203,11 @@ ALSO client-voc DEFINITIONS
 	    \ End of life of SLOF now, call platform quiesce as quiesce
 	    \ is an undocumented extension and not everybody supports it
 	    close-dev
+	    \ Some device, eg. virtio-serial, need all instances to be
+	    \ closed in order to be reset properly
+	    s" stdout" get-chosen IF
+		decode-int nip nip close-dev
+	    THEN
 	    quiesce
 	ELSE
 	    close-dev
