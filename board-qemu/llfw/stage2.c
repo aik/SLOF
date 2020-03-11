@@ -165,7 +165,7 @@ void early_c_entry(uint64_t start_addr, uint64_t fdt_addr)
 	DEBUG("  [ofw_main addr data 0x%lx]\n", fileInfo.addr_data);
 	DEBUG("  [ofw_main size data 0x%lx]\n", fileInfo.size_data);
 	DEBUG("  [ofw_main flags     0x%lx]\n", fileInfo.flags);
-	DEBUG("  [hdr: 0x%08lx 0x%08lx]\n  [     0x%08lx 0x%08lx]\n",
+	DEBUG("  [hdr: 0x%08llx 0x%08llx]\n  [     0x%08llx 0x%08llx]\n",
 	       ((uint64_t *)fileInfo.addr_header)[0],
 	       ((uint64_t *)fileInfo.addr_header)[1],
 	       ((uint64_t *)fileInfo.addr_header)[2],
