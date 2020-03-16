@@ -153,7 +153,14 @@ rtas-node set-node
 ;
 
 hv-rtas-get
-dup encode-int s" rtas-size" s" /rtas" find-node set-property
+s" rtas-size" rtas-node get-property
+IF
+    dup encode-int s" rtas-size" rtas-node set-property
+ELSE
+    decode-int nip nip
+    over 2dup < IF ." No enough space for RTAS: " . . cr abort THEN
+    2drop
+THEN
 to rtas-size
 to rtas-base
 
