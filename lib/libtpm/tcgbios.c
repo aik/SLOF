@@ -646,7 +646,7 @@ static int tpm20_write_EfiSpecIdEventStruct(void)
 	struct tpms_pcr_selection *sel;
 	void *nsel, *end;
 	int event_size;
-	uint32_t *vendorInfoSize;
+	uint8_t *vendorInfoSize;
 	struct tpm_log_entry le = {
 		.hdr.eventtype = cpu_to_log32(EV_NO_ACTION),
 	};
@@ -681,7 +681,7 @@ static int tpm20_write_EfiSpecIdEventStruct(void)
 
 		event_size = offset_of(struct TCG_EfiSpecIdEventStruct,
 				       digestSizes[count+1]);
-		if (event_size > sizeof(event) - sizeof(uint32_t)) {
+		if (event_size > sizeof(event) - sizeof(uint8_t)) {
 			dprintf("EfiSpecIdEventStruct pad too small\n");
 			return -1;
 		}
