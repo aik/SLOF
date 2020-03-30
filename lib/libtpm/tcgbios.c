@@ -68,6 +68,9 @@ static struct {
 #define TPM2_ALG_SHA384_FLAG        (1 << 2)
 #define TPM2_ALG_SHA512_FLAG        (1 << 3)
 #define TPM2_ALG_SM3_256_FLAG       (1 << 4)
+#define TPM2_ALG_SHA3_256_FLAG      (1 << 5)
+#define TPM2_ALG_SHA3_384_FLAG      (1 << 6)
+#define TPM2_ALG_SHA3_512_FLAG      (1 << 7)
 
 static const uint8_t ZeroGuid[16] = { 0 };
 
@@ -114,9 +117,10 @@ static void probe_tpm(void)
 struct tpm_log_entry {
 	TCG_PCR_EVENT2_Header hdr;
 	uint8_t pad[sizeof(struct TPML_DIGEST_VALUES)
-	   + 5 * sizeof(struct TPMT_HA)
+	   + 8 * sizeof(struct TPMT_HA)
 	   + SHA1_BUFSIZE + SHA256_BUFSIZE + SHA384_BUFSIZE
-	   + SHA512_BUFSIZE + SM3_256_BUFSIZE];
+	   + SHA512_BUFSIZE + SM3_256_BUFSIZE + SHA3_256_BUFSIZE
+	   + SHA3_384_BUFSIZE + SHA3_512_BUFSIZE];
 } __attribute__((packed));
 
 static const struct hash_parameters {
@@ -151,6 +155,21 @@ static const struct hash_parameters {
 		.hashalg_flag = TPM2_ALG_SM3_256_FLAG,
 		.hash_buffersize = SM3_256_BUFSIZE,
 		.name = "SM3-256",
+	}, {
+		.hashalg = TPM2_ALG_SHA3_256,
+		.hashalg_flag = TPM2_ALG_SHA3_256_FLAG,
+		.hash_buffersize = SHA3_256_BUFSIZE,
+		.name = "SHA3-256",
+	}, {
+		.hashalg = TPM2_ALG_SHA3_384,
+		.hashalg_flag = TPM2_ALG_SHA3_384_FLAG,
+		.hash_buffersize = SHA3_384_BUFSIZE,
+		.name = "SHA3-384",
+	}, {
+		.hashalg = TPM2_ALG_SHA3_512,
+		.hashalg_flag = TPM2_ALG_SHA3_512_FLAG,
+		.hash_buffersize = SHA3_512_BUFSIZE,
+		.name = "SHA3-512",
 	}
 };
 
@@ -634,7 +653,8 @@ static int tpm20_write_EfiSpecIdEventStruct(void)
 {
 	struct {
 		struct TCG_EfiSpecIdEventStruct hdr;
-		uint32_t pad[256];
+		uint32_t pad[sizeof(struct tpm_log_entry) +
+		             sizeof(uint8_t)];
 	} event = {
 		.hdr.signature = "Spec ID Event03",
 		.hdr.platformClass = TPM_TCPA_ACPI_CLASS_CLIENT,

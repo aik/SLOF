@@ -50,6 +50,9 @@
 #define SHA384_BUFSIZE                  48
 #define SHA512_BUFSIZE                  64
 #define SM3_256_BUFSIZE                 32
+#define SHA3_256_BUFSIZE		32
+#define SHA3_384_BUFSIZE		48
+#define SHA3_512_BUFSIZE		64
 
 /*
  * Logging for TPM 2 is specified in TCG spec "TCG PC Client Platform
@@ -169,6 +172,9 @@ struct tpm_rsp_header {
 #define TPM2_ALG_SHA384             0x000c
 #define TPM2_ALG_SHA512             0x000d
 #define TPM2_ALG_SM3_256            0x0012
+#define TPM2_ALG_SHA3_256           0x0027
+#define TPM2_ALG_SHA3_384           0x0028
+#define TPM2_ALG_SHA3_512           0x0029
 
 /* TPM 2 command tags */
 #define TPM2_ST_NO_SESSIONS         0x8001
