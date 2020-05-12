@@ -452,6 +452,20 @@ CREATE GPT-LINUX-PARTITION 10 allot
    THEN
 ;
 
+\ Measure the boot loader file into PCR 4 as event type EV_COMPACT_HASH (0xc)
+
+: measure-bootloader ( data-ptr data-len -- )
+   s" /ibm,vtpm" find-node IF
+      4 -rot                    ( 4 data-ptr data-len )
+      c -rot                    ( 4 c data-ptr data-len )
+      s" BOOTLOADER"            ( 4 c data-ptr data-len desc-ptr desc-len )
+      true tpm-hash-log-extend-event-buffer   ( errcode )
+      drop
+   ELSE
+      2drop
+   THEN
+;
+
 : load-from-gpt-prep-partition ( addr -- size )
    get-gpt-partition 0= IF false EXIT THEN
    block gpt>num-part-entry l@-le dup 0= IF false exit THEN
@@ -465,7 +479,10 @@ CREATE GPT-LINUX-PARTITION 10 allot
          swap                                 ( addr blocks first-lba )
          block-size * to part-offset          ( addr blocks )
          0 0 seek drop                        ( addr blocks )
-         block-size * read                    ( size )
+         over swap                            ( addr addr blocks)
+         block-size * read                    ( addr size )
+         2dup measure-bootloader              ( addr size )
+         nip                                  ( size)
          UNLOOP EXIT
      THEN
      seek-pos gpt-part-size + to seek-pos
