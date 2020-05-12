@@ -169,3 +169,22 @@ PRIM(tpm_X2d_measure_X2d_gpt)
 	PUSH;
 	TOS.n = tpm_measure_gpt();
 MIRP
+
+/***********************************************************************************************************/
+/* Firmware API                                                                                            */
+/* SLOF:   tpm-hash-log-extend-event-buffer ( pcr evt data-ptr data-len desc-ptr desclen is_elf -- errcode ) */
+/* LIBTPM: errcode = tpm-hash-log-extend-event-buffer                                                        */
+/***********************************************************************************************************/
+PRIM(tpm_X2d_hash_X2d_log_X2d_extend_X2d_event_X2d_buffer)
+	uint32_t is_elf  = TOS.u; POP;
+	uint32_t desclen = TOS.u; POP;
+	const char *desc = TOS.a; POP;
+	uint64_t datalen = TOS.u; POP;
+	const void *data = TOS.a; POP;
+	uint32_t eventtype = TOS.u; POP;
+	uint32_t pcrindex = TOS.u;
+
+	TOS.n = tpm_hash_log_extend_event_buffer(pcrindex, eventtype,
+					         data, datalen,
+					         desc, desclen, is_elf);
+MIRP

@@ -33,6 +33,7 @@
 #include "helpers.h"
 #include "version.h"
 #include "OF.h"
+#include "libelf.h"
 
 #undef TCGBIOS_DEBUG
 //#define TCGBIOS_DEBUG
@@ -885,6 +886,49 @@ static uint32_t tpm_add_measurement_to_log(uint32_t pcrindex,
 	}
 	tpm20_build_digest(&le, hash, false);
 	return tpm_log_event_long(&le.hdr, digest_len, info, infolen);
+}
+
+/*
+ * Measure the contents of a buffer into the given PCR and log it with the
+ * given eventtype. If is_elf is true, try to determine the size of the
+ * ELF file in the buffer and use its size rather than the much larger data
+ * buffer it is held in. In case of failure to detect the ELF file size,
+ * log an error.
+ *
+ * Input parameters:
+ *  @pcrindex : PCR to extend
+ *  @eventtype : type of event
+ *  @data: the buffer to measure
+ *  @datalen: length of the buffer
+ *  @desc: The description to log
+ *  @desclen: The length of the description
+ *  @is_elf: Whether data buffer holds an ELF file and we should determine
+ *           the original file size.
+ *
+ *  Returns 0 on success, an error code otherwise.
+ */
+uint32_t tpm_hash_log_extend_event_buffer(uint32_t pcrindex, uint32_t eventtype,
+					  const void *data, uint64_t datalen,
+					  const char *desc, uint32_t desclen,
+					  bool is_elf)
+{
+	long len;
+	char buf[256];
+
+	if (is_elf) {
+		len = elf_get_file_size(data, datalen);
+		if (len > 0) {
+			datalen = len;
+		} else {
+			snprintf(buf, sizeof(buf), "BAD ELF FILE: %s", desc);
+			return tpm_add_measurement_to_log(pcrindex, eventtype,
+					  buf, strlen(buf),
+					  (uint8_t *)buf, strlen(buf));
+		}
+	}
+	return tpm_add_measurement_to_log(pcrindex, eventtype,
+					  desc, desclen,
+					  data, datalen);
 }
 
 /*
