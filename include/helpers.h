@@ -51,5 +51,7 @@ extern unsigned long SLOF_get_vtpm_unit(void);
 			const typeof(((type *)0)->member)* struct_ptr = (ptr); \
 			(type *)((char *)struct_ptr - offset_of(type, member)); })
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define ROUNDUP(x,v) ((((x) + ((v) - 1)) / (v)) * (v))
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 #endif

@@ -96,4 +96,18 @@ void elf_relocate64(void *file_addr, signed long offset);
 
 int elf_forth_claim(void *addr, long size);
 
+long elf_get_file_size(const void *buffer, const long buffer_size);
+long elf_get_file_size32(const void *buffer, const long buffer_size);
+long elf_get_file_size64(const void *buffer, const long buffer_size);
+
+#ifdef __BIG_ENDIAN__
+#define elf64_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2MSB ? (x) : bswap_64(x))
+#define elf32_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2MSB ? (x) : bswap_32(x))
+#define elf16_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2MSB ? (x) : bswap_16(x))
+#else
+#define elf64_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2LSB ? (x) : bswap_64(x))
+#define elf32_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2LSB ? (x) : bswap_32(x))
+#define elf16_to_cpu(x, ehdr) ((ehdr)->ei_data == ELFDATA2LSB ? (x) : bswap_16(x))
+#endif
+
 #endif				/* __LIBELF_H */

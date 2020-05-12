@@ -196,3 +196,29 @@ elf_get_base_addr(void *file_addr)
 
 	return -1;
 }
+
+/**
+ * Get the file size of the ELF image that has been loaded into a
+ * buffer larger than the size of the file
+ * @return  The size of the ELF image or < 0 for error
+ */
+long elf_get_file_size(const void *buffer, const long buffer_size)
+{
+	const struct ehdr *ehdr = (const struct ehdr *)buffer;
+
+	if (buffer_size < sizeof(struct ehdr))
+		return -1;
+
+	/* check if it is an ELF image at all */
+	if (cpu_to_be32(ehdr->ei_ident) != 0x7f454c46)
+		return -1;
+
+	switch (ehdr->ei_class) {
+	case 1:
+		return elf_get_file_size32(buffer, buffer_size);
+	case 2:
+		return elf_get_file_size64(buffer, buffer_size);
+	}
+
+	return -1;
+}

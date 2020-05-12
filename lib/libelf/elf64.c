@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <libelf.h>
 #include <byteorder.h>
+#include <helpers.h>
 
 struct ehdr64
 {
@@ -471,4 +472,60 @@ uint32_t elf_get_eflags_64(void *file_addr)
 	struct ehdr64 *ehdr = (struct ehdr64 *) file_addr;
 
 	return ehdr->e_flags;
+}
+
+/*
+ * Determine the size of an ELF image that has been loaded into
+ * a buffer larger than its size. We search all program headers
+ * and sections for the one that shows the farthest extent of the
+ * file.
+ * @return Return -1 on error, size of file otherwise.
+ */
+long elf_get_file_size64(const void *buffer, const long buffer_size)
+{
+	const struct ehdr64 *ehdr = (const struct ehdr64 *) buffer;
+	const uint8_t *buffer_end = buffer + buffer_size;
+	const struct phdr64 *phdr;
+	const struct shdr64 *shdr;
+	long elf_size = -1;
+	uint16_t entsize;
+	unsigned i;
+
+	if (buffer_size < sizeof(struct ehdr) ||
+	    ehdr->e_ehsize != sizeof(struct ehdr64))
+		return -1;
+
+	phdr = buffer + elf64_to_cpu(ehdr->e_phoff, ehdr);
+	entsize = elf16_to_cpu(ehdr->e_phentsize, ehdr);
+	for (i = 0; i < elf16_to_cpu(ehdr->e_phnum, ehdr); i++) {
+		if (((uint8_t *)phdr) + entsize > buffer_end)
+			return -1;
+
+		elf_size = MAX(elf64_to_cpu(phdr->p_offset, ehdr) +
+			         elf64_to_cpu(phdr->p_filesz, ehdr),
+			       elf_size);
+
+		/* step to next header */
+		phdr = (struct phdr64 *)(((uint8_t *)phdr) + entsize);
+	}
+
+	shdr = buffer + elf64_to_cpu(ehdr->e_shoff, ehdr);
+	entsize = elf16_to_cpu(ehdr->e_shentsize, ehdr);
+	for (i = 0; i < elf16_to_cpu(ehdr->e_shnum, ehdr); i++) {
+		if (((uint8_t *)shdr) + entsize > buffer_end)
+			return -1;
+
+		elf_size = MAX(elf64_to_cpu(shdr->sh_offset, ehdr) +
+		                 elf64_to_cpu(shdr->sh_size, ehdr),
+		               elf_size);
+
+		/* step to next header */
+		shdr = (struct shdr64 *)(((uint8_t *)shdr) + entsize);
+	}
+
+	elf_size = ROUNDUP(elf_size, 4);
+	if (elf_size > buffer_size)
+		return -1;
+
+	return elf_size;
 }
