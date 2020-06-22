@@ -22,7 +22,7 @@
 	 *
 	 * __start loaded at 0x100
 	 *
-	 * CPU 0 starts at 0 with GPR3 pointing to the flat devtree
+	 * CPU 0 starts at 0x100 with GPR3 pointing to the flat devtree
 	 *
 	 * All other CPUs are held in stopped state by qemu and are
 	 * started via RTAS
