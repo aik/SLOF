@@ -636,20 +636,23 @@ r> drop
     THEN
 ;
 
-: (fdt-cas-search-obsolete-nodes) ( start node -- )
-    dup IF
-	dup child 2 pick swap recurse
-	dup peer 2 pick swap recurse
-
-	dup fdt-cas-node-obsolete? IF
-	    fdt-debug IF dup ." Deleting obsolete node: " dup .node ." = " . cr THEN
-	    dup delete-node
-	THEN
+: (fdt-cas-search-obsolete-nodes) ( node -- )
+    dup child
+    BEGIN
+	dup
+    WHILE
+	dup recurse
+	peer
+    REPEAT
+    drop
+    dup fdt-cas-node-obsolete? IF
+        fdt-debug IF dup ." Deleting obsolete node: " dup .node ." = " . cr THEN
+        dup delete-node
     THEN
-    2drop
+    drop
 ;
 
-: fdt-cas-delete-obsolete-nodes ( start -- )
+: fdt-cas-delete-obsolete-nodes ( -- )
     s" /" find-device get-node (fdt-cas-search-obsolete-nodes)
     fdt-cas-delete-obsolete-aliases
 ;
@@ -657,7 +660,7 @@ r> drop
 : fdt-fix-cas-node ( start -- )
     fdt-generation# 1+ to fdt-generation#
     0 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Add phandles
-    dup fdt-cas-delete-obsolete-nodes             \ Delete removed devices
+    fdt-cas-delete-obsolete-nodes                 \ Delete removed devices
     1 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Patch+add other properties
     2 to fdt-cas-pass dup (fdt-fix-cas-node) drop \ Delete phandles from pass 0
     drop
