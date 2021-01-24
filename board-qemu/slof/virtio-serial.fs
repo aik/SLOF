@@ -90,7 +90,3 @@ virtiodev virtio-serial-init drop
 ;
 setup-alias
 
-\ Override serial methods to make term-io.fs happy
-: serial-emit virtio-serial-term-emit ;
-: serial-key? virtio-serial-term-key? ;
-: serial-key  virtio-serial-term-key  ;
