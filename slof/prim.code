@@ -469,18 +469,21 @@ code_FILL:
 #endif
 				while ((size-=sizeof(type_u)) >= 0)
 					*up++ = fill_v;
+				break;
 			}
 			case sizeof(type_l): {
 				type_l *lp = (type_l *)d;
 
 				while ((size-=sizeof(type_l)) >= 0)
 					*lp++ = (type_l)fill_v;
+				break;
 			}
 			case sizeof(type_w): {
 				type_w *wp = (type_w *)d;
 
 				while ((size-=sizeof(type_w)) >= 0)
 					*wp++ = (type_w)fill_v;
+				break;
 			}
 			default:
 				while (size-- > 0)
