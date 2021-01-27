@@ -25,14 +25,14 @@ static int
 print_str_fill(char **buffer, size_t bufsize, char *sizec,
 					const char *str, char c)
 {
-	int i, sizei, len;
+	unsigned i, sizei, len;
 	char *bstart = *buffer;
 
 	sizei = strtoul(sizec, NULL, 10);
 	len = strlen(str);
 	if (sizei > len) {
 		for (i = 0;
-			(i < (sizei - len)) && ((*buffer - bstart) < bufsize);
+			(i < (sizei - len)) && ((size_t)(*buffer - bstart) < bufsize);
 									i++) {
 			**buffer = c;
 			*buffer += 1;
@@ -47,7 +47,7 @@ print_str(char **buffer, size_t bufsize, const char *str)
 	char *bstart = *buffer;
 	size_t i;
 
-	for (i = 0; (i < strlen(str)) && ((*buffer - bstart) < bufsize); i++) {
+	for (i = 0; (i < strlen(str)) && ((size_t)(*buffer - bstart) < bufsize); i++) {
 		**buffer = str[i];
 		*buffer += 1;
 	}
@@ -112,7 +112,7 @@ print_fill(char **buffer, size_t bufsize, char *sizec, unsigned long size,
  	len = print_intlen(size, base) + optlen;
 	if (sizei > len) {
 		for (i = 0;
-			(i < (sizei - len)) && ((*buffer - bstart) < bufsize);
+			(i < (sizei - len)) && ((size_t)(*buffer - bstart) < bufsize);
 									i++) {
 			**buffer = c;
 			*buffer += 1;
@@ -143,7 +143,7 @@ print_format(char **buffer, size_t bufsize, const char *format, void *var)
 		form++;
 	}
 
-	while ((*form != '\0') && ((*buffer - start) < bufsize)) {
+	while ((*form != '\0') && ((size_t)(*buffer - start) < bufsize)) {
 		switch(*form) {
 			case 'u':
 			case 'd':
@@ -163,6 +163,7 @@ print_format(char **buffer, size_t bufsize, const char *format, void *var)
 				break;
 			case 'X':
 				upper = true;
+				/* fallthrough */
 			case 'x':
 				sizec[i] = '\0';
 				value = (unsigned long) var & convert[length_mod];
@@ -260,7 +261,7 @@ vsnprintf(char *buffer, size_t bufsize, const char *format, va_list arg)
 	/* Leave one space for NULL character */
 	bufsize--;
 
-	while(*ptr != '\0' && (buffer - bstart) < bufsize)
+	while(*ptr != '\0' && (size_t)(buffer - bstart) < bufsize)
 	{
 		if(*ptr == '%') {
 			char formstr[20];

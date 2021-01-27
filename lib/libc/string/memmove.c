@@ -18,7 +18,7 @@ memmove(void *dest, const void *src, size_t n)
 {
 	char *cdest;
 	const char *csrc;
-	int i;
+	size_t i;
 
 	/* Do the buffers overlap in a bad way? */
 	if (src < dest && src + n >= dest) {
