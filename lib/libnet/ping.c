@@ -106,7 +106,7 @@ parse_args(const char *args, struct ping_args *ping_args)
 	return 0;
 }
 
-int ping(char *args_fs, int alen)
+int ping(char *args_fs, unsigned alen)
 {
 	short arp_failed = 0;
 	filename_ip_t fn_ip;
@@ -119,7 +119,7 @@ int ping(char *args_fs, int alen)
 
 	memset(&ping_args, 0, sizeof(struct ping_args));
 
-	if (alen <= 0 || alen >= sizeof(args) - 1) {
+	if (alen == 0 || alen >= sizeof(args) - 1) {
 		usage();
 		return -1;
 	}
@@ -137,7 +137,7 @@ int ping(char *args_fs, int alen)
 
 	/* Get mac_addr from device */
 	printf("\n  Reading MAC address from device: ");
-	fd_device = socket(0, 0, 0, (char *) own_mac);
+	fd_device = socket(AF_INET, SOCK_DGRAM, 0, (char *) own_mac);
 	if (fd_device == -1) {
 		printf("\nE3000: Could not read MAC address\n");
 		return -100;

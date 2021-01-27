@@ -55,7 +55,8 @@ static int pxelinux_tftp_load(filename_ip_t *fnip, void *buffer, int len,
 static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uuid,
                              int retries, char *cfgbuf, int cfgbufsize)
 {
-	int rc, idx;
+	int rc;
+	unsigned idx;
 	char *baseptr;
 
 	/* Did we get a usable base directory via DHCP? */
@@ -77,7 +78,7 @@ static int pxelinux_load_cfg(filename_ip_t *fn_ip, uint8_t *mac, const char *uui
 			++baseptr;
 		/* Check that we've got enough space to store "pxelinux.cfg/"
 		 * and the UUID (which is the longest file name) there */
-		if (baseptr - fn_ip->filename > sizeof(fn_ip->filename) - 50) {
+		if ((size_t)(baseptr - fn_ip->filename) > (sizeof(fn_ip->filename) - 50)) {
 			puts("Error: The bootfile string is too long for "
 			     "deriving the pxelinux.cfg file name from it.");
 			return -1;
