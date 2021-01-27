@@ -22,7 +22,7 @@
 #ifdef XHCI_DEBUG
 #define dprintf(_x ...) do { printf("%s: ", __func__); printf(_x); } while (0)
 #else
-#define dprintf(_x ...)
+#define dprintf(_x ...) do {} while (0)
 #endif
 
 struct port_state ps_array_usb2[] = {
@@ -42,9 +42,9 @@ struct port_state ps_array_usb3[] = {
 	{1, 1, 1, 0, PORTSC_PLS_U0,       "****** Enabled ******"},
 };
 
+#ifdef XHCI_DEBUG
 static void dump_xhci_regs(struct xhci_hcd *xhcd)
 {
-#ifdef XHCI_DEBUG
 	struct xhci_cap_regs *cap;
 	struct xhci_op_regs *op;
 	struct xhci_run_regs *run;
@@ -75,12 +75,10 @@ static void dump_xhci_regs(struct xhci_hcd *xhcd)
 
 	dprintf(" - MFINDEX             %08X\n", read_reg32(&run->mfindex));
 	dprintf("\n");
-#endif
 }
 
 static void print_port_status(struct xhci_port_regs *prs)
 {
-#ifdef XHCI_DEBUG
 	uint32_t portsc;
 	uint32_t CCS, PED, PP, PLS, i, PR = 0;
 
@@ -152,9 +150,12 @@ static void print_port_status(struct xhci_port_regs *prs)
 			}
 		}
 	}
-#endif
-
 }
+
+#else
+#define dump_xhci_regs(r) do {} while (0)
+#define print_port_status(prs) do {} while (0)
+#endif
 
 static inline bool xhci_is_hc_ready(uint32_t *usbsts)
 {
@@ -1157,7 +1158,7 @@ static inline struct xhci_seg *xhci_pipe_get_seg(struct usb_pipe *pipe)
 static inline void *xhci_get_trb(struct xhci_seg *seg)
 {
 	uint64_t val, enq;
-	int index;
+	unsigned index;
 	struct xhci_link_trb *link;
 
 	enq = val = seg->enq;
@@ -1185,7 +1186,7 @@ static inline void *xhci_get_trb(struct xhci_seg *seg)
 static inline void *xhci_get_trb_deq(struct xhci_seg *seg)
 {
 	uint64_t deq_next, deq;
-	int index;
+	unsigned index;
 
 	deq = seg->deq;
 	deq_next = deq + XHCI_TRB_SIZE;

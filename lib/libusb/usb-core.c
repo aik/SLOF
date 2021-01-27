@@ -18,7 +18,7 @@
 #ifdef DEBUG
 #define dprintf(_x ...) do { printf(_x); } while(0)
 #else
-#define dprintf(_x ...)
+#define dprintf(_x ...) do {} while (0)
 #endif
 
 #define __unused __attribute__((unused))
@@ -386,7 +386,7 @@ int usb_hid_exit(void *vdev)
 int usb_msc_init(void *vdev)
 {
 	struct usb_dev *dev;
-	int i;
+	unsigned i;
 
 	dev = (struct usb_dev *) vdev;
 	dprintf("%s: enter %x\n", __func__, dev->class);

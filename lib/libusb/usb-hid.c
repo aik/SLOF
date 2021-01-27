@@ -390,7 +390,7 @@ uint32_t *kbd_buffer;
 
 int usb_hid_kbd_init(struct usb_dev *dev)
 {
-	int i;
+	unsigned i;
 	uint8_t key[8];
 
 	usb_hid_set_protocol(dev, 0);
