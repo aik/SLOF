@@ -30,8 +30,6 @@
 #define dprintf(_x ...)
 #endif
 
-#define MIN(a, b) ((a) > (b) ? (b) : (a))
-
 /* layout of the command request queue for vTPM; all fields are big endian */
 struct crq {
 	uint8_t valid;

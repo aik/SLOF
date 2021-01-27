@@ -53,5 +53,6 @@ extern unsigned long SLOF_get_vtpm_unit(void);
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define ROUNDUP(x,v) ((((x) + ((v) - 1)) / (v)) * (v))
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
+#define MIN(x,y) ((x) < (y) ? (x) : (y))
 
 #endif

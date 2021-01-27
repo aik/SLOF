@@ -43,8 +43,6 @@
 #define dprintf(_x ...)
 #endif
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 static struct {
 	unsigned tpm_probed:1;
 	unsigned tpm_found:1;
