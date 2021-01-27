@@ -124,7 +124,7 @@ static inline void ci_rmove(void *dst, void *src, unsigned long esize,
 
 #define FAST_MRMOVE(s, d, size) _FASTRMOVE(s, d, size)
 
-extern void fast_rfill(char *dst, long size, char pat);
+extern void fast_rfill(char *dst, unsigned long size, char pat);
 #define FAST_RFILL(dst, size, pat) fast_rfill(dst, size, pat)
 
 static inline uint16_t bswap16_load(uint64_t addr)

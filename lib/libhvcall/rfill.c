@@ -23,7 +23,7 @@ typedef unsigned long type_u;
  * local buffer - and that caused stack size problems in engine() when
  * we used it directly in the FAST_RFILL macro.
  */
-void fast_rfill(char *dst, long size, char pat)
+void fast_rfill(char *dst, unsigned long size, char pat)
 {
 	type_u buf[64];
 
