@@ -142,7 +142,7 @@ void reset_buffers(void)
 int p9_transaction(p9_connection_t *connection)
 {
 	int rc;
-	int tx_size = GET_SIZE;
+	uint32_t tx_size = GET_SIZE;
 	uint32_t rx_size = connection->message_size;
 
 	if (transact == NULL) {
@@ -248,7 +248,7 @@ int p9_version(p9_connection_t *connection)
 int p9_attach(p9_connection_t *connection)
 {
 	int rc;
-	int length = 19 + strlen(connection->uname) + strlen(connection->aname);
+	unsigned length = 19 + strlen(connection->uname) + strlen(connection->aname);
 
 	if (length > connection->message_size) {
 		return P9_MSG_TOO_LONG;
@@ -372,8 +372,8 @@ int p9_walk(p9_connection_t *connection, uint32_t fid, uint32_t new_fid,
 			s_tok = e_tok;
 			continue;
 		}
-		int tx_size = (e_tok - s_tok + 2 + GET_SIZE);
-		int rx_size = ((element_count + 1) * MSG_QID_SIZE
+		unsigned tx_size = (e_tok - s_tok + 2 + GET_SIZE);
+		unsigned rx_size = ((element_count + 1) * MSG_QID_SIZE
 				+ MSG_WALK_RX_HDR_SIZE);
 		if ((tx_size > connection->message_size)
 			|| (rx_size > connection->message_size)) {

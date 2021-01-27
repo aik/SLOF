@@ -436,7 +436,7 @@ struct vqs *virtio_queue_init_vq(struct virtio_device *dev, unsigned int id)
 void virtio_queue_term_vq(struct virtio_device *dev, struct vqs *vq, unsigned int id)
 {
 	if (vq->desc_gpas) {
-		int i;
+		unsigned i;
 
 		for (i = 0; i < vq->size; ++i)
 			virtio_free_desc(vq, i, dev->features);
