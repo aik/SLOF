@@ -389,7 +389,7 @@ elf_apply_all_rela64(void *file_addr, signed long offset, struct shdr64 *shdrs, 
 	struct rela *relaentry;
 	struct sym64 *symtabentry;
 	uint32_t symbolidx;
-	int i;
+	unsigned i;
 
 	/* If the referenced section has not been allocated, then it has
 	 * not been loaded and thus does not need to be relocated. */
@@ -481,13 +481,13 @@ uint32_t elf_get_eflags_64(void *file_addr)
  * file.
  * @return Return -1 on error, size of file otherwise.
  */
-long elf_get_file_size64(const void *buffer, const long buffer_size)
+long elf_get_file_size64(const void *buffer, const unsigned long buffer_size)
 {
 	const struct ehdr64 *ehdr = (const struct ehdr64 *) buffer;
 	const uint8_t *buffer_end = buffer + buffer_size;
 	const struct phdr64 *phdr;
 	const struct shdr64 *shdr;
-	long elf_size = -1;
+	unsigned long elf_size = 0;
 	uint16_t entsize;
 	unsigned i;
 
@@ -527,5 +527,5 @@ long elf_get_file_size64(const void *buffer, const long buffer_size)
 	if (elf_size > buffer_size)
 		return -1;
 
-	return elf_size;
+	return (long) elf_size;
 }

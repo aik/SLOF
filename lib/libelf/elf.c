@@ -202,7 +202,7 @@ elf_get_base_addr(void *file_addr)
  * buffer larger than the size of the file
  * @return  The size of the ELF image or < 0 for error
  */
-long elf_get_file_size(const void *buffer, const long buffer_size)
+long elf_get_file_size(const void *buffer, const unsigned long buffer_size)
 {
 	const struct ehdr *ehdr = (const struct ehdr *)buffer;
 

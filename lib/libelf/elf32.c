@@ -212,13 +212,13 @@ elf_byteswap_header32(void *file_addr)
  * file.
  * @return Return -1 on error, size of file otherwise.
  */
-long elf_get_file_size32(const void *buffer, const long buffer_size)
+long elf_get_file_size32(const void *buffer, const unsigned long buffer_size)
 {
 	const struct ehdr32 *ehdr = (const struct ehdr32 *) buffer;
 	const uint8_t *buffer_end = buffer + buffer_size;
 	const struct phdr32 *phdr;
 	const struct shdr32 *shdr;
-	long elf_size = -1;
+	unsigned long elf_size = 0;
 	uint16_t entsize;
 	unsigned i;
 
@@ -258,5 +258,5 @@ long elf_get_file_size32(const void *buffer, const long buffer_size)
 	if (elf_size > buffer_size)
 		return -1;
 
-	return elf_size;
+	return (long) elf_size;
 }
