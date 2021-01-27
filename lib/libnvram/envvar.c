@@ -46,7 +46,7 @@ static int get_past_env_pos(partition_t part, char *envvar, int evlen)
  * @param evlen string length of the envvar parameter
  * @return pointer to temporary string containing the value of envvar
  */
-char *nvram_get_env(partition_t part, char *envvar, int evlen)
+char *nvram_get_env(partition_t part, char *envvar, unsigned evlen)
 {
 	static char temp[256+1];
 	int len, offset;
@@ -100,10 +100,9 @@ static int find_last_envvar(partition_t part)
 	return -1;
 }
 
-int nvram_add_env(partition_t part, char *envvar, int evlen, char *value, int vallen)
+int nvram_add_env(partition_t part, char *envvar, unsigned evlen, char *value, unsigned vallen)
 {
-	int freespace, last, len, offset;
-	unsigned int i;
+	unsigned i, freespace, last, len, offset;
 
 	/* Find offset where we can write */
 	last = find_last_envvar(part);
@@ -132,7 +131,7 @@ int nvram_add_env(partition_t part, char *envvar, int evlen, char *value, int va
 	return 0;
 }
 
-int nvram_del_env(partition_t part, char *envvar, int evlen)
+int nvram_del_env(partition_t part, char *envvar, unsigned evlen)
 {
 	int last, current, pos, i;
 	char *buffer;
@@ -168,10 +167,10 @@ int nvram_del_env(partition_t part, char *envvar, int evlen)
 	return 0;
 }
 
-int nvram_set_env(partition_t part, char *envvar, int evlen, char *value, int vallen)
+int nvram_set_env(partition_t part, char *envvar, unsigned evlen, char *value, unsigned vallen)
 {
 	char *oldvalue, *buffer;
-	int last, current, buffersize, i;
+	unsigned last, current, buffersize, i;
 
 	DEBUG("nvram_set_env %lx[%lx]: %p=>%p\n", part.addr, part.len, envvar, value);
 

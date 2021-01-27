@@ -163,7 +163,7 @@ nvram_access(uint64_t, 64, qword)
  * @return pointer to temporary buffer
  */
 
-char *get_nvram_buffer(int len)
+char *get_nvram_buffer(unsigned len)
 {
 	if(len>NVRAM_LENGTH)
 		return NULL;
@@ -271,7 +271,7 @@ static uint8_t calc_partition_header_checksum(int offset)
 
 static int calc_used_nvram_space(void)
 {
-	int walk, len;
+	unsigned walk, len;
 
 	for (walk=0; walk<NVRAM_LENGTH;) {
 		if(nvram_read_byte(walk) == 0 
@@ -319,7 +319,7 @@ static int calc_used_nvram_space(void)
 partition_t get_partition(unsigned int type, char *name)
 {
 	partition_t ret={0,-1};
-	int walk, len;
+	unsigned walk, len;
 
 	DEBUG("get_partition(%i, '%s')\n", type, name);
 
@@ -416,11 +416,10 @@ int wipe_partition(partition_t partition, int header_only)
 }
 
 
-static partition_t create_nvram_partition(int type, const char *name, int len)
+static partition_t create_nvram_partition(int type, const char *name, unsigned len)
 {
 	partition_t ret = { 0, 0 };
-	int offset, plen;
-	unsigned int i;
+	unsigned i, offset, plen;
 
 	plen = ALIGN(len+PARTITION_HEADER_SIZE, 16);
 
@@ -510,7 +509,7 @@ partition_t new_nvram_partition_fs(int type, char *name, int namelen, int len)
 
 int delete_nvram_partition(partition_t partition)
 {
-	int i;
+	unsigned i;
 	partition_t free_part;
 
 	if(!partition.len || partition.len == -1)

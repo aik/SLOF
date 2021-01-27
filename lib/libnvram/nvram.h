@@ -47,7 +47,7 @@ nvram_access_proto(uint64_t, qword)
 
 /* nvram.c */
 
-char *get_nvram_buffer(int len);
+char *get_nvram_buffer(unsigned len);
 void free_nvram_buffer(char *buffer);
 int nvramlog_printf(const char* fmt, ...);
 partition_t get_partition(unsigned int type, char *name);
@@ -67,9 +67,9 @@ void nvram_init(uint32_t store_token, uint32_t fetch_token,
 unsigned int get_nvram_size(void);
 
 /* envvar.c */
-char *nvram_get_env(partition_t part, char *envvar, int evlen);
-int nvram_add_env(partition_t part, char *envvar, int evlen, char *value, int vallen);
-int nvram_del_env(partition_t part, char *envvar, int evlen);
-int nvram_set_env(partition_t part, char *envvar, int evlen, char *val, int vlen);
+char *nvram_get_env(partition_t part, char *envvar, unsigned evlen);
+int nvram_add_env(partition_t part, char *envvar, unsigned evlen, char *value, unsigned vallen);
+int nvram_del_env(partition_t part, char *envvar, unsigned evlen);
+int nvram_set_env(partition_t part, char *envvar, unsigned evlen, char *val, unsigned vlen);
 
 #endif
