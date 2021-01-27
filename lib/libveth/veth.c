@@ -164,7 +164,7 @@ static int veth_term(net_driver_t *driver)
 	return 0;
 }
 
-static int veth_receive(char *f_buffer_pc, int f_len_i, net_driver_t *driver)
+static int veth_receive(char *f_buffer_pc, unsigned f_len_i, net_driver_t *driver)
 {
 	int packet = 0;
 
@@ -223,10 +223,14 @@ static int veth_xmit(char *f_buffer_pc, int f_len_i, net_driver_t *driver)
 	return f_len_i;
 }
 
-net_driver_t *libveth_open(char *mac_addr, int mac_len, char *reg, int reg_len)
+net_driver_t *libveth_open(char *mac_addr, unsigned mac_len, char *reg, unsigned reg_len)
 {
 	net_driver_t *driver;
 
+	if (reg_len != sizeof(uint32_t)) {
+		printf("vio reg must 1 cell long\n");
+		return NULL;
+	}
 	driver = SLOF_alloc_mem(sizeof(*driver));
 	if (!driver) {
 		printf("Unable to allocate veth driver\n");

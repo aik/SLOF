@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <netdriver.h>
 
-extern net_driver_t *libveth_open(char *mac_addr, int mac_len, char *reg, int reg_len);
+extern net_driver_t *libveth_open(char *mac_addr, unsigned mac_len, char *reg, unsigned reg_len);
 extern void libveth_close(net_driver_t *driver);
 extern int libveth_read(char *buf, int len, net_driver_t *driver);
 extern int libveth_write(char *buf, int len, net_driver_t *driver);
