@@ -76,7 +76,7 @@ AR		?= $(CROSS)ar
 RANLIB		?= $(CROSS)ranlib
 CPP		?= $(CROSS)cpp
 
-WARNFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes -Wformat-security
+WARNFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes -Wformat-security -Wextra -Wno-unused-parameter
 CFLAGS ?= -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
 	  -fno-strict-aliasing -mno-altivec -mabi=no-altivec \
 	  -fno-stack-protector -fno-asynchronous-unwind-tables $(WARNFLAGS)
