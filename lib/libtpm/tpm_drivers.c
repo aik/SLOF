@@ -357,8 +357,7 @@ static bool spapr_vtpm_senddata(const uint8_t *const data, uint32_t len)
 
 static bool spapr_vtpm_waitresponseready(enum tpm_duration_type to_t)
 {
-	uint32_t timeout = tpm2_durations[to_t];
-	int i;
+	uint32_t i, timeout = tpm2_durations[to_t];
 
 	if (vtpm_drv_error_get() != VTPM_DRV_ERROR_NO_FAILURE) {
 		printf("%s: VTPM CRQ: In failure mode\n", __func__);
@@ -426,6 +425,8 @@ int spapr_transmit(uint8_t locty, struct tpm_req_header *req,
 		   void *respbuffer, uint32_t *respbufferlen,
 		   enum tpm_duration_type to_t)
 {
+	if (locty)
+		return -1;
 	if (!spapr_vtpm_senddata((uint8_t *)req, be32_to_cpu(req->totlen)) ||
 	    !spapr_vtpm_waitresponseready(to_t) ||
 	    !spapr_vtpm_readresponse(respbuffer, respbufferlen) ||

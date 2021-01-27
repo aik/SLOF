@@ -356,7 +356,7 @@ tpm_simple_cmd(uint8_t locty, uint32_t ordinal, int param_size, uint16_t param,
 
 	memset(obuffer, 0, sizeof(obuffer));
 	ret = spapr_transmit(locty, &req.trqh, obuffer, &obuffer_len, to_t);
-	ret = ret ? -1 : be32_to_cpu(trsh->errcode);
+	ret = ret ? -1 : (int) be32_to_cpu(trsh->errcode);
 	dprintf("Return from tpm_simple_cmd(%x, %x) = %x\n",
 		ordinal, param, ret);
 
@@ -382,7 +382,7 @@ tpm20_getcapability(uint32_t capability, uint32_t property, uint32_t count,
 			     TPM_DURATION_TYPE_SHORT);
 	ret = (ret ||
 	       rsize < be32_to_cpu(rsp->totlen)) ? -1
-						 : be32_to_cpu(rsp->errcode);
+						 : (int) be32_to_cpu(rsp->errcode);
 
 	dprintf("TCGBIOS: Return value from sending TPM2_CC_GetCapability = 0x%08x\n",
 		ret);
@@ -664,7 +664,7 @@ static int tpm20_write_EfiSpecIdEventStruct(void)
 	};
 	struct tpms_pcr_selection *sel;
 	void *nsel, *end;
-	int event_size;
+	unsigned event_size;
 	uint8_t *vendorInfoSize;
 	struct tpm_log_entry le = {
 		.hdr.eventtype = cpu_to_log32(EV_NO_ACTION),
@@ -1024,7 +1024,7 @@ void tpm_gpt_set_lba1(const uint8_t *addr, uint32_t length)
 		return;
 
 	memcpy(&uefi_gpt_data->EfiPartitionHeader,
-	       addr, sizeof(uefi_gpt_data->EfiPartitionHeader));
+	       addr, MIN(sizeof(uefi_gpt_data->EfiPartitionHeader), length));
 	uefi_gpt_data->NumberOfPartitions = 0;
 }
 
@@ -1252,7 +1252,7 @@ tpm20_set_pcrbanks(uint32_t active_banks)
 
 	ret = spapr_transmit(0, &trpa.hdr, &rsp, &resp_length,
 			     TPM_DURATION_TYPE_SHORT);
-	ret = ret ? -1 : be32_to_cpu(rsp.errcode);
+	ret = ret ? -1 : (int) be32_to_cpu(rsp.errcode);
 
 	return ret;
 }
