@@ -88,8 +88,9 @@ cache_inhibited_access(uint64_t, 64)
 { \
 	t *s1 = (s), *d1 = (d); \
 	register t tmp; \
-	while (size > 0) { \
-		tmp = *s1++; SET_CI; *d1++ = tmp; CLR_CI; size -= sizeof(t); \
+	register t tmp_size = size; \
+	while (tmp_size > 0) { \
+		tmp = *s1++; SET_CI; *d1++ = tmp; CLR_CI; tmp_size -= sizeof(t); \
 	} \
 }
 

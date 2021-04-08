@@ -108,6 +108,9 @@ static inline void flush_cache(void* r, long n)
 	asm volatile(EXPAND(FLUSH_CACHE(%0, %1)) : "+r"(r), "+r"(n) :: "memory", "cc", "r0", "ctr");
 }
 
+#define SET_CI set_ci()
+#define CLR_CI clr_ci()
+
 #endif /* __ASSEMBLER__ */
 
 #endif
