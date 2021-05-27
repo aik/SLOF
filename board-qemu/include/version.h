@@ -10,8 +10,8 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#ifndef _SLOF_VERSION_H
-#define _SLOF_VERSION_F
+#ifndef SLOF_VERSION_H
+#define SLOF_VERSION_H
 
 /* slof/version.S */
 extern long print_version;
