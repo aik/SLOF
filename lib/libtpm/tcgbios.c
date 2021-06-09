@@ -659,7 +659,7 @@ static int tpm20_write_EfiSpecIdEventStruct(void)
 		.hdr.platformClass = TPM_TCPA_ACPI_CLASS_CLIENT,
 		.hdr.specVersionMinor = 0,
 		.hdr.specVersionMajor = 2,
-		.hdr.specErrata = 0,
+		.hdr.specErrata = 2,
 		.hdr.uintnSize = 2,
 	};
 	struct tpms_pcr_selection *sel;
@@ -958,7 +958,8 @@ uint32_t tpm_add_event_separators(uint32_t start_pcr, uint32_t end_pcr)
 	/* event separators need to be extended and logged for PCRs 0-7 */
 	for (pcrIndex = start_pcr; pcrIndex <= end_pcr; pcrIndex++) {
 		rc = tpm_add_measurement_to_log(pcrIndex, EV_SEPARATOR,
-						NULL, 0,
+						(const char *)evt_separator,
+						sizeof(evt_separator),
 						evt_separator,
 						sizeof(evt_separator));
 		if (rc)
