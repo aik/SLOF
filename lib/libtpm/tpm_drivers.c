@@ -150,7 +150,7 @@ static bool spapr_send_crq_and_wait(unsigned long unit,
 
 	vtpm_drv_state_set(state1, VTPM_DRV_ERROR_NO_FAILURE);
 
-	rc = hv_send_crq(unit, (uint64_t *)crq);
+	rc = hv_send_crq(unit, (uint64_t *)&crq->valid);
 	if (rc != H_SUCCESS) {
 		vtpm_drv_state_set(VTPM_DRV_STATE_WAIT_INIT,
 				   VTPM_DRV_ERROR_TPM_CRQ_ERROR);
@@ -343,7 +343,7 @@ static bool spapr_vtpm_senddata(const uint8_t *const data, uint32_t len)
 	vtpm_drv_state_set(VTPM_DRV_STATE_SEND_TPM_CMD,
 			   VTPM_DRV_ERROR_NO_FAILURE);
 
-	rc = hv_send_crq(spapr_vtpm.unit, (uint64_t *)&crq);
+	rc = hv_send_crq(spapr_vtpm.unit, (uint64_t *)&crq.valid);
 
 	if (rc == H_SUCCESS)
 		vtpm_drv_state_set(VTPM_DRV_STATE_WAIT_TPM_RSP,

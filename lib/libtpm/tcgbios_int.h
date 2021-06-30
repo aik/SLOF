@@ -89,7 +89,7 @@ struct TCG_EfiSpecIdEventStruct {
 	struct TCG_EfiSpecIdEventAlgorithmSize {
 		uint16_t algorithmId;
 		uint16_t digestSize;
-	} digestSizes[0];
+	} digestSizes[];
 	/*
 	uint8_t vendorInfoSize;
 	uint8_t vendorInfo[0];
