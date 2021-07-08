@@ -37,5 +37,9 @@ uint32_t tpm_hash_log_extend_event_buffer(uint32_t pcrindex,
 					  const void *data, uint64_t datalen,
 					  const char *desc, uint32_t desclen,
 					  bool is_elf);
+uint32_t tpm_2hash_ext_log(uint32_t pcrindex,
+			   uint32_t eventtype,
+			   const char *info, uint32_t infolen,
+			   const void *data, uint64_t datalen);
 
 #endif /* TCGBIOS_H */

@@ -188,3 +188,21 @@ PRIM(tpm_X2d_hash_X2d_log_X2d_extend_X2d_event_X2d_buffer)
 					         data, datalen,
 					         desc, desclen, is_elf);
 MIRP
+
+/****************************************************************************************/
+/* Firmware API                                                                         */
+/* SLOF:   tpm-2hash-ext-log ( pcr event-type info info-len data data-len -- success? ) */
+/* LIBTPM: success = tpm-2hash-ext-log                                                  */
+/****************************************************************************************/
+PRIM(tpm_X2d_2hash_X2d_ext_X2d_log)
+	uint32_t datalen = TOS.u; POP;
+	const void *data = TOS.a; POP;
+	uint64_t infolen = TOS.u; POP;
+	const char *info = TOS.a; POP;
+	uint32_t eventtype = TOS.u; POP;
+	uint32_t pcrindex = TOS.u;
+
+	TOS.u = tpm_2hash_ext_log(pcrindex, eventtype,
+				  info, infolen,
+				  data, datalen);
+MIRP

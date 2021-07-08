@@ -46,6 +46,17 @@ LOG-SIZE BUFFER: log-base
    tpm-driver-get-failure-reason           ( reason )
 ;
 
+\ firmware API call
+: 2hash-ext-log ( pcr eventtype info info-len data data-len -- success?)
+    vtpm-debug? IF
+        ." Call to 2hash-ext-log" cr
+    THEN
+    tpm-2hash-ext-log                      ( success? )
+    dup 0= IF
+        ." VTPM: tpm-2hash-ext-log failed: " dup . cr
+    THEN
+;
+
 0 0 s" ibm,sml-efi-reformat-supported" property
 
 \ firmware API call
