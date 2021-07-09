@@ -1,0 +1,15 @@
+dist: bionic
+language: c
+
+addons:
+  apt:
+    packages:
+      - libssl-dev
+
+script:
+  - ./lib/libtpm/test.sh
+
+matrix:
+  inlcude:
+    - os: linux
+      arch: ppc64le
