@@ -15,7 +15,7 @@
  */
 
 #include "byteorder.h"
-#include "sha256.h"
+#include "sha.h"
 #include "string.h"
 
 typedef struct _sha256_ctx {

@@ -29,7 +29,7 @@
 #include "tcgbios.h"
 #include "tcgbios_int.h"
 #include "stdio.h"
-#include "sha256.h"
+#include "sha.h"
 #include "helpers.h"
 #include "version.h"
 #include "OF.h"

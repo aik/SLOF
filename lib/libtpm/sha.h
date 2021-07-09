@@ -10,11 +10,14 @@
  *     IBM Corporation - initial implementation
  *****************************************************************************/
 
-#ifndef __SHA256_H
-#define __SHA256_H
+#ifndef __SHA_H
+#define __SHA_H
 
 #include "types.h"
 
+void sha1(const uint8_t *data, uint32_t length, uint8_t *hash);
 void sha256(const uint8_t *data, uint32_t length, uint8_t *hash);
+void sha384(const uint8_t *data, uint32_t length, uint8_t *hash);
+void sha512(const uint8_t *data, uint32_t length, uint8_t *hash);
 
-#endif /* __SHA256_H */
+#endif /* __SHA_H */
