@@ -90,7 +90,7 @@ static void sha256_block(uint32_t *w, sha256_ctx *ctx)
 	 *
 	 *  0 <= i <= 15:
 	 *    W(t) = M(t)
-	 * 16 <= i <= 79:
+	 * 16 <= i <= 63:
 	 *    W(t) = sigma1(W(t-2)) + W(t-7) + sigma0(W(t-15)) + W(t-16)
 	 */
 
