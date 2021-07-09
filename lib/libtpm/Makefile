@@ -15,6 +15,7 @@ TOPCMNDIR ?= ../..
 CPPFLAGS = -I../libc/include $(CPUARCHDEF) -I$(INCLBRDDIR) \
 	   -I$(INCLCMNDIR) -I$(INCLCMNDIR)/$(CPUARCH) -I$(SLOFCMNDIR)
 CPPFLAGS += -I../libhvcall
+CPPFLAGS += $(RELEASE)
 
 LDFLAGS = -nostdlib
 

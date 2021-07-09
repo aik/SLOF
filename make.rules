@@ -79,6 +79,7 @@ CPP		?= $(CROSS)cpp
 WARNFLAGS = -Wall -Wmissing-prototypes -Wstrict-prototypes -Wformat-security -Wextra -Wno-unused-parameter
 CFLAGS ?= -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
 	  -fno-strict-aliasing -mno-altivec -mabi=no-altivec \
-	  -fno-stack-protector -fno-asynchronous-unwind-tables $(WARNFLAGS)
+	  -fno-stack-protector -fno-asynchronous-unwind-tables $(WARNFLAGS) \
+	  -fshort-wchar
 
 export CC AS LD CLEAN OBJCOPY OBJDUMP STRIP AR RANLIB CFLAGS

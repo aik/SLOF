@@ -1108,24 +1108,25 @@ uint32_t tpm_measure_gpt(void)
 
 uint32_t tpm_measure_scrtm(void)
 {
-	uint32_t rc;
-	char *version_start = strstr((char *)&print_version, "FW Version");
-	char *version_end;
-	uint32_t version_length;
+	uint32_t rc, i;
 	char *slof_text_start = (char *)&_slof_text;
 	uint32_t slof_text_length = (long)&_slof_text_end - (long)&_slof_text;
 	const char *scrtm = "S-CRTM Contents";
-
-	version_end = strchr(version_start, '\r');
-	version_length = version_end - version_start;
+#define _TT(a, x) a##x
+#define _T(a, x) _TT(a, x)
+	unsigned short ucs2_version[] = _T(L, RELEASE);
 
 	dprintf("Measure S-CRTM Version: addr = %p, length = %d\n",
-		version_start, version_length);
+		ucs2_version, ucs2_length);
+
+	for (i = 0; i < ARRAY_SIZE(ucs2_version); ++i)
+	    ucs2_version[i] = cpu_to_le16(ucs2_version[i]);
 
 	rc = tpm_add_measurement_to_log(0, EV_S_CRTM_VERSION,
-					version_start, version_length,
-					(uint8_t *)version_start,
-					version_length);
+					(char *)ucs2_version,
+					sizeof(ucs2_version),
+					(uint8_t *)ucs2_version,
+					sizeof(ucs2_version));
 	if (rc)
 		return rc;
 
