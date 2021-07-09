@@ -22,10 +22,16 @@ typedef struct _sha256_ctx {
 	uint32_t h[8];
 } sha256_ctx;
 
-static inline uint32_t rotr(uint32_t x, uint8_t n)
-{
-	return (x >> n) | (x << (32 - n));
-}
+#define rotr(VAL, N)				\
+({						\
+	uint32_t res;				\
+	__asm__ (				\
+		"rotrwi %0, %1, %2\n\t"		\
+		: "=r" (res)			\
+		: "r" (VAL), "i" (N)		\
+	);					\
+	res; 					\
+})
 
 static inline uint32_t Ch(uint32_t x, uint32_t y, uint32_t z)
 {
