@@ -203,3 +203,30 @@ void sha1(const uint8_t *data, uint32_t length, uint8_t *hash)
 	sha1_do(&ctx, data, length);
 	memcpy(hash, &ctx.h[0], 20);
 }
+
+#ifdef MAIN
+
+#include "sha_test.h"
+
+int main(void)
+{
+	TESTVECTORS(data);
+	uint8_t hash[20];
+	char input[64];
+	int err = 0;
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(data); i++)
+		err |= test_hash(sha1, hash, sizeof(hash),
+				 data[i], strlen(data[i]),
+				 SHA1);
+
+	memset(input, 'a', sizeof(input));
+	/* cover critical input size around 56 bytes */
+	for (i = 50; i < sizeof(input); i++)
+		err |= test_hash(sha1, hash, sizeof(hash),
+				 input, i, SHA1);
+
+	return err;
+}
+#endif

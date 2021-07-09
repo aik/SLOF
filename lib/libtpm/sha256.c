@@ -218,3 +218,29 @@ void sha256(const uint8_t *data, uint32_t length, uint8_t *hash)
 	sha256_do(&ctx, data, length);
 	memcpy(hash, ctx.h, sizeof(ctx.h));
 }
+
+#ifdef MAIN
+
+#include "sha_test.h"
+
+int main(void)
+{
+	TESTVECTORS(data);
+	uint8_t hash[32];
+	char input[64];
+	int err = 0;
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(data); i++)
+		err |= test_hash(sha256, hash, sizeof(hash),
+				 data[i], strlen(data[i]),
+				 SHA256);
+
+	memset(input, 'a', sizeof(input));
+	/* cover critical input size around 56 bytes */
+	for (i = 50; i < sizeof(input); i++)
+		err |= test_hash(sha256, hash, sizeof(hash), input, i, SHA256);
+
+	return err;
+}
+#endif

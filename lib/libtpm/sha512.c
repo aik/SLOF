@@ -247,3 +247,39 @@ void sha512(const uint8_t *data, uint32_t length, uint8_t *hash)
 	sha512_do(&ctx, data, length);
 	memcpy(hash, ctx.h, sizeof(ctx.h));
 }
+
+
+#ifdef MAIN
+
+#include "sha_test.h"
+
+int main(void)
+{
+	TESTVECTORS(data);
+	uint8_t hash512[64];
+	uint8_t hash384[48];
+	char input[128];
+	int err = 0;
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(data); i++) {
+		err |= test_hash(sha384, hash384, sizeof(hash384),
+				 data[i], strlen(data[i]),
+				 SHA384);
+		err |= test_hash(sha512, hash512, sizeof(hash512),
+				 data[i], strlen(data[i]),
+				 SHA512);
+	}
+
+	memset(input, 'a', sizeof(input));
+	/* cover critical input size around 112 bytes */
+	for (i = 110; i < sizeof(input); i++) {
+		err |= test_hash(sha384, hash384, sizeof(hash384),
+				 input, i, SHA384);
+		err |= test_hash(sha512, hash512, sizeof(hash512),
+				 input, i, SHA512);
+	}
+
+	return err;
+}
+#endif
