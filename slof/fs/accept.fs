@@ -140,8 +140,8 @@ CONSTANT /his
    repeat
    2drop
 
-   #sift-count 0 to #sift-count	\ how many words were found?
-   r> to sift-compl-only		\ restore sifting completion mode
+   #sift-count 0 to #sift-count         \ how many words were found?
+   r> to sift-compl-only                \ restore sifting completion mode
 ;
 
 \ 8< node sifting for tab completion on device tree nodes below this line 8<
@@ -206,7 +206,7 @@ create sift-node-buffer 1000 allot
       THEN
    REPEAT
    2drop drop
-   #sift-count 0 to #sift-count	\ how many words were found?
+   #sift-count 0 to #sift-count         \ how many words were found?
    reset-stack
 ;
 
@@ -215,14 +215,14 @@ create sift-node-buffer 1000 allot
 
    dup IF bl rsplit dup IF 2swap THEN ELSE 0 0 THEN >r >r
 
-   0 dup to tab-last-len to tab-last-adr	\ reset last possible match
-   current-node @ IF			\ if we are in a node?
-      2dup 2>r				\ save text
-      $tab-sift-words to #sift-count	\ search in current node first
-      2r>				\ fetch text to complete, again
+   0 dup to tab-last-len to tab-last-adr  \ reset last possible match
+   current-node @ IF                      \ if we are in a node?
+      2dup 2>r                            \ save text
+      $tab-sift-words to #sift-count      \ search in current node first
+      2r>                                 \ fetch text to complete, again
    THEN
    2dup 2>r
-   current-node @ >r 0 set-node		\ now search in global words
+   current-node @ >r 0 set-node           \ now search in global words
    $tab-sift-words to #sift-count
    r> set-node
    2r> $tab-sift-nodes
@@ -256,8 +256,8 @@ create sift-node-buffer 1000 allot
       ELSE
          tab-last-adr accept-adr tab-last-len move    \ copy matching substring
          tab-last-len dup to accept-len to accept-cur \ len and cursor position
-         full-redraw-line		\ redraw new string
-         true to ?tab-pressed	\ second tab will print possible matches
+         full-redraw-line       \ redraw new string
+         true to ?tab-pressed   \ second tab will print possible matches
       THEN
    THEN
 ;
@@ -400,7 +400,7 @@ TABLE-EXECUTE handle-control
             dup a0 < IF 7f and handle-meta ELSE drop beep THEN
          ELSE
             insert-char
-	 THEN
+         THEN
       THEN
    REPEAT
    drop add-history
