@@ -9,7 +9,7 @@ addons:
 script:
   - ./lib/libtpm/test.sh
 
-matrix:
-  inlcude:
+jobs:
+  include:
     - os: linux
       arch: ppc64le
