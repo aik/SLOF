@@ -266,6 +266,20 @@ New assembly code submitted to SLOF should follow the coding style
 guidelines for the Linux kernel [4], i.e. indent with tabs, not with spaces.
 
 
+6.0 Tips and tricks
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+- Note that the serial console support is written with serial terminals in
+  mind. Thus SLOF only looks for CR (0x0d) characters as line endings at the
+  command prompt. If you want to connect to the console with a program like
+  "ncat" for example, you have to make sure that it indeed sends CR characters
+  instead of plain LF (0x0a) characters. For ncat that means that you have to
+  use "nc -C ..." to enable the CR-LF mode, or even better, switch the terminal
+  to raw mode instead, for example like this:
+
+    stty raw -echo ; nc -U /path/to/chardev-socket-from-qemu ; stty sane
+
+
 Documentation
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
