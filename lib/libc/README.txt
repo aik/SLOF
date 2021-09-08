@@ -29,7 +29,7 @@ library:
    The stdio functions will print their output to the stdout channel which is
    assigned with the file descriptor 1 by default. Note that the stdio
    functions will not use open() before calling write(), so if the stdout
-   cannel needs to be opened first, you should do that in your start-up code
+   channel needs to be opened first, you should do that in your start-up code
    before using the libc functions for the first time.
    
 3) Before you can use the stdio input functions like scanf() and the
@@ -44,6 +44,6 @@ library:
    The stdio functions will get their input from the stdin channel which is
    assigned with the file descriptor 0 by default. Note that the stdio
    functions will not use open() before calling read(), so if the stdin
-   cannel needs to be opened first, you should do that in your start-up code
+   channel needs to be opened first, you should do that in your start-up code
    before using the libc functions for the first time.
    
