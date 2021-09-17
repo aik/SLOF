@@ -620,6 +620,7 @@ static void tpm_set_failure(void)
 {
 	tpm20_hierarchycontrol(TPM2_RH_ENDORSEMENT, TPM2_NO);
 	tpm20_hierarchycontrol(TPM2_RH_OWNER, TPM2_NO);
+	tpm20_hierarchycontrol(TPM2_RH_PLATFORM, TPM2_NO);
 
 	tpm_state.tpm_working = false;
 }
