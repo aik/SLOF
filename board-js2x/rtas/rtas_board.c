@@ -23,6 +23,19 @@ void io_init(void);
 short reg_get_flashside(void);
 void rtas_init(void);
 
+void (*bmc_system_reboot) (void);
+void (*bmc_power_off) (void);
+
+short (*bmc_set_flashside) (short mode);
+short (*bmc_get_flashside) (void);
+int (*bmc_stop_bootwatchdog) (void);
+int (*bmc_set_bootwatchdog) (unsigned short);
+
+uint32_t(*bmc_read_vpd) (uint8_t * dst, uint32_t len, uint32_t offset);
+uint32_t(*bmc_write_vpd) (uint8_t * src, uint32_t len, uint32_t offset);
+
+uint32_t(*bmc_get_blade_descr) (uint8_t * dst, uint32_t maxlen, uint32_t * len);
+
 typedef struct {
 	uint64_t r3;
 	uint64_t addr;
@@ -36,7 +49,7 @@ rtas_slave_loop(volatile slave_t * pIface)
 {
 	uint64_t mask = pIface->id;
 	pIface->id = 0;
-	while (pIface->id != mask); {
+	while (pIface->id != mask) {
 		int dly = 0x1000;
 		while (dly--);
 	}

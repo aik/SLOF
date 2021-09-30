@@ -25,11 +25,11 @@ $(SUBDIRS):
 
 # Rules for making clean:
 clean:
-	@for dir in $(SUBDIRS); do \
+	@for dir in $(COMMON_LIBS); do \
 		$(MAKE) -C $$dir clean || exit 1; \
 	done
 
 distclean:
-	@for dir in $(SUBDIRS); do \
+	@for dir in $(COMMON_LIBS); do \
 		$(MAKE) -C $$dir distclean || exit 1; \
 	done

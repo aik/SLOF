@@ -54,7 +54,7 @@ $OBJCOPY -O binary $TMP2.o $TMP2.bin || exit -1
 # Create the relocation table with gen_reloc_table:
 $DIRNAME/gen_reloc_table $TMP1.bin $TMP2.bin reloc_table.bin
 
-$LD -o reloc_table.o -bbinary reloc_table.bin -e0 || exit -1
+$LD -r -o reloc_table.o -bbinary reloc_table.bin -e0 || exit -1
 $OBJCOPY --rename-section .data=.reloc reloc_table.o reloc_table.o || exit -1
 
 rm -f $TMP1.o $TMP2.o $TMP1.bin $TMP2.bin reloc_table.bin
