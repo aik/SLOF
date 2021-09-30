@@ -49,10 +49,6 @@ ifeq ($(V),0)
 Q		:= @
 MAKEFLAGS	+= --silent
 MAKE		+= -s
-else
-CURDIR=$(shell pwd)
-%.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $(CURDIR)/$<
 endif
 
 ifeq ($(V),1)
@@ -83,3 +79,4 @@ CFLAGS ?= -g -O2 -fno-builtin -ffreestanding -nostdinc -msoft-float \
 	  -fshort-wchar
 
 export CC AS LD CLEAN OBJCOPY OBJDUMP STRIP AR RANLIB CFLAGS
+
