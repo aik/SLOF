@@ -120,7 +120,7 @@ ssize_t write (int fd, const void *buf, size_t len)
 	char dest_buf[512];
 	char *dest_buf_ptr;
 	const char *dbuf = buf;
-	int i;
+	size_t i;
 
 	if (fd == 1 || fd == 2) {
 		dest_buf_ptr = &dest_buf[0];

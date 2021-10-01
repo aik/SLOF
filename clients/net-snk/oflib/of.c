@@ -481,7 +481,7 @@ map_one_range(uint64_t *addr, int type, uint32_t *ranges, uint32_t nac,
 	uint64_t cm, size, pm;
 	/* only check for the type if nac == 3 (PCI) */
 	DEBUG_TR("type %x, nac %x\n", ranges[0], nac);
-	if (((ranges[0] & 0x03000000) >> 24) != type && nac == 3)
+	if ((((int)ranges[0] & 0x03000000) >> 24) != type && nac == 3)
 		return -1;
 	/* okay, it is the same type let's see if we find a mapping */
 	size = get_dt_address(ranges + nac + pnac, nsc);

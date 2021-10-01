@@ -269,7 +269,7 @@ static uint8_t calc_partition_header_checksum(int offset)
 	return checksum;
 }
 
-static int calc_used_nvram_space(void)
+static unsigned int calc_used_nvram_space(void)
 {
 	unsigned walk, len;
 
