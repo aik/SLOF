@@ -441,10 +441,9 @@ static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned char *packet,
 {
 	int i;
 	unsigned long checksum;
-	const int ip6size = sizeof(struct ip6hdr)/sizeof(unsigned short);
 	union {
 		struct ip6hdr ip6h;
-		unsigned short raw[ip6size];
+		uint16_t raw[sizeof(struct ip6hdr) / sizeof(uint16_t)];
 	} pseudo;
 
 	memcpy (&pseudo.ip6h, ip6h, sizeof(struct ip6hdr));
@@ -455,7 +454,7 @@ static unsigned short ip6_checksum(struct ip6hdr *ip6h, unsigned char *packet,
 	for (checksum = 0, i = 0; i < bytes; i += 2)
 		checksum += (packet[i] << 8) | packet[i + 1];
 
-	for (i = 0; i < ip6size; i++)
+	for (i = 0; i < (int)(sizeof(pseudo.raw) / sizeof(pseudo.raw[0])); i++)
 		checksum += pseudo.raw[i];
 
 	checksum = (checksum >> 16) + (checksum & 0xffff);
