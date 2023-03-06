@@ -52,8 +52,8 @@ ASM_ENTRY(msg_e_ierror)
  *        R4 - handling suggestion
  *        R5 - error string reference
  *        R6 - error number
- * 
- * Return: 
+ *
+ * Return:
  *        if possible input to H8 and NVRAM log and console , then reboot/halt
  *
  * Input definitions:
@@ -70,7 +70,7 @@ ASM_ENTRY(boot_abort)
 	mr	r30, r4
 	mr	r29, r5
 	mr	r28, r6
-	
+
 	/* check if i/o is possible, if yes then print message */
 	li	r10, ABORT_CANIO
 	and.	r3, r31, r10
