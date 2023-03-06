@@ -488,7 +488,7 @@ constant <colon>
 ;
 
 \ peek/poke minimal implementation, just to support FCode drivers
-\ Any implmentation with full error detection will be platform specific
+\ Any implementation with full error detection will be platform specific
 : cpeek ( addr -- false | byte true ) c@ true ;
 : cpoke ( byte addr -- success? ) c! true ;
 : wpeek ( addr -- false | word true ) w@ true ;
