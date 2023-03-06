@@ -42,7 +42,7 @@
  *	last initialisation.
  *	Flags are not checked!
  *
- *	Retrun 0 if no manimulation was found 1 else
+ *	Return 0 if no manipulation was found, otherwise return 1
  *
  *	input:
  *			r3 - NVRAM Base Address 
@@ -91,8 +91,8 @@ ASM_ENTRY(checkLogHeaderData)
 /*****************************************************************************
  * checkLogPartition:	check Partition Header entries and Checksum
  *			check also the NVRAM-Log-Partition CRC
- *			if Partition is not ok set the following bits to 1
- *			bit 1:	if Partiton Header Checksum is corrupt
+ *			if partition is not ok set the following bits to 1
+ *			bit 1:	if partition header checksum is corrupt
  *			bit 2: 	if CRC is corrupt
  *			bit 3: 	if Header entries are corrupt
  *						
@@ -312,7 +312,7 @@ ENTRY(writeLogByteBE1)
  * calPartitionHeaderChecksum: 	calculate the Checksum of the 
  *	Partition Header as described in ....
  *
- *	input: r3 - NVRAM BASE adresse
+ *	input: r3 - NVRAM BASE address
  *
  *	output:	R3 - the calculated checksum as 8 bit value 
  *			R4 - NVRAM log address

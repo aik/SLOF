@@ -48,7 +48,7 @@ ASM_ENTRY(msg_e_ierror)
  * Boot Abort Handler
  *
  * Input:
- *        R3 - capability informatin (i/o etc.)
+ *        R3 - capability information (i/o etc.)
  *        R4 - handling suggestion
  *        R5 - error string reference
  *        R6 - error number
