@@ -95,7 +95,13 @@ createHeaderImage(int notime)
 
 	if (!notime) {
 		/* read time and write it into data stream */
-		if ((caltime = time(NULL)) == -1) {
+		char *source_date_epoch;
+		/* This assumes that (if set) the SOURCE_DATE_EPOCH environment variable
+		   will contain a correct, positive integer in the time_t range */
+		if ((source_date_epoch = getenv("SOURCE_DATE_EPOCH")) == NULL ||
+		    (caltime = (time_t)strtoll(source_date_epoch, NULL, 10)) <= 0)
+			caltime = time(NULL);
+		if (caltime == -1) {
 			printf("time error\n");
 		}
 		if ((tm = localtime(&caltime)) == NULL) {
