@@ -16,7 +16,7 @@
 
 # CROSS is the prefix of your cross-compiler.
 # You can override this variable in your environment (export CROSS=...).
-ARCH := $(shell uname -p)
+ARCH := $(shell uname -m)
 
 # Auto-detect ppc64
 ifeq (ppc64,$(findstring ppc64,$(ARCH)))
@@ -26,7 +26,7 @@ ifeq (ppc64,$(findstring ppc64,$(ARCH)))
   endif
 CROSS		?=
 else
-CROSS		?= powerpc64-linux-
+CROSS		?= powerpc64-unknown-linux-gnu-
 endif
 
 CELLSIZE	?= 64
