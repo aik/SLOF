@@ -41,5 +41,6 @@ uint32_t tpm_2hash_ext_log(uint32_t pcrindex,
 			   uint32_t eventtype,
 			   const char *info, uint32_t infolen,
 			   const void *data, uint64_t datalen);
+uint32_t tpm_get_maximum_cmd_size(void);
 
 #endif /* TCGBIOS_H */

@@ -967,6 +967,11 @@ uint32_t tpm_2hash_ext_log(uint32_t pcrindex,
 	return 0; // FALSE
 }
 
+uint32_t tpm_get_maximum_cmd_size(void)
+{
+	return PAPR_VTPM_MAX_BUFFER_SIZE;
+}
+
 /*
  * Add an EV_ACTION measurement to the list of measurements
  */

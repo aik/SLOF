@@ -57,6 +57,14 @@ LOG-SIZE BUFFER: log-base
     THEN
 ;
 
+\ firmware API call
+: get-maximum-cmd-size ( -- max-size )
+    vtpm-debug? IF
+        ." Call to get-maximum-cmd-size" cr
+    THEN
+    tpm-get-maximum-cmd-size               ( max-size )
+;
+
 0 0 s" ibm,sml-efi-reformat-supported" property
 
 \ firmware API call

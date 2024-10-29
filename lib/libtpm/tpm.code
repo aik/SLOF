@@ -206,3 +206,13 @@ PRIM(tpm_X2d_2hash_X2d_ext_X2d_log)
 				  info, infolen,
 				  data, datalen);
 MIRP
+
+/****************************************************************************************/
+/* Firmware API                                                                         */
+/* SLOF:   tpm-get-maximum-cmd-size ( -- max-size )                                     */
+/* LIBTPM: maxsize = tpm-get-maximum-cmd-size                                           */
+/****************************************************************************************/
+PRIM(tpm_X2d_get_X2d_maximum_X2d_cmd_X2d_size)
+	PUSH;
+	TOS.u = tpm_get_maximum_cmd_size();
+MIRP
