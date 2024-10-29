@@ -972,6 +972,29 @@ uint32_t tpm_get_maximum_cmd_size(void)
 	return PAPR_VTPM_MAX_BUFFER_SIZE;
 }
 
+uint32_t tpm_pass_through_to_tpm(void *buffer, uint32_t cmd_size)
+{
+	unsigned char respbuffer[PAPR_VTPM_MAX_BUFFER_SIZE];
+	uint32_t respbufferlen = sizeof(respbuffer);
+	struct tpm_req_header *hdr = buffer;
+	int ret;
+
+	if (cmd_size < sizeof(struct tpm_req_header))
+		return 0;
+
+	if (cmd_size != be32_to_cpu(hdr->totlen))
+		return 0;
+
+	ret = spapr_transmit(0, buffer, respbuffer, &respbufferlen,
+			     TPM_DURATION_TYPE_LONG);
+	if (ret)
+		return 0;
+
+	memcpy(buffer, respbuffer, respbufferlen);
+
+	return respbufferlen;
+}
+
 /*
  * Add an EV_ACTION measurement to the list of measurements
  */

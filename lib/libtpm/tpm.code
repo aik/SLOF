@@ -216,3 +216,14 @@ PRIM(tpm_X2d_get_X2d_maximum_X2d_cmd_X2d_size)
 	PUSH;
 	TOS.u = tpm_get_maximum_cmd_size();
 MIRP
+
+/****************************************************************************************/
+/* SLOF:   tpm-pass-through-to-tpm ( buf-addr cmd-size -- rsp-size )                    */
+/* LIBTPM: rsp_size = tpm-pass-through-to-tpm                                           */
+/****************************************************************************************/
+PRIM(tpm_X2d_pass_X2d_through_X2d_to_X2d_tpm)
+	uint32_t cmd_size = TOS.u; POP;
+	void *buf = TOS.a;
+
+	TOS.u = tpm_pass_through_to_tpm(buf, cmd_size);
+MIRP

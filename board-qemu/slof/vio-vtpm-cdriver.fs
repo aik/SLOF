@@ -58,6 +58,17 @@ LOG-SIZE BUFFER: log-base
 ;
 
 \ firmware API call
+: pass-through-to-tpm ( buf-addr cmd-size -- rsp-size )
+    vtpm-debug? IF
+        ." Call to pass-through-to-tpm" cr
+    THEN
+    tpm-pass-through-to-tpm                ( rsp-size )
+    vtpm-debug? IF
+        ." VTPM: tpm-pass-through-to-tpm returned size: " dup . cr
+    THEN
+;
+
+\ firmware API call
 : get-maximum-cmd-size ( -- max-size )
     vtpm-debug? IF
         ." Call to get-maximum-cmd-size" cr
