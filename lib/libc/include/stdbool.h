@@ -13,7 +13,7 @@
 #ifndef _STDBOOL_H
 #define _STDBOOL_H
 
-#ifndef __cplusplus
+#if !defined(__cplusplus) && __STDC_VERSION__ < 202311L
 typedef enum { false = 0, true } bool;
 #endif
 
