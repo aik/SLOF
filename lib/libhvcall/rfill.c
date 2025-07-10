@@ -15,7 +15,10 @@
 #include <cache.h>
 #include <string.h>
 
-typedef unsigned long type_u;
+typedef unsigned char	type_c;		// 1 byte
+typedef unsigned short	type_w;		// 2 bytes
+typedef unsigned int	type_l;		// 4 bytes
+typedef unsigned long	type_u;		// cell size
 
 /**
  * fast_rfill is the implementation of the FAST_RFILL macro with h-calls.
